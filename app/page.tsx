@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
 
 export default function Home() {
-  const [data, setData] = useState([])
+  const [data, setDatas] = useState<any[]>([])
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export default function Home() {
       if (error) console.error('Error:', error)
       else {
         console.log('Data received:', data)
-        setData(data || [])
+        setDatas(data || [])
       }
     }
     fetchData()
@@ -30,13 +30,13 @@ export default function Home() {
     )
   )
 
-  const copyToClipboard = (row) => {
+  const copyToClipboard = (row: any) => {
     const text = Object.entries(row).map(([key, val]) => `${key}: ${val}`).join('\n')
     navigator.clipboard.writeText(text)
     alert('Details copied to clipboard!')
   }
 
-  const shareItem = (row) => {
+  const shareItem = (row: any) => {
     const text = Object.entries(row).map(([key, val]) => `${key}: ${val}`).join('\n')
     if (navigator.share) {
       navigator.share({ title: 'MLiang Listing', text })
