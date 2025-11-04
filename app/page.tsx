@@ -12,6 +12,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!supabase) return
       console.log('Fetching data...')
       const { data, error } = await supabase.from('mlianglistings').select('*')
       console.log('Response:', { data, error })
