@@ -13,6 +13,7 @@ export default function CrudTable({ data, onDataChange }: CrudTableProps) {
   const [formData, setFormData] = useState<any>({});
   const [filters, setFilters] = useState<{[key: string]: string}>({});
   const [sortConfig, setSortConfig] = useState<{column: string, direction: 'asc' | 'desc'} | null>(null);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
   const filteredData = data.filter(row => {
     return Object.keys(filters).every(column => {
@@ -91,13 +92,49 @@ export default function CrudTable({ data, onDataChange }: CrudTableProps) {
     else onDataChange();
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(filteredData.map(row => row['Property ID'])))
+    } else {
+      setSelectedRows(new Set())
+    }
+  }
+
+  const handleRowSelect = (propertyId: number, checked: boolean) => {
+    const newSelected = new Set(selectedRows)
+    if (checked) {
+      newSelected.add(propertyId)
+    } else {
+      newSelected.delete(propertyId)
+    }
+    setSelectedRows(newSelected)
+  }
+
   return (
     <div>
-      <button onClick={openCreateDialog}>Add Property</button>
+      <div style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
+        <button onClick={openCreateDialog}>Add Property</button>
+        {selectedRows.size === 1 && (
+          <button onClick={() => {
+            const selectedId = Array.from(selectedRows)[0]
+            const selectedRow = filteredData.find(row => row['Property ID'] === selectedId)
+            if (selectedRow) openEditDialog(selectedRow)
+          }} style={{ backgroundColor: '#28a745', color: 'white' }}>
+            Edit Selected
+          </button>
+        )}
+      </div>
       
       <table>
         <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
           <tr>
+            <th>
+              <input
+                type="checkbox"
+                checked={filteredData.length > 0 && selectedRows.size === filteredData.length}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+              />
+            </th>
             {data.length > 0 && Object.keys(data[0]).map(column => (
               <th key={column}>
                 <div 
@@ -136,7 +173,19 @@ export default function CrudTable({ data, onDataChange }: CrudTableProps) {
         </thead>
         <tbody>
           {filteredData.map(row => (
-            <tr key={row['Property ID']}>
+            <tr 
+              key={row['Property ID']}
+              style={{ 
+                backgroundColor: selectedRows.has(row['Property ID']) ? '#e3f2fd' : 'transparent'
+              }}
+            >
+              <td>
+                <input
+                  type="checkbox"
+                  checked={selectedRows.has(row['Property ID'])}
+                  onChange={(e) => handleRowSelect(row['Property ID'], e.target.checked)}
+                />
+              </td>
               {Object.keys(row).map(column => (
                 <td key={column} style={column === 'Notes' ? { textAlign: 'left', whiteSpace: 'pre-wrap' } : {}}>
                   {row[column]}
