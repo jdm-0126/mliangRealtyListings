@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 import DataTable from 'react-data-table-component';
 
@@ -13,6 +13,8 @@ export default function Dashboard() {
   const [isMobile, setIsMobile] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [filteredData, setFilteredData] = useState<any[]>([]);
+  const [sortBy, setSortBy] = useState('Property ID');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const fetchData = useCallback(async () => {
     if (!supabase) {
@@ -36,17 +38,29 @@ export default function Dashboard() {
   }, [fetchData]);
 
   useEffect(() => {
-    if (!searchText) {
-      setFilteredData(data);
-    } else {
-      const filtered = data.filter(row =>
+    let filtered = data;
+    if (searchText) {
+      filtered = data.filter(row =>
         Object.values(row).some(value =>
           String(value).toLowerCase().includes(searchText.toLowerCase())
         )
       );
-      setFilteredData(filtered);
     }
-  }, [data, searchText]);
+    
+    // Sort the filtered data
+    filtered.sort((a, b) => {
+      const aVal = sortBy === 'Property ID' ? Number(a[sortBy]) || 0 : String(a[sortBy] || '').toLowerCase();
+      const bVal = sortBy === 'Property ID' ? Number(b[sortBy]) || 0 : String(b[sortBy] || '').toLowerCase();
+      
+      if (sortBy === 'Property ID') {
+        return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      } else {
+        return sortOrder === 'asc' ? (aVal as string).localeCompare(bVal as string) : (bVal as string).localeCompare(aVal as string);
+      }
+    });
+    
+    setFilteredData(filtered);
+  }, [data, searchText, sortBy, sortOrder]);
 
   const columns = data.length > 0 ? Object.keys(data[0]).map(key => ({
     name: key,
@@ -54,7 +68,7 @@ export default function Dashboard() {
     sortable: true,
     wrap: true,
     omit: isMobile && !['Property ID', 'Village', 'Location'].includes(key),
-    cell: (row: any) => {
+    cell: (row: any): React.ReactNode => {
       if (key.toLowerCase().includes('photo') && row[key]) {
         return <a href={String(row[key])} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>Show photos</a>;
       }
@@ -64,9 +78,7 @@ export default function Dashboard() {
 
   const handleCreate = async () => {
     if (!supabase) return;
-    const maxId = Math.max(...data.map(row => Number(row['Property ID']) || 0), 0);
-    const newData = { ...formData, 'Property ID': maxId + 1 };
-    const { error } = await supabase.from('mlianglistings').insert(newData);
+    const { error } = await supabase.from('mlianglistings').insert(formData);
     if (error) alert(`Error: ${error.message}`);
     else { setOpenDialog(false); setFormData({}); fetchData(); }
   };
@@ -117,7 +129,17 @@ export default function Dashboard() {
       ) : (
         <div>
           <div style={{ marginBottom: '15px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            <button onClick={() => { setEditingRow(null); setFormData({ Status: 'Draft', Type: 'Residential', CGT: 'Seller', 'Transfer Title': 'Buyer' }); setOpenDialog(true); }} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px' }}>+ Add</button>
+            <button onClick={() => { setEditingRow(null); const maxId = Math.max(...data.map(row => Number(row['Property ID']) || 0), 0); setFormData({ 'Property ID': maxId + 1, Status: 'Draft', Type: 'Residential', CGT: 'Seller', 'Transfer Title': 'Buyer' }); setOpenDialog(true); }} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px' }}>+ Add</button>
+            <button onClick={() => window.location.href = '/upload'} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px' }}>📤 Upload</button>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '8px 12px', fontSize: '14px', border: '1px solid #ddd', borderRadius: '4px' }}>
+              <option value="Property ID">Sort by ID</option>
+              <option value="Village">Sort by Village</option>
+              <option value="Location">Sort by Location</option>
+              <option value="Type">Sort by Type</option>
+            </select>
+            <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }}>
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
             {selectedRows.length === 1 && <button onClick={() => { setEditingRow(selectedRows[0]); setFormData({ ...selectedRows[0] }); setOpenDialog(true); }} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>Edit</button>}
             {selectedRows.length > 0 && <button onClick={handleDelete} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px' }}>Delete ({selectedRows.length})</button>}
           </div>
@@ -129,25 +151,35 @@ export default function Dashboard() {
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: '100%', padding: '10px', fontSize: '14px', border: '1px solid #ddd', borderRadius: '4px' }}
             />
+            {searchText && (
+              <p style={{ marginTop: '8px', fontSize: '14px', color: '#666' }}>
+                Showing {filteredData.length} out of {data.length} records
+              </p>
+            )}
           </div>
           {isMobile ? (
             <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: '1fr' }}>
-              {filteredData.map((row, i) => (
-                <div key={row['Property ID'] || i} style={{ border: '1px solid #ddd', borderRadius: '6px', padding: '12px', backgroundColor: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ flex: 1 }}>
-                    {Object.entries(row).map(([key, val]) => (
-                      <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #f0f0f0', wordBreak: 'break-word' }}>
-                        <span style={{ fontWeight: '500', fontSize: '13px', color: '#666', minWidth: '80px' }}>{key}:</span>
-                        <span style={{ fontSize: '13px', textAlign: 'right', marginLeft: '10px', flex: 1 }}>
-                          {key.toLowerCase().includes('photo') && val ? (
-                            <a href={String(val)} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>Show photos</a>
-                          ) : (
-                            String(val)
-                          )}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+              {filteredData.map((row, i) => {
+                const photoField = Object.entries(row).find(([key]) => key.toLowerCase().includes('photo'));
+                const photoUrl = photoField ? photoField[1] : null;
+                
+                return (
+                  <div key={row['Property ID'] || i} style={{ border: '1px solid #ddd', borderRadius: '6px', padding: '12px', backgroundColor: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
+                    
+                    <div style={{ flex: 1 }}>
+                      {Object.entries(row).map(([key, val]) => (
+                        <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #f0f0f0', wordBreak: 'break-word' }}>
+                          <span style={{ fontWeight: '500', fontSize: '13px', color: '#666', minWidth: '80px' }}>{key}:</span>
+                          <span style={{ fontSize: '13px', textAlign: 'right', marginLeft: '10px', flex: 1 }}>
+                            {key.toLowerCase().includes('photo') && val ? (
+                              <a href={String(val)} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>Show photos</a>
+                            ) : (
+                              String(val)
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   <div style={{ display: 'flex', gap: '3px', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f0f0f0', flexShrink: 0 }}>
                     <button
                       onClick={() => { setEditingRow(row); setFormData({ ...row }); setOpenDialog(true); }}
@@ -155,6 +187,7 @@ export default function Dashboard() {
                     >
                       Edit
                     </button>
+
                     <button
                       onClick={() => copyToClipboard(row)}
                       style={{ flex: 1, padding: '6px 4px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px', minHeight: '28px' }}
@@ -169,7 +202,8 @@ export default function Dashboard() {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <DataTable
@@ -194,7 +228,7 @@ export default function Dashboard() {
                   {data.length > 0 && Object.keys(data[0]).map(key => (
                     <div key={key}>
                       <label style={{ display: 'block', fontSize: isMobile ? '13px' : '14px', marginBottom: '4px', fontWeight: '500' }}>{key}:</label>
-                      {key === 'Property ID' && editingRow ? (
+                      {key === 'Property ID' ? (
                         <input type="text" value={formData[key] || ''} disabled style={{ width: '100%', padding: isMobile ? '12px 8px' : '8px', backgroundColor: '#f0f0f0', border: '1px solid #ddd', borderRadius: '4px', fontSize: isMobile ? '16px' : '14px' }} />
                       ) : key === 'Status' ? (
                         <select value={formData[key] || 'Draft'} onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))} style={{ width: '100%', padding: isMobile ? '12px 8px' : '8px', border: '1px solid #ddd', borderRadius: '4px', fontSize: isMobile ? '16px' : '14px' }}><option value="Draft">Draft</option><option value="Active">Active</option></select>
