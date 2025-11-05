@@ -94,7 +94,7 @@ export default function Home() {
   }, [])
 
   const handleFormChange = useCallback((key: string, value: string) => {
-    setFormData(prev => ({ ...prev, [key]: value }))
+    setFormData((prev: any) => ({ ...prev, [key]: value }))
   }, [])
 
   const getRowText = useCallback((row: any) => 
