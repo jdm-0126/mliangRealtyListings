@@ -18,11 +18,12 @@ import {
 } from 'lucide-react'
 
 interface PropertyCardProps {
-  property: any
-  onEdit: (property: any) => void
-  onShare: (property: any) => void
-  onCopy: (property: any) => void
-  onFacebookPost: (property: any) => void
+  property: any;
+  viewMode: 'grid' | 'list';
+  onEdit?: (property: any) => void;
+  onShare?: (property: any) => void;
+  onCopy?: (property: any) => void;
+  onFacebookPost?: (property: any) => void;
 }
 
 export default function PropertyCard({ 
@@ -30,7 +31,8 @@ export default function PropertyCard({
   onEdit, 
   onShare, 
   onCopy, 
-  onFacebookPost 
+  onFacebookPost,
+  viewMode,
 }: PropertyCardProps) {
   const hasPhotos = Object.keys(property).some(key => 
     key.toLowerCase().includes('photo') && property[key]
@@ -151,7 +153,7 @@ export default function PropertyCard({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onEdit(property)}
+          onClick={() => onEdit?.(property)}
           className="flex-1"
         >
           <Edit className="w-4 h-4 mr-1" />
@@ -161,7 +163,7 @@ export default function PropertyCard({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onFacebookPost(property)}
+          onClick={() => onFacebookPost?.(property)}
           className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
         >
           <Share2 className="w-4 h-4 mr-1" />

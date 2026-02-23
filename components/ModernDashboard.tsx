@@ -391,6 +391,7 @@ PRC NO. 0019653
               <PropertyCard
                 key={property['Property ID']}
                 property={property}
+                viewMode={viewMode}
                 onEdit={handleEdit}
                 onShare={shareItem}
                 onCopy={copyToClipboard}
