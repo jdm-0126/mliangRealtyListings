@@ -1,0 +1,199 @@
+'use client'
+
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Badge } from '../../components/ui/badge'
+import { Settings, User, Database, Bell, Shield, Palette } from 'lucide-react'
+
+export default function SettingsPage() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
+          <p className="text-gray-600">Manage your application preferences and configuration</p>
+        </div>
+
+        <div className="space-y-6">
+          {/* Profile Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <User className="w-5 h-5 mr-2" />
+                Profile Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Business Name
+                  </label>
+                  <Input defaultValue="M. Liang Realty" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    PRC License Number
+                  </label>
+                  <Input defaultValue="0019653" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contact Number
+                  </label>
+                  <Input defaultValue="09393440944" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <Input type="email" placeholder="contact@mliangrealty.com" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Business Address
+                </label>
+                <Input placeholder="Enter your business address" />
+              </div>
+              <Button>Save Profile</Button>
+            </CardContent>
+          </Card>
+
+          {/* Database Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Database className="w-5 h-5 mr-2" />
+                Database Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                <div>
+                  <h3 className="font-medium text-green-900">Supabase Connection</h3>
+                  <p className="text-sm text-green-700">Connected and operational</p>
+                </div>
+                <Badge variant="success">Active</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Table Name
+                  </label>
+                  <Input defaultValue="mlianglistings" disabled />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Records Count
+                  </label>
+                  <Input defaultValue="Loading..." disabled />
+                </div>
+              </div>
+              <Button variant="outline">Test Connection</Button>
+            </CardContent>
+          </Card>
+
+          {/* Notification Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Bell className="w-5 h-5 mr-2" />
+                Notifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">New Property Alerts</h3>
+                    <p className="text-sm text-gray-600">Get notified when new properties are added</p>
+                  </div>
+                  <input type="checkbox" className="toggle" defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Status Updates</h3>
+                    <p className="text-sm text-gray-600">Receive updates when property status changes</p>
+                  </div>
+                  <input type="checkbox" className="toggle" defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Facebook Integration</h3>
+                    <p className="text-sm text-gray-600">Enable Facebook posting features</p>
+                  </div>
+                  <input type="checkbox" className="toggle" defaultChecked />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Security Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Shield className="w-5 h-5 mr-2" />
+                Security & Privacy
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Two-Factor Authentication</h3>
+                    <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
+                  </div>
+                  <Button variant="outline" size="sm">Enable</Button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Session Timeout</h3>
+                    <p className="text-sm text-gray-600">Automatically log out after inactivity</p>
+                  </div>
+                  <select className="px-3 py-1 border border-gray-300 rounded-md text-sm">
+                    <option>30 minutes</option>
+                    <option>1 hour</option>
+                    <option>2 hours</option>
+                    <option>Never</option>
+                  </select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Appearance Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Palette className="w-5 h-5 mr-2" />
+                Appearance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div>
+                  <h3 className="font-medium mb-2">Theme</h3>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">Light</Button>
+                    <Button variant="outline" size="sm">Dark</Button>
+                    <Button variant="outline" size="sm">System</Button>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-medium mb-2">Default View</h3>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">Grid</Button>
+                    <Button variant="outline" size="sm">List</Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}

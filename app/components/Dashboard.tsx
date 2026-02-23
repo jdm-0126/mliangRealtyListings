@@ -266,18 +266,18 @@ PRC NO. 0019653
         <div>
           <div style={{ marginBottom: '15px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             <button onClick={() => { setEditingRow(null); const maxId = Math.max(...data.map(row => Number(row['Property ID']) || 0), 0); setFormData({ 'Property ID': maxId + 1, Status: 'Active', Type: 'Residential', CGT: 'Seller', 'Transfer Title': 'Buyer', 'Lot Area': '100', 'Floor Area': '100', Location: 'City of San Fernando', Video: '', 'Listing Price': '' }); setPasteData(''); setOpenDialog(true); }} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px' }}>+ Add</button>
-            <button onClick={() => window.location.href = '/upload'} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px' }}>📤 Upload</button>
+            <button onClick={() => window.location.href = '/upload'} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px' }}>📤 Upload</button>
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '8px 12px', fontSize: '14px', border: '1px solid #ddd', borderRadius: '4px' }}>
               <option value="Property ID">Sort by ID</option>
               <option value="Village">Sort by Village</option>
               <option value="Location">Sort by Location</option>
               <option value="Type">Sort by Type</option>
             </select>
-            <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }}>
+            <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#374151', color: 'white', border: 'none', borderRadius: '4px' }}>
               {sortOrder === 'asc' ? '↑' : '↓'}
             </button>
-            {selectedRows.length === 1 && <button onClick={() => { setEditingRow(selectedRows[0]); setFormData({ ...selectedRows[0] }); setOpenDialog(true); }} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>Edit</button>}
-            {selectedRows.length > 0 && <button onClick={handleDelete} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px' }}>Delete ({selectedRows.length})</button>}
+            {selectedRows.length === 1 && <button onClick={() => { setEditingRow(selectedRows[0]); setFormData({ ...selectedRows[0] }); setOpenDialog(true); }} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px' }}>Edit</button>}
+            {selectedRows.length > 0 && <button onClick={handleDelete} style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px' }}>Delete ({selectedRows.length})</button>}
           </div>
           <div style={{ marginBottom: '15px' }}>
             <input
@@ -320,8 +320,14 @@ PRC NO. 0019653
                     </div>
                   <div style={{ display: 'flex', gap: '3px', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f0f0f0', flexShrink: 0 }}>
                     <button
+                      onClick={() => window.location.href = `/properties/${row['Property ID']}`}
+                      style={{ flex: 1, padding: '6px 4px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px', minHeight: '28px' }}
+                    >
+                      View
+                    </button>
+                    <button
                       onClick={() => { setEditingRow(row); setFormData({ ...row }); setOpenDialog(true); }}
-                      style={{ flex: 1, padding: '6px 4px', backgroundColor: '#ff6b35', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px', minHeight: '28px' }}
+                      style={{ flex: 1, padding: '6px 4px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px', minHeight: '28px' }}
                     >
                       Edit
                     </button>
@@ -333,15 +339,9 @@ PRC NO. 0019653
                     </button>
                     <button
                       onClick={() => copyToClipboard(row)}
-                      style={{ flex: 1, padding: '6px 4px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px', minHeight: '28px' }}
+                      style={{ flex: 1, padding: '6px 4px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px', minHeight: '28px' }}
                     >
                       Copy
-                    </button>
-                    <button
-                      onClick={() => shareItem(row)}
-                      style={{ flex: 1, padding: '6px 4px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px', minHeight: '28px' }}
-                    >
-                      Share
                     </button>
                   </div>
                 </div>

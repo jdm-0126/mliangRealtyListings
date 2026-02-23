@@ -1,0 +1,275 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { supabase } from '@/app/lib/supabaseClient.js'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { X, Plus, Minus, Upload } from 'lucide-react'
+
+interface PropertyDialogProps {
+  property: any
+  isOpen: boolean
+  onClose: () => void
+  columns: string[]
+}
+
+export default function PropertyDialog({ property, isOpen, onClose, columns }: PropertyDialogProps) {
+  const [formData, setFormData] = useState<any>({})
+  const [pasteData, setPasteData] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (property) {
+      setFormData({ ...property })
+    } else {
+      // Set default values for new property
+      const maxId = Math.max(...(columns.length > 0 ? [0] : [0]), 0)
+      setFormData({
+        'Property ID': maxId + 1,
+        Status: 'Active',
+        Type: 'Residential',
+        CGT: 'Seller',
+        'Transfer Title': 'Buyer',
+        'Lot Area': '100',
+        'Floor Area': '100',
+        Location: 'City of San Fernando',
+        Video: '',
+        'Listing Price': '',
+        Negotiable: 'Yes'
+      })
+    }
+  }, [property, columns])
+
+  const parseExcelData = () => {
+    if (!pasteData.trim()) return
+    const values = pasteData.split('\t')
+    const parsed: any = {}
+    
+    columns.forEach((key, index) => {
+      if (values[index] && key !== 'Property ID') {
+        parsed[key] = values[index].trim()
+      }
+    })
+    
+    setFormData((prev: any) => ({ ...prev, ...parsed }))
+    setPasteData('')
+  }
+
+  const handleCreate = async () => {
+    if (!supabase) return
+    setLoading(true)
+    const { error } = await supabase.from('mlianglistings').insert(formData)
+    if (error) {
+      alert('Record not added. Error: ' + error.message)
+    } else {
+      alert('Record successfully added!')
+      onClose()
+    }
+    setLoading(false)
+  }
+
+  const handleUpdate = async () => {
+    if (!supabase) return
+    setLoading(true)
+    const { error } = await supabase
+      .from('mlianglistings')
+      .update(formData)
+      .eq('Property ID', property['Property ID'])
+    if (error) {
+      alert(`Error: ${error.message}`)
+    } else {
+      alert('Record successfully updated!')
+      onClose()
+    }
+    setLoading(false)
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold text-gray-900">
+            {property ? 'Edit Property' : 'Add New Property'}
+          </h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-6 space-y-6">
+            {/* Excel Paste Section - Only for new properties */}
+            {!property && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Quick Import from Excel</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <textarea
+                    value={pasteData}
+                    onChange={(e) => setPasteData(e.target.value)}
+                    placeholder="Paste copied Excel row here (tab-separated values)..."
+                    rows={3}
+                    className="w-full p-3 border border-gray-300 rounded-md text-sm resize-none"
+                  />
+                  <Button
+                    onClick={parseExcelData}
+                    disabled={!pasteData.trim()}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Parse Data
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Form Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {columns.map(key => (
+                <div key={key} className={key === 'Notes' ? 'md:col-span-2' : ''}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {key}
+                    {['Village', 'Location', 'Listing Agent'].includes(key) && (
+                      <span className="text-red-500 ml-1">*</span>
+                    )}
+                  </label>
+                  
+                  {key === 'Property ID' ? (
+                    <Input
+                      type="text"
+                      value={formData[key] || ''}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  ) : key === 'Status' ? (
+                    <select
+                      value={formData[key] || 'Draft'}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="Draft">Draft</option>
+                      <option value="Active">Active</option>
+                      <option value="Sold">Sold</option>
+                    </select>
+                  ) : key === 'Type' ? (
+                    <select
+                      value={formData[key] || 'Residential'}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="Residential">Residential</option>
+                      <option value="Lot">Lot</option>
+                      <option value="Commercial">Commercial</option>
+                    </select>
+                  ) : key === 'CGT' ? (
+                    <select
+                      value={formData[key] || 'Seller'}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="Seller">Seller</option>
+                      <option value="Buyer">Buyer</option>
+                    </select>
+                  ) : key === 'Transfer Title' ? (
+                    <select
+                      value={formData[key] || 'Buyer'}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="Buyer">Buyer</option>
+                      <option value="Seller">Seller</option>
+                    </select>
+                  ) : key === 'Negotiable' ? (
+                    <select
+                      value={formData[key] || 'Yes'}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  ) : key === 'Lot Area' || key === 'Floor Area' ? (
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setFormData((prev: any) => ({ 
+                          ...prev, 
+                          [key]: Math.max(0, (Number(prev[key]) || 0) - 1) 
+                        }))}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        value={formData[key] || 0}
+                        onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                        className="text-center"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setFormData((prev: any) => ({ 
+                          ...prev, 
+                          [key]: (Number(prev[key]) || 0) + 1 
+                        }))}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                      <span className="text-sm text-gray-500">sqm</span>
+                    </div>
+                  ) : key === 'Notes' ? (
+                    <textarea
+                      value={formData[key] || ''}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                      rows={4}
+                      className="w-full p-3 border border-gray-300 rounded-md resize-none"
+                      placeholder="Enter property details, features, and additional information..."
+                    />
+                  ) : key.toLowerCase().includes('price') ? (
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
+                      <Input
+                        type="text"
+                        value={formData[key] || ''}
+                        onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                        className="pl-8"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  ) : (
+                    <Input
+                      type="text"
+                      value={formData[key] || ''}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                      required={['Village', 'Location', 'Listing Agent'].includes(key)}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+          <Button variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={property ? handleUpdate : handleCreate}
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : property ? 'Update Property' : 'Create Property'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
