@@ -21,19 +21,69 @@ import {
   Calculator,
   FileText
 } from 'lucide-react'
+import { Tooltip } from '@/components/ui/tooltip'
 
 interface PropertyDetailsProps {
   params: Promise<{ id: string }>
 }
 
-const getGooglePhotoThumbnail = (url: string) => {
-  if (url.includes('drive.google.com')) {
+const getEmbeddableUrl = (url: string) => {
+  // Google Drive file - convert to preview mode
+  if (url.includes('drive.google.com/file/d/')) {
     const fileId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)
     if (fileId) {
-      return `https://drive.google.com/thumbnail?id=${fileId[1]}&sz=w150`
+      return `https://drive.google.com/file/d/${fileId[1]}/preview`
     }
   }
+  
+  // Google Drive folder - convert to embedded folder view
+  if (url.includes('drive.google.com/drive/folders/')) {
+    const folderId = url.match(/folders\/([a-zA-Z0-9-_]+)/)
+    if (folderId) {
+      return `https://drive.google.com/embeddedfolderview?id=${folderId[1]}`
+    }
+  }
+  
+  // Google Photos - extract album ID and create gallery view
+  if (url.includes('photos.google.com') || url.includes('photos.app.goo.gl')) {
+    // Return original URL - we'll handle this specially in the UI
+    return url
+  }
+  
+  // Dropbox - convert to direct content URL
+  if (url.includes('dropbox.com')) {
+    return url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('?dl=0', '?raw=1')
+  }
+  
+  // YouTube - convert to embed format
+  if (url.includes('youtube.com/watch')) {
+    const videoId = url.match(/v=([a-zA-Z0-9-_]+)/)
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId[1]}`
+    }
+  }
+  
+  if (url.includes('youtu.be/')) {
+    const videoId = url.match(/youtu\.be\/([a-zA-Z0-9-_]+)/)
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId[1]}`
+    }
+  }
+  
   return url
+}
+
+const canEmbed = (url: string) => {
+  // Google Photos cannot be embedded in iframes due to X-Frame-Options
+  if (url.includes('photos.google.com') || url.includes('photos.app.goo.gl')) {
+    return false
+  }
+  // Check for other non-embeddable services
+  return true
+}
+
+const isGooglePhotos = (url: string) => {
+  return url.includes('photos.google.com') || url.includes('photos.app.goo.gl')
 }
 
 export default function PropertyDetails({ params }: PropertyDetailsProps) {
@@ -121,7 +171,51 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
     const heading = isLotOnly ? 'LOT FOR SALE' : 'HOUSE AND LOT FOR SALE'
     const readyText = isLotOnly ? '' : '\n(ready for occupancy)'
     
-    return `${heading}${readyText}\n📍 ${property.Village || ''} ${property.Location || ''}\n| ${property.Road || property.Street || 'Main Road'}\n🕐 ${property.Distance || 'Minutes from city center'}\n📍 Near ${property.Landmarks || 'Major landmarks'}\n| ${property.Boundary || 'City boundary'}\n✨ Property Highlights:\n${property.Model || 'Property'} ${property.Description || ''}\n🔹 Lot Area: ${property['Lot Area'] || 'N/A'}${isLotOnly ? '' : `\n🔹 Floor Area: ${property['Floor Area'] || 'N/A'}\n🔹 ${property.Bedrooms || '3'} Bedrooms\n🔹 ${property.Bathrooms || '2'} Bathrooms\n🔹 ${property.Carports || '1'} Carports\n🔹 ${property.Features || 'Fully furnished'}\n🔹 ${property.Condition || 'Move-in ready'} 😍`}\nCommunity Amenities:\n✅ ${property.Amenities || 'Entrance Gate with Guard\n✅ Clubhouse & Events Place\n✅ Church\n✅ Swimming Pool\n✅ Basketball Court\n✅ Playground\n✅ Community Plaza'}\nPrice ${property['Listing Price'] || property.ListingPrice || property.Price || 'On request'}\nMOP: ${property.MOP || 'Cash or BF'}\nM. Liang Realty\nLicensed Real Estate Broker\nPRC No. 0019653\nS10, 2nd Floor Plaza Cristina Building\nDolores, City of San Fernando, Pampanga\n${property.Hashtags || '#realestate #realtor #property #home #houseforsale #homeforsale #dreamhome #newhome #homebuyers #househunting #investmentproperty #luxuryhomes #modernhomes #familyhome #readytomovein #Pampanga #Philippines'}${mediaInfo}`
+    // Build property details conditionally
+    let propertyDetails = ''
+    
+    // Add Lot Area only if it has a value
+    if (property['Lot Area'] && property['Lot Area'] !== 'N/A') {
+      propertyDetails += `\nLot Area: ${property['Lot Area']}`
+    }
+    
+    // Add Floor Area only if it has a value and not lot only
+    if (!isLotOnly && property['Floor Area'] && property['Floor Area'] !== 'N/A') {
+      propertyDetails += `\nFloor Area: ${property['Floor Area']}`
+    }
+    
+    // Add other details for non-lot properties
+    if (!isLotOnly) {
+      if (property.Bedrooms) propertyDetails += `\n${property.Bedrooms} Bedrooms`
+      if (property.Bathrooms) propertyDetails += `\n${property.Bathrooms} Bathrooms`
+      if (property.Carports) propertyDetails += `\n${property.Carports} Carports`
+      if (property.Features) propertyDetails += `\n${property.Features}`
+      if (property.Condition) propertyDetails += `\n${property.Condition}`
+    }
+    
+    return `${heading}${readyText}
+${property.Village || ''} ${property.Location || ''}
+| ${property.Road || property.Street || 'Main Road'}
+${property.Distance || 'Minutes from city center'}
+Near ${property.Landmarks || 'Major landmarks'}
+| ${property.Boundary || 'City boundary'}
+
+Property Highlights:
+${property.Model || 'Property'} ${property.Description || ''}${propertyDetails}
+
+Community Amenities:
+${property.Amenities || 'Entrance Gate with Guard\nClubhouse & Events Place\nChurch\nSwimming Pool\nBasketball Court\nPlayground\nCommunity Plaza'}
+
+Price ${property['Listing Price'] || property.ListingPrice || property.Price || 'On request'}
+MOP: ${property.MOP || 'Cash or BF'}
+
+M. Liang Realty
+Licensed Real Estate Broker
+PRC No. 0019653
+S10, 2nd Floor Plaza Cristina Building
+Dolores, City of San Fernando, Pampanga
+
+${property.Hashtags || '#realestate #realtor #property #home #houseforsale #homeforsale #dreamhome #newhome #homebuyers #househunting #investmentproperty #luxuryhomes #modernhomes #familyhome #readytomovein #Pampanga #Philippines'}${mediaInfo}`
   }, [property, hasPhotos, hasVideo])
 
   const copyToClipboard = () => {
@@ -135,7 +229,51 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
     const heading = isLotOnly ? 'LOT FOR SALE' : 'HOUSE AND LOT FOR SALE'
     const readyText = isLotOnly ? '' : '\n(ready for occupancy)'
     
-    const text = `${heading}${readyText}\n📍 ${property.Village || ''} ${property.Location || ''}\n| ${property.Road || property.Street || 'Main Road'}\n🕐 ${property.Distance || 'Minutes from city center'}\n📍 Near ${property.Landmarks || 'Major landmarks'}\n| ${property.Boundary || 'City boundary'}\n✨ Property Highlights:\n${property.Model || 'Property'} ${property.Description || ''}\n🔹 Lot Area: ${property['Lot Area'] || 'N/A'}${isLotOnly ? '' : `\n🔹 Floor Area: ${property['Floor Area'] || 'N/A'}\n🔹 ${property.Bedrooms || '3'} Bedrooms\n🔹 ${property.Bathrooms || '2'} Bathrooms\n🔹 ${property.Carports || '1'} Carports\n🔹 ${property.Features || 'Fully furnished'}\n🔹 ${property.Condition || 'Move-in ready'} 😍`}\nCommunity Amenities:\n✅ ${property.Amenities || 'Entrance Gate with Guard\n✅ Clubhouse & Events Place\n✅ Church\n✅ Swimming Pool\n✅ Basketball Court\n✅ Playground\n✅ Community Plaza'}\nPrice ${property['Listing Price'] || property.ListingPrice || property.Price || 'On request'}\nMOP: ${property.MOP || 'Cash or BF'}\nM. Liang Realty\nLicensed Real Estate Broker\nPRC No. 0019653\nS10, 2nd Floor Plaza Cristina Building\nDolores, City of San Fernando, Pampanga\n${property.Hashtags || '#realestate #realtor #property #home #houseforsale #homeforsale #dreamhome #newhome #homebuyers #househunting #investmentproperty #luxuryhomes #modernhomes #familyhome #readytomovein #Pampanga #Philippines'}${mediaInfo}`
+    // Build property details conditionally
+    let propertyDetails = ''
+    
+    // Add Lot Area only if it has a value
+    if (property['Lot Area'] && property['Lot Area'] !== 'N/A') {
+      propertyDetails += `\nLot Area: ${property['Lot Area']}`
+    }
+    
+    // Add Floor Area only if it has a value and not lot only
+    if (!isLotOnly && property['Floor Area'] && property['Floor Area'] !== 'N/A') {
+      propertyDetails += `\nFloor Area: ${property['Floor Area']}`
+    }
+    
+    // Add other details for non-lot properties
+    if (!isLotOnly) {
+      if (property.Bedrooms) propertyDetails += `\n${property.Bedrooms} Bedrooms`
+      if (property.Bathrooms) propertyDetails += `\n${property.Bathrooms} Bathrooms`
+      if (property.Carports) propertyDetails += `\n${property.Carports} Carports`
+      if (property.Features) propertyDetails += `\n${property.Features}`
+      if (property.Condition) propertyDetails += `\n${property.Condition}`
+    }
+    
+    const text = `${heading}${readyText}
+${property.Village || ''} ${property.Location || ''}
+| ${property.Road || property.Street || 'Main Road'}
+${property.Distance || 'Minutes from city center'}
+Near ${property.Landmarks || 'Major landmarks'}
+| ${property.Boundary || 'City boundary'}
+
+Property Highlights:
+${property.Model || 'Property'} ${property.Description || ''}${propertyDetails}
+
+Community Amenities:
+${property.Amenities || 'Entrance Gate with Guard\nClubhouse & Events Place\nChurch\nSwimming Pool\nBasketball Court\nPlayground\nCommunity Plaza'}
+
+Price ${property['Listing Price'] || property.ListingPrice || property.Price || 'On request'}
+MOP: ${property.MOP || 'Cash or BF'}
+
+M. Liang Realty
+Licensed Real Estate Broker
+PRC No. 0019653
+S10, 2nd Floor Plaza Cristina Building
+Dolores, City of San Fernando, Pampanga
+
+${property.Hashtags || '#realestate #realtor #property #home #houseforsale #homeforsale #dreamhome #newhome #homebuyers #househunting #investmentproperty #luxuryhomes #modernhomes #familyhome #readytomovein #Pampanga #Philippines'}${mediaInfo}`
     
     navigator.clipboard.writeText(text)
     alert('Facebook post format copied to clipboard!')
@@ -149,7 +287,7 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
       `${years} Years: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthly)}/month`
     ).join('\n')
     
-    const text = `🏠 MORTGAGE COMPUTATION\n\nProperty #${property['Property ID']}\n📍 ${property.Village || ''}, ${property.Location || ''}\n\n💰 FINANCING BREAKDOWN:\n${priceLabel}: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.totalPrice)}\n20% Equity: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.equity)}\n80% Mortgage: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.mortgage)}\n\n📅 MONTHLY PAYMENT OPTIONS (${interestRate}% Interest):\n${monthlyOptions}\n\n* Calculations are estimates\n* Actual rates may vary by lender\n\nM. Liang Realty\n09393440944`
+    const text = `MORTGAGE COMPUTATION\n\nProperty #${property['Property ID']}\n${property.Village || ''}, ${property.Location || ''}\n\nFINANCING BREAKDOWN:\n${priceLabel}: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.totalPrice)}\n20% Equity: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.equity)}\n80% Mortgage: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.mortgage)}\n\nMONTHLY PAYMENT OPTIONS (${interestRate}% Interest):\n${monthlyOptions}\n\n* Calculations are estimates\n* Actual rates may vary by lender\n\nM. Liang Realty\n09393440944`
     
     navigator.clipboard.writeText(text)
     alert('Mortgage computation copied to clipboard!')
@@ -185,33 +323,96 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
           Back to Dashboard
         </Button>
         
-        <div className="flex items-start justify-between mb-8">
-          <div>
+        <div className="mb-8">
+          <div className="mb-4">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Property #{property['Property ID']}
             </h1>
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 flex-wrap">
               <Badge variant={property.Status === 'Active' ? 'success' : property.Status === 'Draft' ? 'warning' : 'secondary'}>
                 {property.Status || 'Draft'}
               </Badge>
               <Badge variant="outline">{property.Type || 'Residential'}</Badge>
-              {hasPhotos && <div className="flex items-center text-blue-600"><Camera className="w-4 h-4 mr-1" /><span className="text-sm">Photos</span></div>}
-              {hasVideo && <div className="flex items-center text-green-600"><Video className="w-4 h-4 mr-1" /><span className="text-sm">Video</span></div>}
+              {hasPhotos && (
+                <Tooltip content="Photos available">
+                  <div className="flex items-center text-blue-600">
+                    <Camera className="w-4 h-4 mr-1" />
+                    <span className="text-sm">Photos</span>
+                  </div>
+                </Tooltip>
+              )}
+              {hasVideo && (
+                <Tooltip content="Video available">
+                  <div className="flex items-center text-green-600">
+                    <Video className="w-4 h-4 mr-1" />
+                    <span className="text-sm">Video</span>
+                  </div>
+                </Tooltip>
+              )}
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => { copyToClipboard(); const text = encodeURIComponent(`Property #${property['Property ID']} - ${property.Village}, ${property.Location}`); window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${text}`, '_blank', 'width=600,height=400') }}>
-              <Share2 className="w-4 h-4 mr-2" />FB Post
-            </Button>
-            <Button variant="outline" onClick={copyToClipboard}>
-              <Copy className="w-4 h-4 mr-2" />Copy
-            </Button>
-            <Button variant="outline" onClick={() => setShowFinancing(true)}>
-              <Calculator className="w-4 h-4 mr-2" />Financing
-            </Button>
-            <Button variant="outline" onClick={() => setShowProcesses(true)}>
-              <FileText className="w-4 h-4 mr-2" />Processes
-            </Button>
+          
+          {/* Mobile-friendly action buttons */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Tooltip content="Share to Facebook">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  copyToClipboard();
+                  const text = encodeURIComponent(
+                    `Property #${property['Property ID']} - ${property.Village}, ${property.Location}`
+                  );
+                  window.open(
+                    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                      window.location.href
+                    )}&quote=${text}`,
+                    "_blank",
+                    "width=600,height=400"
+                  );
+                }}
+                className="w-full"
+              >
+                <Share2 className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">FB Post</span>
+              </Button>
+            </Tooltip>
+
+            <Tooltip content="Copy post text">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={copyToClipboard}
+                className="w-full"
+              >
+                <Copy className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Copy</span>
+              </Button>
+            </Tooltip>
+
+            <Tooltip content="Calculate financing">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFinancing(true)}
+                className="w-full"
+              >
+                <Calculator className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Finance</span>
+              </Button>
+            </Tooltip>
+
+            <Tooltip content="Buying process guide">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowProcesses(true)}
+                className="w-full"
+              >
+                <FileText className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Process</span>
+              </Button>
+            </Tooltip>
           </div>
         </div>
         
@@ -473,6 +674,66 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
+            {/* Property Image Preview */}
+            <Card>
+              <CardContent className="p-0">
+                <div className="relative w-full h-64 sm:h-80 bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg overflow-hidden">
+                  {property['Preview Photo'] ? (
+                    // Show uploaded preview photo
+                    <div className="relative w-full h-full">
+                      <img 
+                        src={property['Preview Photo']} 
+                        alt={`Property #${property['Property ID']}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {property.Photos && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                          <Button asChild variant="secondary" size="sm">
+                            <a href={property.Photos} target="_blank" rel="noopener noreferrer">
+                              <Camera className="w-4 h-4 mr-2" />
+                              View All Photos
+                            </a>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : property.Photos ? (
+                    // No preview photo but has Google Photos link
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center p-8">
+                        <Camera className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          Property Photos Available
+                        </h3>
+                        <p className="text-gray-700 mb-4">
+                          Click below to view the photo album
+                        </p>
+                        <Button asChild>
+                          <a href={property.Photos} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open Photo Album
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    // No photos at all
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center p-8">
+                        <Home className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-600">
+                          Property #{property['Property ID']}
+                        </h3>
+                        <p className="text-gray-500 mt-2">
+                          {property.Village}, {property.Location}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
             <Card>
               <CardHeader><CardTitle>Property Information</CardTitle></CardHeader>
               <CardContent className="space-y-4">
@@ -503,59 +764,15 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
               </CardContent>
             </Card>
 
-            {mediaEntries.length > 0 && (
-              <Card>
-                <CardHeader><CardTitle>Media</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  {mediaEntries.map(([key, value]) => {
-                    const isPhoto = key.toLowerCase().includes('photo')
-                    return (
-                      <div key={key} className={`flex items-center justify-between p-4 rounded-lg ${isPhoto ? 'bg-blue-50' : 'bg-green-50'}`}>
-                        <div className="flex items-center">
-                          <div className="w-16 h-16 mr-4 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-                            {isPhoto ? (
-                              <img 
-                                src={getGooglePhotoThumbnail(String(value))} 
-                                alt="Property photo" 
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement
-                                  target.style.display = 'none'
-                                  target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path></svg></div>'
-                                }}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Video className="w-6 h-6 text-green-600" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <span className={`font-medium ${isPhoto ? 'text-blue-900' : 'text-green-900'}`}>{key}</span>
-                            <p className={`text-sm ${isPhoto ? 'text-blue-700' : 'text-green-700'}`}>Click to {isPhoto ? 'view photos' : 'watch video'}</p>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={String(value)} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-4 h-4 mr-1" />
-                            {isPhoto ? 'View Photos' : 'Watch Video'}
-                          </a>
-                        </Button>
-                      </div>
-                    )
-                  })}
-                </CardContent>
-              </Card>
-            )}
-            
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Facebook Post Preview</CardTitle>
-                  <Button variant="outline" size="sm" onClick={copyToClipboard}>
-                    <Copy className="w-4 h-4 mr-2" />Copy
-                  </Button>
+                  <Tooltip content="Copy post text">
+                    <Button variant="outline" size="sm" onClick={copyToClipboard}>
+                      <Copy className="w-4 h-4 mr-2" />Copy
+                    </Button>
+                  </Tooltip>
                 </div>
               </CardHeader>
               <CardContent>
@@ -584,14 +801,14 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
               </CardContent>
             </Card>
 
-            <Card>
+            {/* <Card>
               <CardHeader><CardTitle>Transaction Details</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between"><span className="text-gray-600">CGT</span><span className="font-medium">{property.CGT || 'Seller'}</span></div>
                 <div className="flex justify-between"><span className="text-gray-600">Transfer Title</span><span className="font-medium">{property['Transfer Title'] || 'Buyer'}</span></div>
                 {property['Listing Agent'] && <div className="flex justify-between"><span className="text-gray-600">Listing Agent</span><span className="font-medium">{property['Listing Agent']}</span></div>}
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         </div>
       </div>

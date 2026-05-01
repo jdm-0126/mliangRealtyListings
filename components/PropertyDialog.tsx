@@ -18,10 +18,13 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
   const [formData, setFormData] = useState<any>({})
   const [pasteData, setPasteData] = useState('')
   const [loading, setLoading] = useState(false)
+  const [previewImage, setPreviewImage] = useState<string>('')
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     if (property) {
       setFormData({ ...property })
+      setPreviewImage(property['Preview Photo'] || '')
     } else {
       // Set default values for new property
       const maxId = Math.max(...(columns.length > 0 ? [0] : [0]), 0)
@@ -36,10 +39,55 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
         Location: 'City of San Fernando',
         Video: '',
         'Listing Price': '',
-        Negotiable: 'Yes'
+        Negotiable: 'Yes',
+        'Preview Photo': ''
       })
+      setPreviewImage('')
     }
   }, [property, columns])
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB')
+      return
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file')
+      return
+    }
+
+    setUploadingImage(true)
+
+    try {
+      // Convert to base64 for storage
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        setPreviewImage(base64String)
+        setFormData((prev: any) => ({ ...prev, 'Preview Photo': base64String }))
+        setUploadingImage(false)
+      }
+      reader.onerror = () => {
+        alert('Error reading file')
+        setUploadingImage(false)
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      alert('Error uploading image')
+      setUploadingImage(false)
+    }
+  }
+
+  const removePreviewImage = () => {
+    setPreviewImage('')
+    setFormData((prev: any) => ({ ...prev, 'Preview Photo': '' }))
+  }
 
   const parseExcelData = () => {
     if (!pasteData.trim()) return
@@ -101,6 +149,61 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
 
         <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
           <div className="p-6 space-y-6">
+            {/* Preview Photo Upload Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Featured Preview Photo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-gray-600">
+                  Upload a featured image that will be displayed in property details before viewing the full Google Photos album
+                </p>
+                
+                {previewImage ? (
+                  <div className="relative">
+                    <img 
+                      src={previewImage} 
+                      alt="Preview" 
+                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={removePreviewImage}
+                      className="absolute top-2 right-2"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600 mb-3">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-gray-500 mb-4">
+                      PNG, JPG up to 5MB
+                    </p>
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={uploadingImage}
+                      />
+                      <Button variant="outline" size="sm" disabled={uploadingImage} asChild>
+                        <span>
+                          {uploadingImage ? 'Uploading...' : 'Choose File'}
+                        </span>
+                      </Button>
+                    </label>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Excel Paste Section - Only for new properties */}
             {!property && (
               <Card>

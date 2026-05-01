@@ -64,17 +64,35 @@ export default function PropertyCard({
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 border-gray-200">
+      {/* Preview Photo Thumbnail */}
+      {property['Preview Photo'] && (
+        <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
+          <img 
+            src={property['Preview Photo']} 
+            alt={`Property #${property['Property ID']}`}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+          />
+          <div className="absolute top-2 right-2 flex gap-1">
+            <Badge variant={getStatusVariant(property.Status)} className="shadow-md">
+              {property.Status || 'Draft'}
+            </Badge>
+          </div>
+        </div>
+      )}
+      
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant={getStatusVariant(property.Status)}>
-                {property.Status || 'Draft'}
-              </Badge>
-              <Badge variant="outline">
-                {property.Type || 'Residential'}
-              </Badge>
-            </div>
+            {!property['Preview Photo'] && (
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant={getStatusVariant(property.Status)}>
+                  {property.Status || 'Draft'}
+                </Badge>
+                <Badge variant="outline">
+                  {property.Type || 'Residential'}
+                </Badge>
+              </div>
+            )}
             
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
               Property #{property['Property ID']}
@@ -89,18 +107,20 @@ export default function PropertyCard({
             </div>
           </div>
           
-          <div className="flex items-center gap-1">
-            {hasPhotos && (
-              <div className="p-1 bg-blue-50 rounded">
-                <Camera className="w-4 h-4 text-blue-600" />
-              </div>
-            )}
-            {hasVideo && (
-              <div className="p-1 bg-green-50 rounded">
-                <Video className="w-4 h-4 text-green-600" />
-              </div>
-            )}
-          </div>
+          {!property['Preview Photo'] && (
+            <div className="flex items-center gap-1">
+              {hasPhotos && (
+                <div className="p-1 bg-blue-50 rounded">
+                  <Camera className="w-4 h-4 text-blue-600" />
+                </div>
+              )}
+              {hasVideo && (
+                <div className="p-1 bg-green-50 rounded">
+                  <Video className="w-4 h-4 text-green-600" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">
