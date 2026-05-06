@@ -35,7 +35,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
           .order('Property ID', { ascending: false })
           .limit(1)
         
-        const maxId = data && data.length > 0 ? Number(data[0]['Property ID']) : 0
+        const maxId = data && data.length > 0 ? Number((data[0] as any)['Property ID']) : 0
         
         setFormData({
           'Property ID': maxId + 1,
