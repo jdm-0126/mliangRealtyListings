@@ -9,7 +9,7 @@ export const supabase = supabaseUrl && supabaseKey
 
 // Attach to window for browser extension (localhost only)
 if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && supabase) {
-  (window as any).supabase = supabase
+  window.supabase = supabase
 }
 
 if (typeof window !== 'undefined' && !supabase) {
