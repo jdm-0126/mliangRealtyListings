@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react'
 import { Button } from './ui/button'
-import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { supabase } from '@/app/lib/supabaseClient.js'
 import { X } from 'lucide-react'
@@ -10,9 +9,9 @@ import { X } from 'lucide-react'
 interface ParsedProperty {
   title: string
   location: string
-  price: string
-  lotArea: string
-  floorArea: string
+  price?: string
+  lotArea?: string
+  floorArea?: string
   bedrooms?: string
   bathrooms?: string
   description: string
@@ -97,12 +96,7 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
   }
 
   const handleSave = async () => {
-    if (!parsedData?.description || !parsedData?.location) {
-      alert('Missing required fields: Description and Location are required');
-      return;
-    }
-    
-    if (!supabase) return
+    if (!parsedData || !supabase) return
     
     setLoading(true)
     
@@ -124,8 +118,8 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
         Title: parsedData.title,
         Location: parsedData.location,
         'Listing Price': priceNum,
-        LotArea: parsedData.lotArea,
-        FloorArea: parsedData.floorArea,
+        'Lot Area': parsedData.lotArea,
+        'Floor Area': parsedData.floorArea,
         Notes: parsedData.description,
         Type: parsedData.type,
         Status: 'Active',
@@ -187,98 +181,36 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="font-medium" style={{ color: '#4b5563' }}>Title:</span>
-                    <Input
-                      value={parsedData.title}
-                      onChange={(e) => setParsedData({...parsedData, title: e.target.value})}
-                      placeholder="Title"
-                      className="mt-1"
-                      style={{ color: '#000000' }}
-                    />
+                    <p style={{ color: '#000000' }}>{parsedData.title || 'Not found'}</p>
                   </div>
                   <div>
-                    <span className="font-medium" style={{ color: '#4b5563' }}>Location: *</span>
-                    <Input
-                      value={parsedData.location}
-                      onChange={(e) => setParsedData({...parsedData, location: e.target.value})}
-                      placeholder="Location"
-                      className="mt-1"
-                      style={{ color: '#000000' }}
-                    />
+                    <span className="font-medium" style={{ color: '#4b5563' }}>Location:</span>
+                    <p style={{ color: '#000000' }}>{parsedData.location || 'Not found'}</p>
                   </div>
                   <div>
                     <span className="font-medium" style={{ color: '#4b5563' }}>Price:</span>
-                    <Input
-                      value={parsedData.price}
-                      onChange={(e) => setParsedData({...parsedData, price: e.target.value})}
-                      placeholder="Price"
-                      className="mt-1"
-                      style={{ color: '#000000' }}
-                    />
+                    <p style={{ color: '#000000' }}>{parsedData.price || 'Not found'}</p>
                   </div>
                   <div>
                     <span className="font-medium" style={{ color: '#4b5563' }}>Type:</span>
-                    <select
-                      value={parsedData.type}
-                      onChange={(e) => setParsedData({...parsedData, type: e.target.value})}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-                      style={{ color: '#000000' }}
-                    >
-                      <option value="Residential">Residential</option>
-                      <option value="Lot">Lot</option>
-                      <option value="Commercial">Commercial</option>
-                    </select>
+                    <p style={{ color: '#000000' }}>{parsedData.type}</p>
                   </div>
                   <div>
                     <span className="font-medium" style={{ color: '#4b5563' }}>Lot Area:</span>
-                    <Input
-                      value={parsedData.lotArea}
-                      onChange={(e) => setParsedData({...parsedData, lotArea: e.target.value})}
-                      placeholder="Lot Area"
-                      className="mt-1"
-                      style={{ color: '#000000' }}
-                    />
+                    <p style={{ color: '#000000' }}>{parsedData.lotArea || 'Not found'}</p>
                   </div>
                   <div>
                     <span className="font-medium" style={{ color: '#4b5563' }}>Floor Area:</span>
-                    <Input
-                      value={parsedData.floorArea}
-                      onChange={(e) => setParsedData({...parsedData, floorArea: e.target.value})}
-                      placeholder="Floor Area"
-                      className="mt-1"
-                      style={{ color: '#000000' }}
-                    />
+                    <p style={{ color: '#000000' }}>{parsedData.floorArea || 'Not found'}</p>
                   </div>
                   <div>
                     <span className="font-medium" style={{ color: '#4b5563' }}>Bedrooms:</span>
-                    <Input
-                      value={parsedData.bedrooms || ''}
-                      onChange={(e) => setParsedData({...parsedData, bedrooms: e.target.value})}
-                      placeholder="Bedrooms"
-                      className="mt-1"
-                      style={{ color: '#000000' }}
-                    />
+                    <p style={{ color: '#000000' }}>{parsedData.bedrooms || 'Not found'}</p>
                   </div>
                   <div>
                     <span className="font-medium" style={{ color: '#4b5563' }}>Bathrooms:</span>
-                    <Input
-                      value={parsedData.bathrooms || ''}
-                      onChange={(e) => setParsedData({...parsedData, bathrooms: e.target.value})}
-                      placeholder="Bathrooms"
-                      className="mt-1"
-                      style={{ color: '#000000' }}
-                    />
+                    <p style={{ color: '#000000' }}>{parsedData.bathrooms || 'N/A'}</p>
                   </div>
-                </div>
-                
-                <div className="mt-4">
-                  <span className="font-medium" style={{ color: '#4b5563' }}>Description: *</span>
-                  <textarea
-                    value={parsedData.description}
-                    onChange={(e) => setParsedData({...parsedData, description: e.target.value})}
-                    placeholder="Description"
-                    className="mt-1 w-full h-32 p-3 border rounded-md"
-                    style={{ color: '#000000' }}
-                  />
                 </div>
                 
                 <div className="mt-4 flex gap-2">
