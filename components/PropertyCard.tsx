@@ -94,11 +94,11 @@ export default function PropertyCard({
               </div>
             )}
             
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              Property #{property['Property ID']}
+            <h3 className="text-lg font-semibold mb-1" style={{ color: '#000000' }}>
+              Property #{property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}
             </h3>
             
-            <div className="flex items-center text-gray-600 mb-2">
+            <div className="flex items-center mb-2" style={{ color: '#4b5563' }}>
               <MapPin className="w-4 h-4 mr-1" />
               <span className="text-sm">
                 {property.Village && `${property.Village}, `}
@@ -134,26 +134,26 @@ export default function PropertyCard({
             {property['Lot Area'] && (
               <div className="flex items-center">
                 <Maximize className="w-4 h-4 mr-2 text-gray-400" />
-                <span className="text-gray-600">Lot: {property['Lot Area']} sqm</span>
+                <span style={{ color: '#4b5563' }}>Lot: {property['Lot Area']} sqm</span>
               </div>
             )}
             {property['Floor Area'] && (
               <div className="flex items-center">
                 <Home className="w-4 h-4 mr-2 text-gray-400" />
-                <span className="text-gray-600">Floor: {property['Floor Area']} sqm</span>
+                <span style={{ color: '#4b5563' }}>Floor: {property['Floor Area']} sqm</span>
               </div>
             )}
           </div>
 
           {property.Notes && (
             <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-sm text-gray-700 line-clamp-2">
+              <p className="text-sm line-clamp-2" style={{ color: '#374151' }}>
                 {property.Notes}
               </p>
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center justify-between text-xs" style={{ color: '#6b7280' }}>
             <span>CGT: {property.CGT || 'Seller'}</span>
             <span>Transfer: {property['Transfer Title'] || 'Buyer'}</span>
           </div>
@@ -164,7 +164,10 @@ export default function PropertyCard({
         <Button
           variant="default"
           size="sm"
-          onClick={() => window.location.href = `/properties/${property['Property ID']}`}
+          onClick={() => {
+            const displayId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
+            window.location.href = `/properties/${displayId}`
+          }}
           className="flex-1"
         >
           View Details

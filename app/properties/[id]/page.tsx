@@ -99,10 +99,14 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
   useEffect(() => {
     const fetchProperty = async () => {
       if (!supabase) return
+      
+      // Adjust the ID: if user requests ID > 2, fetch ID + 1 from database
+      const dbId = Number(id) > 2 ? Number(id) + 1 : Number(id)
+      
       const { data, error } = await supabase
         .from('mlianglistings')
         .select('*')
-        .eq('Property ID', id)
+        .eq('Property ID', dbId)
         .single()
       
       if (!error) setProperty(data)
@@ -282,12 +286,13 @@ ${property.Hashtags || '#realestate #realtor #property #home #houseforsale #home
   const copyMortgageComputation = () => {
     if (!calculateFinancing) return
     
+    const displayPropertyId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
     const priceLabel = customPrice ? 'Contract Price' : 'Total Price'
     const monthlyOptions = calculateFinancing.monthlyPayments.map(({ years, monthly }) => 
       `${years} Years: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthly)}/month`
     ).join('\n')
     
-    const text = `MORTGAGE COMPUTATION\n\nProperty #${property['Property ID']}\n${property.Village || ''}, ${property.Location || ''}\n\nFINANCING BREAKDOWN:\n${priceLabel}: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.totalPrice)}\n20% Equity: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.equity)}\n80% Mortgage: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.mortgage)}\n\nMONTHLY PAYMENT OPTIONS (${interestRate}% Interest):\n${monthlyOptions}\n\n* Calculations are estimates\n* Actual rates may vary by lender\n\nM. Liang Realty\n09393440944`
+    const text = `MORTGAGE COMPUTATION\n\nProperty #${displayPropertyId}\n${property.Village || ''}, ${property.Location || ''}\n\nFINANCING BREAKDOWN:\n${priceLabel}: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.totalPrice)}\n20% Equity: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.equity)}\n80% Mortgage: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.mortgage)}\n\nMONTHLY PAYMENT OPTIONS (${interestRate}% Interest):\n${monthlyOptions}\n\n* Calculations are estimates\n* Actual rates may vary by lender\n\nM. Liang Realty\n09393440944`
     
     navigator.clipboard.writeText(text)
     alert('Mortgage computation copied to clipboard!')
@@ -326,7 +331,7 @@ ${property.Hashtags || '#realestate #realtor #property #home #houseforsale #home
         <div className="mb-8">
           <div className="mb-4">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Property #{property['Property ID']}
+              Property #{property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}
             </h1>
             <div className="flex items-center gap-3 flex-wrap">
               <Badge variant={property.Status === 'Active' ? 'success' : property.Status === 'Draft' ? 'warning' : 'secondary'}>
@@ -360,8 +365,9 @@ ${property.Hashtags || '#realestate #realtor #property #home #houseforsale #home
                 size="sm"
                 onClick={() => {
                   copyToClipboard();
+                  const displayPropertyId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID'];
                   const text = encodeURIComponent(
-                    `Property #${property['Property ID']} - ${property.Village}, ${property.Location}`
+                    `Property #${displayPropertyId} - ${property.Village}, ${property.Location}`
                   );
                   window.open(
                     `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
@@ -683,7 +689,7 @@ ${property.Hashtags || '#realestate #realtor #property #home #houseforsale #home
                     <div className="relative w-full h-full">
                       <img 
                         src={property['Preview Photo']} 
-                        alt={`Property #${property['Property ID']}`}
+                        alt={`Property #${property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}`}
                         className="w-full h-full object-cover"
                       />
                       {property.Photos && (
@@ -722,7 +728,7 @@ ${property.Hashtags || '#realestate #realtor #property #home #houseforsale #home
                       <div className="text-center p-8">
                         <Home className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-xl font-semibold text-gray-600">
-                          Property #{property['Property ID']}
+                          Property #{property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}
                         </h3>
                         <p className="text-gray-500 mt-2">
                           {property.Village}, {property.Location}

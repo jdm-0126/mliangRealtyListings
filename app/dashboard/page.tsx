@@ -1,10 +1,12 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
+import RealEstateAssistant from '../../components/RealEstateAssistant';
 
 export default function Dashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAssistant, setShowAssistant] = useState(false);
 
   useEffect(() => {
     fetchLeads();
@@ -169,6 +171,13 @@ export default function Dashboard() {
             </button>
             
             <button 
+              onClick={() => setShowAssistant(!showAssistant)}
+              style={{ padding: '12px 20px', backgroundColor: '#ec4899', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              🤖 {showAssistant ? 'Hide' : 'Show'} Assistant
+            </button>
+            
+            <button 
               onClick={fetchLeads}
               style={{ padding: '12px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
@@ -202,6 +211,13 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Real Estate Assistant */}
+        {showAssistant && (
+          <div style={{ marginBottom: '24px' }}>
+            <RealEstateAssistant />
+          </div>
+        )}
 
         {/* Leads List */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>

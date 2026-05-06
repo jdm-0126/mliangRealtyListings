@@ -26,22 +26,34 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
       setFormData({ ...property })
       setPreviewImage(property['Preview Photo'] || '')
     } else {
-      // Set default values for new property
-      const maxId = Math.max(...(columns.length > 0 ? [0] : [0]), 0)
-      setFormData({
-        'Property ID': maxId + 1,
-        Status: 'Active',
-        Type: 'Residential',
-        CGT: 'Seller',
-        'Transfer Title': 'Buyer',
-        'Lot Area': '100',
-        'Floor Area': '100',
-        Location: 'City of San Fernando',
-        Video: '',
-        'Listing Price': '',
-        Negotiable: 'Yes',
-        'Preview Photo': ''
-      })
+      // Fetch the latest Property ID from database to avoid duplicates
+      const fetchMaxId = async () => {
+        if (!supabase) return
+        const { data, error } = await supabase
+          .from('mlianglistings')
+          .select('Property ID')
+          .order('Property ID', { ascending: false })
+          .limit(1)
+        
+        const maxId = data && data.length > 0 ? Number(data[0]['Property ID']) : 0
+        
+        setFormData({
+          'Property ID': maxId + 1,
+          Status: 'Active',
+          Type: 'Residential',
+          CGT: 'Seller',
+          'Transfer Title': 'Buyer',
+          'Lot Area': '100',
+          'Floor Area': '100',
+          Location: 'City of San Fernando',
+          Video: '',
+          'Listing Price': '',
+          Negotiable: 'Yes',
+          'Preview Photo': ''
+        })
+      }
+      
+      fetchMaxId()
       setPreviewImage('')
     }
   }, [property, columns])
@@ -244,9 +256,9 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                   
                   {key === 'Property ID' ? (
                     <Input
-                      type="text"
+                      type="number"
                       value={formData[key] || ''}
-                      disabled
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
                       className="bg-gray-50"
                     />
                   ) : key === 'Status' ? (

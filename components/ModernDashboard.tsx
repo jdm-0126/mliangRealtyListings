@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/app/lib/supabaseClient.js'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -8,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import PropertyCard from './PropertyCard'
 import PropertyDialog from './PropertyDialog'
+import QuickAddProperty from './QuickAddProperty'
+import SaveFacebookPost from './SaveFacebookPost'
 import { 
   Plus, 
   Search, 
@@ -24,6 +27,7 @@ import {
 } from 'lucide-react'
 
 export default function ModernDashboard() {
+  const searchParams = useSearchParams()
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedRows, setSelectedRows] = useState<any[]>([])
@@ -31,13 +35,44 @@ export default function ModernDashboard() {
   const [editingRow, setEditingRow] = useState<any>(null)
   const [searchText, setSearchText] = useState('')
   const [filteredData, setFilteredData] = useState<any[]>([])
-  const [sortBy, setSortBy] = useState('Property ID')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [sortBy, setSortBy] = useState('newest')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
-  const [showStats, setShowStats] = useState(false)
+  const [locationFilter, setLocationFilter] = useState<string>('')
+  const [priceFilter, setPriceFilter] = useState<string>('')
+  const [sizeFilter, setSizeFilter] = useState<string>('')
   const [showFilters, setShowFilters] = useState(false)
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [showSaveFBPost, setShowSaveFBPost] = useState(false)
+  const [selectedPropertyForFB, setSelectedPropertyForFB] = useState<any>(null)
+
+  // Initialize filters from URL parameters
+  useEffect(() => {
+    const type = searchParams.get('type')
+    const location = searchParams.get('location')
+    const price = searchParams.get('price')
+    const size = searchParams.get('size')
+    
+    if (type) {
+      if (type.toLowerCase().includes('house')) setTypeFilter('residential')
+      else if (type.toLowerCase().includes('lot')) setTypeFilter('lot')
+      else if (type.toLowerCase().includes('commercial')) setTypeFilter('commercial')
+    }
+    
+    if (location) {
+      setLocationFilter(location)
+      setSearchText(location)
+    }
+    
+    if (price) {
+      setPriceFilter(price)
+    }
+    
+    if (size) {
+      setSizeFilter(size)
+    }
+  }, [searchParams])
 
   const fetchData = useCallback(async () => {
     if (!supabase) {
@@ -49,10 +84,13 @@ export default function ModernDashboard() {
     const { data, error } = await supabase
       .from('mlianglistings')
       .select('*')
+      .order('Property ID', { ascending: false })
     if (error) {
+      console.error('Error fetching data:', error)
       setLoading(false)
       return
     }
+    console.log('Fetched data:', data)
     setData(data || [])
     setLoading(false)
   }, [])
@@ -66,11 +104,112 @@ export default function ModernDashboard() {
 
     // Apply search filter
     if (searchText) {
+      filtered = filtered.filter(row => {
+        // Adjust Property ID for display
+        const displayPropertyId = row['Property ID'] > 2 ? row['Property ID'] - 1 : row['Property ID']
+        
+        return Object.entries(row).some(([key, value]) => {
+          // For Property ID, search using the adjusted display value
+          if (key === 'Property ID') {
+            return String(displayPropertyId).toLowerCase().includes(searchText.toLowerCase())
+          }
+          // For other fields, search normally
+          return String(value).toLowerCase().includes(searchText.toLowerCase())
+        })
+      })
+    }
+
+    // Apply location filter
+    if (locationFilter) {
       filtered = filtered.filter(row =>
-        Object.values(row).some(value =>
-          String(value).toLowerCase().includes(searchText.toLowerCase())
-        )
+        (row.Location || row.Address || '').toLowerCase().includes(locationFilter.toLowerCase())
       )
+    }
+
+    // Apply price filter
+    if (priceFilter) {
+      const priceInput = priceFilter.toLowerCase().trim()
+      filtered = filtered.filter(row => {
+        const price = parseFloat(String(row['Listing Price'] || row.ListingPrice || row.Price || '0').replace(/[^\d.]/g, '')) || 0
+        
+        // Handle "under" or "below" patterns
+        if (priceInput.includes('under') || priceInput.includes('below') || priceInput.includes('less than')) {
+          const match = priceInput.match(/(\d+(?:\.\d+)?)\s*m?/i)
+          if (match) {
+            const maxPrice = parseFloat(match[1]) * 1000000
+            return price <= maxPrice
+          }
+        }
+        
+        // Handle "above" or "over" patterns
+        else if (priceInput.includes('above') || priceInput.includes('over') || priceInput.includes('more than')) {
+          const match = priceInput.match(/(\d+(?:\.\d+)?)\s*m?/i)
+          if (match) {
+            const minPrice = parseFloat(match[1]) * 1000000
+            return price >= minPrice
+          }
+        }
+        
+        // Handle range patterns (e.g., "2M to 5M", "1.5-3.5", "2 - 4M")
+        else if (priceInput.includes('to') || priceInput.includes('-')) {
+          const matches = priceInput.match(/(\d+(?:\.\d+)?)\s*m?\s*(?:to|-|–)\s*(\d+(?:\.\d+)?)\s*m?/i)
+          if (matches) {
+            const minPrice = parseFloat(matches[1]) * 1000000
+            const maxPrice = parseFloat(matches[2]) * 1000000
+            return price >= minPrice && price <= maxPrice
+          }
+        }
+        
+        // Handle "around" or "approximately" patterns
+        else if (priceInput.includes('around') || priceInput.includes('about') || priceInput.includes('approx')) {
+          const match = priceInput.match(/(\d+(?:\.\d+)?)\s*m?/i)
+          if (match) {
+            const targetPrice = parseFloat(match[1]) * 1000000
+            const tolerance = targetPrice * 0.2 // 20% tolerance
+            return price >= (targetPrice - tolerance) && price <= (targetPrice + tolerance)
+          }
+        }
+        
+        // Handle exact price or single number (assume millions)
+        else {
+          const match = priceInput.match(/^(\d+(?:\.\d+)?)\s*m?$/i)
+          if (match) {
+            const targetPrice = parseFloat(match[1]) * 1000000
+            const tolerance = targetPrice * 0.1 // 10% tolerance for exact matches
+            return price >= (targetPrice - tolerance) && price <= (targetPrice + tolerance)
+          }
+        }
+        
+        return true
+      })
+    }
+
+    // Apply size filter
+    if (sizeFilter && sizeFilter !== 'No preference') {
+      filtered = filtered.filter(row => {
+        const lotSize = parseFloat(String(row['Lot Area'] || row.LotArea || '0').replace(/[^\d.]/g, '')) || 0
+        const floorSize = parseFloat(String(row['Floor Area'] || row.FloorArea || '0').replace(/[^\d.]/g, '')) || 0
+        const totalSize = Math.max(lotSize, floorSize)
+        
+        if (sizeFilter.includes('to') || sizeFilter.includes('-')) {
+          const matches = sizeFilter.match(/(\d+)[\s-]*(?:to|-)\s*(\d+)/)
+          if (matches) {
+            const minSize = parseInt(matches[1])
+            const maxSize = parseInt(matches[2])
+            return totalSize >= minSize && totalSize <= maxSize
+          }
+        } else if (sizeFilter.includes('least') || sizeFilter.includes('minimum')) {
+          const match = sizeFilter.match(/(\d+)/)
+          if (match) return totalSize >= parseInt(match[1])
+        } else if (sizeFilter.includes('around') || sizeFilter.includes('about')) {
+          const match = sizeFilter.match(/(\d+)/)
+          if (match) {
+            const target = parseInt(match[1])
+            return totalSize >= target * 0.8 && totalSize <= target * 1.2
+          }
+        }
+        return true
+      })
     }
 
     // Apply status filter
@@ -89,18 +228,26 @@ export default function ModernDashboard() {
     
     // Sort the filtered data
     filtered.sort((a, b) => {
-      const aVal = sortBy === 'Property ID' ? Number(a[sortBy]) || 0 : String(a[sortBy] || '').toLowerCase()
-      const bVal = sortBy === 'Property ID' ? Number(b[sortBy]) || 0 : String(b[sortBy] || '').toLowerCase()
-      
-      if (sortBy === 'Property ID') {
-        return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
-      } else {
-        return sortOrder === 'asc' ? (aVal as string).localeCompare(bVal as string) : (bVal as string).localeCompare(aVal as string)
+      switch (sortBy) {
+        case 'newest':
+          return Number(b['Property ID']) - Number(a['Property ID'])
+        case 'oldest':
+          return Number(a['Property ID']) - Number(b['Property ID'])
+        case 'price-high':
+          const priceA = parseFloat(String(a['Listing Price'] || a.ListingPrice || a.Price || '0').replace(/[^\d.]/g, '')) || 0
+          const priceB = parseFloat(String(b['Listing Price'] || b.ListingPrice || b.Price || '0').replace(/[^\d.]/g, '')) || 0
+          return priceB - priceA
+        case 'price-low':
+          const priceA2 = parseFloat(String(a['Listing Price'] || a.ListingPrice || a.Price || '0').replace(/[^\d.]/g, '')) || 0
+          const priceB2 = parseFloat(String(b['Listing Price'] || b.ListingPrice || b.Price || '0').replace(/[^\d.]/g, '')) || 0
+          return priceA2 - priceB2
+        default:
+          return 0
       }
     })
     
     setFilteredData(filtered)
-  }, [data, searchText, sortBy, sortOrder, statusFilter, typeFilter])
+  }, [data, searchText, statusFilter, typeFilter, locationFilter, priceFilter, sizeFilter, sortBy])
 
   const handleCreate = () => {
     setEditingRow(null)
@@ -131,17 +278,26 @@ export default function ModernDashboard() {
       mediaInfo = '\n\nPM for Video'
     }
     
-    const text = `‼️HOUSE AND LOT FOR SALE‼️
+    const lotArea = row['Lot Area'] || row.LotArea || ''
+    const floorArea = row['Floor Area'] || row.FloorArea || ''
+    const notes = (row.Notes || '').replace(/[^\w\s.,;:()\-₱\n]/g, '')
+    
+    let areaInfo = ''
+    if (lotArea) {
+      areaInfo += `\nLot Area : ${lotArea}`
+    }
+    if (floorArea) {
+      areaInfo += `\nFloor Area : ${floorArea}`
+    }
+    
+    const text = `HOUSE AND LOT FOR SALE
 
-📍${row.Village || ''},
-📍${row.Location || ''},
+${row.Village || ''},
+${row.Location || ''},
 
-🏷️${row['Listing Price'] || row.ListingPrice || row.Price || ''}
+${row['Listing Price'] || row.ListingPrice || row.Price || ''}${areaInfo}
 
-Lot Area : ${row['Lot Area'] || ''}
-Floor Area : ${row['Floor Area'] || ''}
-
-✔️ ${row.Notes || ''}
+${notes}
 
 CGT - ${row.CGT || ''}
 Transfer - ${row['Transfer Title'] || ''}
@@ -167,10 +323,8 @@ PRC NO. 0019653
   }
 
   const postToFacebook = (row: any) => {
-    copyToClipboard(row)
-    const text = encodeURIComponent(`Property #${row['Property ID']} - ${row.Village}, ${row.Location}`)
-    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${text}`
-    window.open(fbUrl, '_blank', 'width=600,height=400')
+    setSelectedPropertyForFB(row)
+    setShowSaveFBPost(true)
   }
 
   // Calculate statistics
@@ -197,22 +351,14 @@ PRC NO. 0019653
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Property Dashboard</h1>
-              <p className="text-gray-600">Manage your real estate listings</p>
+              <h1 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>Property Dashboard</h1>
+              <p style={{ color: '#4b5563' }}>Manage your real estate listings</p>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowStats(!showStats)}
-            >
-              {showStats ? 'Hide Stats' : 'Show Stats'}
-            </Button>
           </div>
         </div>
 
-        {/* Statistics Cards - Collapsible */}
-        {showStats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -220,8 +366,8 @@ PRC NO. 0019653
                     <Home className="w-6 h-6 text-blue-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Properties</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                    <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Total Properties</p>
+                    <p className="text-2xl font-bold" style={{ color: '#000000' }}>{stats.total}</p>
                   </div>
                 </div>
               </CardContent>
@@ -234,8 +380,8 @@ PRC NO. 0019653
                     <BarChart3 className="w-6 h-6 text-green-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Active</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+                    <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Active</p>
+                    <p className="text-2xl font-bold" style={{ color: '#000000' }}>{stats.active}</p>
                   </div>
                 </div>
               </CardContent>
@@ -248,8 +394,8 @@ PRC NO. 0019653
                     <DollarSign className="w-6 h-6 text-yellow-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Draft</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.draft}</p>
+                    <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Draft</p>
+                    <p className="text-2xl font-bold" style={{ color: '#000000' }}>{stats.draft}</p>
                   </div>
                 </div>
               </CardContent>
@@ -262,8 +408,8 @@ PRC NO. 0019653
                     <Home className="w-6 h-6 text-purple-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Residential</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.residential}</p>
+                    <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Residential</p>
+                    <p className="text-2xl font-bold" style={{ color: '#000000' }}>{stats.residential}</p>
                   </div>
                 </div>
               </CardContent>
@@ -276,14 +422,13 @@ PRC NO. 0019653
                     <MapPin className="w-6 h-6 text-orange-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Lots</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.lots}</p>
+                    <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Lots</p>
+                    <p className="text-2xl font-bold" style={{ color: '#000000' }}>{stats.lots}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
+        </div>
 
         {/* Controls */}
         <Card className="mb-6">
@@ -318,54 +463,64 @@ PRC NO. 0019653
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900"
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      style={{ color: '#000000' }}
                     >
                       <option value="all">All Status</option>
                       <option value="active">Active</option>
                       <option value="draft">Draft</option>
+                      <option value="sold">Sold</option>
                     </select>
-
+                    
                     <select
                       value={typeFilter}
                       onChange={(e) => setTypeFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900"
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      style={{ color: '#000000' }}
                     >
                       <option value="all">All Types</option>
-                      <option value="residential">Residential</option>
-                      <option value="lot">Lot</option>
+                      <option value="residential">House & Lot</option>
+                      <option value="lot">Lot Only</option>
+                      <option value="commercial">Commercial</option>
                     </select>
-
+                    
+                    <Input
+                      placeholder="Location (e.g., San Fernando, Mexico, Bacolor)"
+                      value={locationFilter}
+                      onChange={(e) => setLocationFilter(e.target.value)}
+                      className="w-64"
+                    />
+                    
+                    <Input
+                      placeholder="Budget (e.g., 2M to 5M, Under 3M, Above 10M, Around 4.5M)"
+                      value={priceFilter}
+                      onChange={(e) => setPriceFilter(e.target.value)}
+                      className="w-80"
+                    />
+                    
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900"
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      style={{ color: '#000000' }}
                     >
-                      <option value="Property ID">Sort by ID</option>
-                      <option value="Village">Sort by Village</option>
-                      <option value="Location">Sort by Location</option>
-                      <option value="Type">Sort by Type</option>
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="price-high">Price: High to Low</option>
+                      <option value="price-low">Price: Low to High</option>
                     </select>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    >
-                      {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
-                    </Button>
                   </div>
-
-                  {/* View Toggle */}
-                  <div className="flex gap-1 border border-gray-300 rounded-md p-1">
+                  
+                  <div className="flex gap-2">
                     <Button
-                      variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                      variant={viewMode === 'grid' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setViewMode('grid')}
                     >
                       <Grid3X3 className="w-4 h-4" />
                     </Button>
                     <Button
-                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      variant={viewMode === 'list' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setViewMode('list')}
                     >
@@ -381,34 +536,28 @@ PRC NO. 0019653
                   <Plus className="w-4 h-4 mr-2" />
                   Add Property
                 </Button>
+                <Button variant="outline" onClick={() => setShowQuickAdd(true)}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Quick Add
+                </Button>
                 <Button variant="outline" onClick={() => window.location.href = '/upload'}>
                   <Upload className="w-4 h-4 mr-2" />
                   Upload
                 </Button>
               </div>
 
-              {searchText && (
-                <div className="text-sm text-gray-600">
-                  Showing {filteredData.length} out of {data.length} properties
-                </div>
-              )}
+              <div className="text-sm" style={{ color: '#4b5563' }}>
+                Showing {filteredData.length} of {data.length} properties
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Properties Grid/List */}
         {data.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No properties found</h3>
-              <p className="text-gray-600 mb-6">Get started by adding your first property listing.</p>
-              <Button onClick={handleCreate}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Property
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12">
+            <p className="text-gray-500">No properties found</p>
+          </div>
         ) : (
           <div className={
             viewMode === 'grid' 
@@ -436,6 +585,26 @@ PRC NO. 0019653
             isOpen={openDialog}
             onClose={handleDialogClose}
             columns={data.length > 0 ? Object.keys(data[0]) : []}
+          />
+        )}
+
+        {/* Quick Add Property */}
+        {showQuickAdd && (
+          <QuickAddProperty
+            onClose={() => setShowQuickAdd(false)}
+            onSuccess={fetchData}
+          />
+        )}
+
+        {/* Save Facebook Post */}
+        {showSaveFBPost && selectedPropertyForFB && (
+          <SaveFacebookPost
+            property={selectedPropertyForFB}
+            onClose={() => {
+              setShowSaveFBPost(false)
+              setSelectedPropertyForFB(null)
+            }}
+            onSuccess={fetchData}
           />
         )}
       </div>

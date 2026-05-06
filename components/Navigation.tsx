@@ -4,13 +4,15 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Home, Upload, Settings, BarChart3, Users, Menu, X } from 'lucide-react'
+import { Home, Upload, Settings, BarChart3, Users, Menu, X, Facebook, Activity } from 'lucide-react'
 import { Button } from './ui/button'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Leads Monitor', href: '/dashboard', icon: Activity },
   { name: 'Properties', href: '/properties', icon: BarChart3 },
   { name: 'Upload', href: '/upload', icon: Upload },
+  { name: 'Facebook Posts', href: '/facebook-posts', icon: Facebook },
   { name: 'Facebook Groups', href: '/facebook-groups', icon: Users },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
