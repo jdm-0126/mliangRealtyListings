@@ -17,9 +17,8 @@ interface Message {
 
 interface PropertySearch {
   location?: string
-  propertyType?: string
   priceRange?: string
-  step: 'location' | 'type' | 'price' | 'complete'
+  step: 'location' | 'price' | 'complete'
 }
 
 // Real Estate FAQ Knowledge Base
@@ -163,47 +162,35 @@ export default function ChatWidget() {
     })
   }
 
-  const getPropertiesByFilters = (location: string, propertyType?: string, priceRange?: string) => {
+  const getPropertiesByLocationAndPrice = (location: string, priceRange: string) => {
     let filtered = getPropertiesByLocation(location)
     
-    // Filter by property type
-    if (propertyType && propertyType !== 'any') {
-      const typeLower = propertyType.toLowerCase()
-      filtered = filtered.filter(prop => {
-        const propType = (prop.Type || '').toLowerCase()
-        return propType.includes(typeLower)
-      })
+    const priceInput = priceRange.toLowerCase()
+    let minPrice = 0
+    let maxPrice = Infinity
+    
+    if (priceInput.includes('to')) {
+      const matches = priceInput.match(/(\d+(?:\.\d+)?)m?\s*to\s*(\d+(?:\.\d+)?)m?/)
+      if (matches) {
+        minPrice = parseFloat(matches[1]) * 1000000
+        maxPrice = parseFloat(matches[2]) * 1000000
+      }
+    } else if (priceInput.includes('under') || priceInput.includes('below')) {
+      const matches = priceInput.match(/(\d+(?:\.\d+)?)m?/)
+      if (matches) {
+        maxPrice = parseFloat(matches[1]) * 1000000
+      }
+    } else if (priceInput.includes('above') || priceInput.includes('over')) {
+      const matches = priceInput.match(/(\d+(?:\.\d+)?)m?/)
+      if (matches) {
+        minPrice = parseFloat(matches[1]) * 1000000
+      }
     }
     
-    // Filter by price range
-    if (priceRange) {
-      const priceInput = priceRange.toLowerCase()
-      let minPrice = 0
-      let maxPrice = Infinity
-      
-      if (priceInput.includes('to')) {
-        const matches = priceInput.match(/(\d+(?:\.\d+)?)m?\s*to\s*(\d+(?:\.\d+)?)m?/)
-        if (matches) {
-          minPrice = parseFloat(matches[1]) * 1000000
-          maxPrice = parseFloat(matches[2]) * 1000000
-        }
-      } else if (priceInput.includes('under') || priceInput.includes('below')) {
-        const matches = priceInput.match(/(\d+(?:\.\d+)?)m?/)
-        if (matches) {
-          maxPrice = parseFloat(matches[1]) * 1000000
-        }
-      } else if (priceInput.includes('above') || priceInput.includes('over')) {
-        const matches = priceInput.match(/(\d+(?:\.\d+)?)m?/)
-        if (matches) {
-          minPrice = parseFloat(matches[1]) * 1000000
-        }
-      }
-      
-      filtered = filtered.filter(prop => {
-        const propPrice = parseFloat(String(prop['Listing Price'] || prop.ListingPrice || prop.Price || '0').replace(/[^\d.]/g, '')) || 0
-        return propPrice >= minPrice && propPrice <= maxPrice
-      })
-    }
+    filtered = filtered.filter(prop => {
+      const propPrice = parseFloat(String(prop['Listing Price'] || prop.ListingPrice || prop.Price || '0').replace(/[^\d.]/g, '')) || 0
+      return propPrice >= minPrice && propPrice <= maxPrice
+    })
     
     return filtered
   }
@@ -265,44 +252,34 @@ export default function ChatWidget() {
     
     switch (propertySearch.step) {
       case 'location':
-        setPropertySearch({ ...propertySearch, location: input, step: 'type' })
-        return `Great! Searching in: **${input}**\n\n**What type of property are you looking for?**\n\nOptions:\n- House and Lot\n- Lot Only\n- Commercial\n- Any (show all types)`
-        
-      case 'type':
-        setPropertySearch({ ...propertySearch, propertyType: input, step: 'price' })
-        return `Perfect! Property type: **${input}**\n\n**What's your budget?**\n\nExamples:\n- 2M to 5M\n- Under 3M\n- Above 10M\n- Any (show all prices)`
+        setPropertySearch({ ...propertySearch, location: input, step: 'price' })
+        return `Great! Searching in: **${input}**\n\n**What's your budget?**\n\nExamples:\n- 2M to 5M\n- Under 3M\n- Above 10M`
         
       case 'price':
         setPropertySearch({ ...propertySearch, priceRange: input, step: 'complete' })
         
-        const filtered = getPropertiesByFilters(
-          propertySearch.location!, 
-          propertySearch.propertyType, 
-          input === 'any' ? undefined : input
-        )
+        const filtered = getPropertiesByLocationAndPrice(propertySearch.location!, input)
         
         let response = `Excellent! Budget: **${input}**\n\n`
         
         if (filtered.length > 0) {
-          response += `**Found ${filtered.length} properties:**\n\n`
+          response += `**Found ${filtered.length} properties in ${propertySearch.location} within ${input} budget:**\n\n`
           filtered.forEach((prop, index) => {
             const propertyId = prop['Property ID'] || prop.id
             const displayId = propertyId > 2 ? propertyId - 1 : propertyId
             const location = prop.Location || prop.Address || 'Location not specified'
             const price = formatPrice(prop['Listing Price'] || prop.ListingPrice || prop.Price)
             const area = formatArea(prop)
-            const type = prop.Type || 'Type not specified'
-            const propLink = `/properties/${displayId}`
+            const propLink = `http://localhost:3000/properties/${displayId}`
             
             response += `${index + 1}. **Property ID: ${displayId}**\n`
-            response += `   Type: ${type}\n`
             response += `   Location: ${location}\n`
             response += `   Price: ${price}\n`
             response += `   Size: ${area}\n`
             response += `   <a href="${propLink}" target="_blank" style="color: #2563eb; text-decoration: underline;">View Property</a>\n\n`
           })
         } else {
-          response += `No properties found matching your criteria.\n\n`
+          response += `No properties found within your budget in ${propertySearch.location}.\n\n`
         }
         
         response += `\n📞 Call us at **09393440944** for more details!`
