@@ -270,7 +270,7 @@ export default function ChatWidget() {
             const location = prop.Location || prop.Address || 'Location not specified'
             const price = formatPrice(prop['Listing Price'] || prop.ListingPrice || prop.Price)
             const area = formatArea(prop)
-            const propLink = `http://localhost:3000/properties/${displayId}`
+            const propLink = `/properties/${displayId}`
             
             response += `${index + 1}. **Property ID: ${displayId}**\n`
             response += `   Location: ${location}\n`

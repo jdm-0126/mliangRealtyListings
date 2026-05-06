@@ -7,6 +7,11 @@ export const supabase = supabaseUrl && supabaseKey
   ? createClient(supabaseUrl, supabaseKey)
   : null
 
+// Attach to window for browser extension (localhost only)
+if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && supabase) {
+  (window as any).supabase = supabase
+}
+
 if (typeof window !== 'undefined' && !supabase) {
   console.error('Supabase client not initialized: Missing environment variables')
 }
