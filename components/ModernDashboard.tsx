@@ -531,16 +531,16 @@ PRC NO. 0019653
               )}
 
               {/* Actions */}
-              <div className="flex gap-2">
-                <Button onClick={handleCreate}>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={handleCreate} className="flex-shrink-0">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Property
                 </Button>
-                <Button variant="outline" onClick={() => setShowQuickAdd(true)}>
+                <Button variant="outline" onClick={() => setShowQuickAdd(true)} className="flex-shrink-0">
                   <Upload className="w-4 h-4 mr-2" />
                   Quick Add
                 </Button>
-                <Button variant="outline" onClick={() => window.location.href = '/upload'}>
+                <Button variant="outline" onClick={() => window.location.href = '/upload'} className="flex-shrink-0">
                   <Upload className="w-4 h-4 mr-2" />
                   Upload
                 </Button>
