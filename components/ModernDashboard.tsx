@@ -46,6 +46,7 @@ export default function ModernDashboard() {
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [showSaveFBPost, setShowSaveFBPost] = useState(false)
   const [selectedPropertyForFB, setSelectedPropertyForFB] = useState<any>(null)
+  const [showEditDelete, setShowEditDelete] = useState(false)
 
   // Initialize filters from URL parameters
   useEffect(() => {
@@ -263,6 +264,44 @@ export default function ModernDashboard() {
     setOpenDialog(false)
     setEditingRow(null)
     fetchData()
+  }
+
+  const handleHide = async (property: any) => {
+    if (!supabase) return
+    
+    const confirmHide = confirm(`Hide Property #${property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}? This will set status to Draft.`)
+    if (!confirmHide) return
+    
+    const { error } = await supabase
+      .from('mlianglistings')
+      .update({ Status: 'Draft' })
+      .eq('Property ID', property['Property ID'])
+    
+    if (error) {
+      alert('Error hiding property: ' + error.message)
+    } else {
+      alert('Property hidden successfully!')
+      fetchData()
+    }
+  }
+
+  const handleDelete = async (property: any) => {
+    if (!supabase) return
+    
+    const confirmDelete = confirm(`Delete Property #${property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}? This action cannot be undone.`)
+    if (!confirmDelete) return
+    
+    const { error } = await supabase
+      .from('mlianglistings')
+      .delete()
+      .eq('Property ID', property['Property ID'])
+    
+    if (error) {
+      alert('Error deleting property: ' + error.message)
+    } else {
+      alert('Property deleted successfully!')
+      fetchData()
+    }
   }
 
   const copyToClipboard = (row: any) => {
@@ -509,6 +548,14 @@ PRC NO. 0019653
                       <option value="price-high">Price: High to Low</option>
                       <option value="price-low">Price: Low to High</option>
                     </select>
+                    
+                    <Button
+                      variant={showEditDelete ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setShowEditDelete(!showEditDelete)}
+                    >
+                      {showEditDelete ? 'Hide' : 'Show'} Edit/Delete
+                    </Button>
                   </div>
                   
                   <div className="flex gap-2">
@@ -569,10 +616,12 @@ PRC NO. 0019653
                 key={property['Property ID']}
                 property={property}
                 viewMode={viewMode}
-                onEdit={handleEdit}
+                onEdit={showEditDelete ? handleEdit : undefined}
                 onShare={shareItem}
                 onCopy={copyToClipboard}
                 onFacebookPost={postToFacebook}
+                onHide={showEditDelete ? handleHide : undefined}
+                onDelete={showEditDelete ? handleDelete : undefined}
               />
             ))}
           </div>

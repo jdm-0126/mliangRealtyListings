@@ -14,7 +14,9 @@ import {
   Copy, 
   ExternalLink,
   Camera,
-  Video
+  Video,
+  Trash2,
+  EyeOff
 } from 'lucide-react'
 
 interface PropertyCardProps {
@@ -24,6 +26,8 @@ interface PropertyCardProps {
   onShare?: (property: any) => void;
   onCopy?: (property: any) => void;
   onFacebookPost?: (property: any) => void;
+  onDelete?: (property: any) => void;
+  onHide?: (property: any) => void;
 }
 
 export default function PropertyCard({ 
@@ -32,6 +36,8 @@ export default function PropertyCard({
   onShare, 
   onCopy, 
   onFacebookPost,
+  onDelete,
+  onHide,
   viewMode,
 }: PropertyCardProps) {
   const hasPhotos = Object.keys(property).some(key => 
@@ -160,7 +166,7 @@ export default function PropertyCard({
         </div>
       </CardContent>
 
-      <CardFooter className="p-6 pt-0 flex gap-2">
+      <CardFooter className="p-6 pt-0 flex flex-wrap gap-2">
         <Button
           variant="default"
           size="sm"
@@ -168,30 +174,56 @@ export default function PropertyCard({
             const displayId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
             window.location.href = `/properties/${displayId}`
           }}
-          className="flex-1"
+          className="flex-1 min-w-[100px]"
         >
           View Details
         </Button>
         
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onEdit?.(property)}
-          className="flex-1"
-        >
-          <Edit className="w-4 h-4 mr-1" />
-          Edit
-        </Button>
+        {onEdit && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit?.(property)}
+            className="flex-1 min-w-[80px]"
+          >
+            <Edit className="w-4 h-4 mr-1" />
+            Edit
+          </Button>
+        )}
         
         <Button
           variant="outline"
           size="sm"
           onClick={() => onFacebookPost?.(property)}
-          className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+          className="flex-1 min-w-[100px] bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
         >
           <Share2 className="w-4 h-4 mr-1" />
           FB Post
         </Button>
+        
+        {onHide && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onHide?.(property)}
+            className="flex-shrink-0 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200"
+          >
+            <EyeOff className="w-4 h-4 mr-1" />
+            Hide
+          </Button>
+        )}
+        
+        {onDelete && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete?.(property)}
+            className="flex-shrink-0 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            Delete
+          </Button>
+        )}
       </CardFooter>
     </Card>
   )

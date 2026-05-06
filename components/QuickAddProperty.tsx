@@ -41,11 +41,11 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
       const price = priceMatch ? priceMatch[1].trim() : ''
       
       // Extract lot area
-      const lotMatch = text.match(/Lot Area[:\s]*(\d+\s*sqm)/i)
+      const lotMatch = text.match(/Lot Area[:\s]*(\d+)\s*sqm/i)
       const lotArea = lotMatch ? lotMatch[1].trim() : ''
       
       // Extract floor area
-      const floorMatch = text.match(/Floor Area[:\s]*(\d+\s*sqm)/i)
+      const floorMatch = text.match(/Floor Area[:\s]*(\d+)\s*sqm/i)
       const floorArea = floorMatch ? floorMatch[1].trim() : ''
       
       // Extract bedrooms
@@ -98,6 +98,12 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
   const handleSave = async () => {
     if (!parsedData || !supabase) return
     
+    // Validate required fields
+    if (!parsedData.description || !parsedData.description.trim()) {
+      alert('Description is required!')
+      return
+    }
+    
     setLoading(true)
     
     try {
@@ -114,14 +120,33 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
         }
       }
       
-      const propertyData = {
-        Title: parsedData.title,
-        Location: parsedData.location,
-        'Listing Price': priceNum,
-        'Lot Area': parsedData.lotArea,
-        'Floor Area': parsedData.floorArea,
-        Notes: parsedData.description,
-        Type: parsedData.type,
+      // Check for duplicates based on location and price
+      const { data: existingProperties, error: checkError } = await supabase
+        .from('mlianglistings')
+        .select('*')
+        .eq('Location', parsedData.location)
+        .eq('Listing Price', priceNum)
+      
+      if (checkError) {
+        console.error('Error checking duplicates:', checkError)
+      } else if (existingProperties && existingProperties.length > 0) {
+        const confirmAdd = confirm(
+          `Found ${existingProperties.length} similar property(ies) with same location and price.\n\nDo you still want to add this property?`
+        )
+        if (!confirmAdd) {
+          setLoading(false)
+          return
+        }
+      }
+      
+      const propertyData: any = {
+        Title: parsedData.title || '',
+        Location: parsedData.location || '',
+        'Listing Price': priceNum || 0,
+        'Lot Area sqm': parsedData.lotArea || '',
+        'Floor Area sqm': parsedData.floorArea || '',
+        Notes: parsedData.description || '',
+        Type: parsedData.type || 'Residential',
         Status: 'Active',
         CGT: 'Seller',
         'Transfer Title': 'Buyer'
@@ -178,39 +203,107 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
             {parsedData && (
               <div className="border rounded-lg p-4 bg-gray-50">
                 <h3 className="font-semibold mb-3" style={{ color: '#000000' }}>Parsed Property Details:</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <span className="font-medium" style={{ color: '#4b5563' }}>Title:</span>
-                    <p style={{ color: '#000000' }}>{parsedData.title || 'Not found'}</p>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Title:</label>
+                    <input
+                      type="text"
+                      value={parsedData.title}
+                      onChange={(e) => setParsedData({ ...parsedData, title: e.target.value })}
+                      className="w-full p-2 border rounded"
+                      style={{ color: '#000000' }}
+                    />
                   </div>
                   <div>
-                    <span className="font-medium" style={{ color: '#4b5563' }}>Location:</span>
-                    <p style={{ color: '#000000' }}>{parsedData.location || 'Not found'}</p>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Location:</label>
+                    <input
+                      type="text"
+                      value={parsedData.location}
+                      onChange={(e) => setParsedData({ ...parsedData, location: e.target.value })}
+                      className="w-full p-2 border rounded"
+                      style={{ color: '#000000' }}
+                    />
                   </div>
                   <div>
-                    <span className="font-medium" style={{ color: '#4b5563' }}>Price:</span>
-                    <p style={{ color: '#000000' }}>{parsedData.price || 'Not found'}</p>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Price:</label>
+                    <input
+                      type="text"
+                      value={parsedData.price || ''}
+                      onChange={(e) => setParsedData({ ...parsedData, price: e.target.value })}
+                      className="w-full p-2 border rounded"
+                      style={{ color: '#000000' }}
+                    />
                   </div>
                   <div>
-                    <span className="font-medium" style={{ color: '#4b5563' }}>Type:</span>
-                    <p style={{ color: '#000000' }}>{parsedData.type}</p>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Type:</label>
+                    <select
+                      value={parsedData.type}
+                      onChange={(e) => setParsedData({ ...parsedData, type: e.target.value })}
+                      className="w-full p-2 border rounded"
+                      style={{ color: '#000000' }}
+                    >
+                      <option value="Residential">Residential</option>
+                      <option value="Lot">Lot</option>
+                      <option value="Commercial">Commercial</option>
+                    </select>
                   </div>
                   <div>
-                    <span className="font-medium" style={{ color: '#4b5563' }}>Lot Area:</span>
-                    <p style={{ color: '#000000' }}>{parsedData.lotArea || 'Not found'}</p>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Lot Area (sqm):</label>
+                    <input
+                      type="text"
+                      value={parsedData.lotArea || ''}
+                      onChange={(e) => setParsedData({ ...parsedData, lotArea: e.target.value })}
+                      className="w-full p-2 border rounded"
+                      style={{ color: '#000000' }}
+                      placeholder="e.g., 100"
+                      name="Lot Area"
+                    />
                   </div>
                   <div>
-                    <span className="font-medium" style={{ color: '#4b5563' }}>Floor Area:</span>
-                    <p style={{ color: '#000000' }}>{parsedData.floorArea || 'Not found'}</p>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Floor Area (sqm):</label>
+                    <input
+                      type="text"
+                      value={parsedData.floorArea || ''}
+                      onChange={(e) => setParsedData({ ...parsedData, floorArea: e.target.value })}
+                      className="w-full p-2 border rounded"
+                      style={{ color: '#000000' }}
+                      placeholder="e.g., 80"
+                      name="Floor Area"
+                    />
                   </div>
                   <div>
-                    <span className="font-medium" style={{ color: '#4b5563' }}>Bedrooms:</span>
-                    <p style={{ color: '#000000' }}>{parsedData.bedrooms || 'Not found'}</p>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Bedrooms (optional):</label>
+                    <input
+                      type="text"
+                      value={parsedData.bedrooms || ''}
+                      onChange={(e) => setParsedData({ ...parsedData, bedrooms: e.target.value })}
+                      className="w-full p-2 border rounded"
+                      style={{ color: '#000000' }}
+                    />
                   </div>
                   <div>
-                    <span className="font-medium" style={{ color: '#4b5563' }}>Bathrooms:</span>
-                    <p style={{ color: '#000000' }}>{parsedData.bathrooms || 'N/A'}</p>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Bathrooms (optional):</label>
+                    <input
+                      type="text"
+                      value={parsedData.bathrooms || ''}
+                      onChange={(e) => setParsedData({ ...parsedData, bathrooms: e.target.value })}
+                      className="w-full p-2 border rounded"
+                      style={{ color: '#000000' }}
+                    />
                   </div>
+                </div>
+                
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>
+                    Description: <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={parsedData.description}
+                    onChange={(e) => setParsedData({ ...parsedData, description: e.target.value })}
+                    className="w-full p-2 border rounded h-32"
+                    style={{ color: '#000000' }}
+                    required
+                  />
                 </div>
                 
                 <div className="mt-4 flex gap-2">
