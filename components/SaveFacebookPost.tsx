@@ -43,6 +43,11 @@ export default function SaveFacebookPost({ property, onClose, onSuccess }: SaveF
       return
     }
 
+    if (!supabase) {
+      alert('Database connection not available')
+      return
+    }
+
     setSaving(true)
 
     try {
