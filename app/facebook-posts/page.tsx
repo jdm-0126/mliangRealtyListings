@@ -53,6 +53,11 @@ export default function FacebookPostsPage() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this Facebook post?')) return
 
+    if (!supabase) {
+      alert('Database connection not available')
+      return
+    }
+
     try {
       const { error } = await supabase
         .from('facebook_posts')
