@@ -11,6 +11,36 @@ interface FAQItem {
   category: string;
 }
 
+const formatPreview = (text: string) => {
+  if (!text) return '';
+  
+  let formatted = text;
+  
+  // Format bold **text**
+  formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // Format italic *text*
+  formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  
+  // Format numbered lists 1) -> 1.
+  formatted = formatted.replace(/(\d+)\)\s*/g, '<br/>$1. ');
+  
+  // Format bullet points - -> •
+  formatted = formatted.replace(/^\s*-\s*/gm, '&bull; ');
+  formatted = formatted.replace(/([^>])\s+-\s*/g, '$1<br/>&bull; ');
+  
+  // Format section headers (text followed by colon)
+  formatted = formatted.replace(/^([A-Za-z][^:]*?):\s*/gm, '<br/><strong>$1:</strong><br/>');
+  
+  // Convert line breaks
+  formatted = formatted.replace(/\n/g, '<br/>');
+  
+  // Clean up multiple breaks
+  formatted = formatted.replace(/(<br\/>){3,}/g, '<br/><br/>');
+  
+  return formatted.trim();
+};
+
 export default function AdminFAQPanel() {
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -192,36 +222,6 @@ export default function AdminFAQPanel() {
     faq.keyword.includes(searchTerm.toLowerCase()) || 
     faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const formatPreview = (text: string) => {
-    if (!text) return '';
-    
-    let formatted = text;
-    
-    // Format bold **text**
-    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Format italic *text*
-    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    
-    // Format numbered lists 1) -> 1.
-    formatted = formatted.replace(/(\d+)\)\s*/g, '<br/>$1. ');
-    
-    // Format bullet points - -> •
-    formatted = formatted.replace(/^\s*-\s*/gm, '&bull; ');
-    formatted = formatted.replace(/([^>])\s+-\s*/g, '$1<br/>&bull; ');
-    
-    // Format section headers (text followed by colon)
-    formatted = formatted.replace(/^([A-Za-z][^:]*?):\s*/gm, '<br/><strong>$1:</strong><br/>');
-    
-    // Convert line breaks
-    formatted = formatted.replace(/\n/g, '<br/>');
-    
-    // Clean up multiple breaks
-    formatted = formatted.replace(/(<br\/>){3,}/g, '<br/><br/>');
-    
-    return formatted.trim();
-  };
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg border border-gray-300">
