@@ -341,7 +341,7 @@ ${notes}
 CGT - ${row.CGT || ''}
 Transfer - ${row['Transfer Title'] || ''}
 
-M. Liang Realty
+Marquez Realty
 LICENSED REAL ESTATE BROKER
 PRC NO. 0019653
 09393440944
@@ -355,7 +355,7 @@ PRC NO. 0019653
   const shareItem = (row: any) => {
     const text = Object.entries(row).map(([key, val]) => `${key}: ${val}`).join('\n')
     if (navigator.share) {
-      navigator.share({ title: 'MLiang Listing', text })
+      navigator.share({ title: 'Marquez Listing', text })
     } else {
       copyToClipboard(row)
     }

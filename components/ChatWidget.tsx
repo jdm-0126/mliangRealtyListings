@@ -32,8 +32,8 @@ const FAQ_DATABASE: { [key: string]: string } = {
   'financing': 'Property financing typically requires 20% equity (down payment) and 80% mortgage from a bank. Monthly payments depend on the loan term (5, 10, 15, or 20 years) and interest rate (usually 6-10%).',
   'mortgage': 'A mortgage is a loan from a bank to purchase property. You typically need 20% down payment and can finance 80%. Interest rates range from 6-10% annually.',
   'down payment': 'The standard down payment is 20% of the property price. This is called equity. The remaining 80% can be financed through a bank mortgage.',
-  'contact': 'You can contact M. Liang Realty at: Phone: 09393440944, Office: S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga. PRC License No. 0019653.',
-  'services': 'M. Liang Realty offers: Property listings (house and lot, lots, commercial), Property buying assistance, Title verification support, Financing guidance, Documentation assistance, and Property viewing arrangements.',
+  'contact': 'You can contact Marquez Realty at: Phone: 09393440944, Office: S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga. PRC License No. 0019653.',
+  'services': 'Marquez Realty offers: Property listings (house and lot, lots, commercial), Property buying assistance, Title verification support, Financing guidance, Documentation assistance, and Property viewing arrangements.',
 }
 
 export default function ChatWidget() {
@@ -315,7 +315,7 @@ export default function ChatWidget() {
       } else {
         const botMessage: Message = {
           id: messages.length + 2,
-          text: 'Thank you for using M. Liang Realty! Feel free to start a new search anytime. 📞 09393440944',
+          text: 'Thank you for using Marquez Realty! Feel free to start a new search anytime. 📞 09393440944',
           sender: 'bot',
           timestamp: new Date(),
         }
@@ -398,7 +398,7 @@ export default function ChatWidget() {
               </div>
               <div>
                 <h3 className="font-semibold">Real Estate Assistant</h3>
-                <p className="text-xs text-blue-100">M. Liang Realty</p>
+                <p className="text-xs text-blue-100">Marquez Realty</p>
               </div>
             </div>
             <button onClick={() => setIsOpen(false)} className="hover:bg-blue-700 p-1 rounded">

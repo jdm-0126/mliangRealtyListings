@@ -27,6 +27,18 @@ interface PropertyDetailsProps {
   params: Promise<{ id: string }>
 }
 
+type TenantSettings = {
+  businessName: string
+  brokerName: string
+  brokerTitle: string
+  prcNumber: string
+  officeAddress: string
+  contactNumber: string
+  emailAddress: string
+}
+
+const SETTINGS_KEY = 'tenantSettings'
+
 const getEmbeddableUrl = (url: string) => {
   // Google Drive file - convert to preview mode
   if (url.includes('drive.google.com/file/d/')) {
@@ -93,8 +105,24 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
   const [showProcesses, setShowProcesses] = useState(false)
   const [interestRate, setInterestRate] = useState(8)
   const [customPrice, setCustomPrice] = useState('')
+  const [tenantSettings, setTenantSettings] = useState<TenantSettings>({
+    businessName: 'Marquez Realty',
+    brokerName: 'Marquez Realty',
+    brokerTitle: 'Licensed Real Estate Broker',
+    prcNumber: '0019653',
+    officeAddress: 'S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga',
+    contactNumber: '09393440944',
+    emailAddress: 'contact@marquezrealty.com',
+  })
   const router = useRouter()
   const { id } = React.use(params)
+
+  const formatTenantFooter = () => {
+    return `${tenantSettings.brokerName}
+${tenantSettings.brokerTitle}
+PRC No. ${tenantSettings.prcNumber}
+${tenantSettings.officeAddress}`
+  }
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -114,6 +142,18 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
     }
     fetchProperty()
   }, [id])
+
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        setTenantSettings(prev => ({ ...prev, ...parsed }))
+      } catch {
+        // ignore invalid stored settings
+      }
+    }
+  }, [])
 
   const { hasPhotos, hasVideo, mediaEntries } = useMemo(() => {
     if (!property) return { hasPhotos: false, hasVideo: false, mediaEntries: [] }
@@ -180,46 +220,45 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
     
     // Add Lot Area only if it has a value
     if (property['Lot Area'] && property['Lot Area'] !== 'N/A') {
-      propertyDetails += `\nLot Area: ${property['Lot Area']}`
+      propertyDetails += '\nLot Area: ' + property['Lot Area']
     }
     
     // Add Floor Area only if it has a value and not lot only
     if (!isLotOnly && property['Floor Area'] && property['Floor Area'] !== 'N/A') {
-      propertyDetails += `\nFloor Area: ${property['Floor Area']}`
+      propertyDetails += '\nFloor Area: ' + property['Floor Area']
     }
     
     // Add other details for non-lot properties
     if (!isLotOnly) {
-      if (property.Bedrooms) propertyDetails += `\n${property.Bedrooms} Bedrooms`
-      if (property.Bathrooms) propertyDetails += `\n${property.Bathrooms} Bathrooms`
-      if (property.Carports) propertyDetails += `\n${property.Carports} Carports`
-      if (property.Features) propertyDetails += `\n${property.Features}`
-      if (property.Condition) propertyDetails += `\n${property.Condition}`
+      if (property.Bedrooms) propertyDetails += '\n' + property.Bedrooms + ' Bedrooms'
+      if (property.Bathrooms) propertyDetails += '\n' + property.Bathrooms + ' Bathrooms'
+      if (property.Carports) propertyDetails += '\n' + property.Carports + ' Carports'
+      if (property.Features) propertyDetails += '\n' + property.Features
+      if (property.Condition) propertyDetails += '\n' + property.Condition
     }
     
-    return `${heading}${readyText}
-${property.Village || ''} ${property.Location || ''}
-| ${property.Road || property.Street || 'Main Road'}
-${property.Distance || 'Minutes from city center'}
-Near ${property.Landmarks || 'Major landmarks'}
-| ${property.Boundary || 'City boundary'}
-
-Property Highlights:
-${property.Model || 'Property'} ${property.Description || ''}${propertyDetails}
-
-Community Amenities:
-${property.Amenities || 'Entrance Gate with Guard\nClubhouse & Events Place\nChurch\nSwimming Pool\nBasketball Court\nPlayground\nCommunity Plaza'}
-
-Price ${property['Listing Price'] || property.ListingPrice || property.Price || 'On request'}
-MOP: ${property.MOP || 'Cash or BF'}
-
-M. Liang Realty
-Licensed Real Estate Broker
-PRC No. 0019653
-S10, 2nd Floor Plaza Cristina Building
-Dolores, City of San Fernando, Pampanga
-
-${property.Hashtags || '#realestate #realtor #property #home #houseforsale #homeforsale #dreamhome #newhome #homebuyers #househunting #investmentproperty #luxuryhomes #modernhomes #familyhome #readytomovein #Pampanga #Philippines'}${mediaInfo}`
+    return [
+      heading + readyText,
+      (property.Village || '') + ' ' + (property.Location || ''),
+      '| ' + (property.Road || property.Street || 'Main Road'),
+      property.Distance || 'Minutes from city center',
+      'Near ' + (property.Landmarks || 'Major landmarks'),
+      '| ' + (property.Boundary || 'City boundary'),
+      '',
+      'Property Highlights:',
+      (property.Model || 'Property') + ' ' + (property.Description || '') + propertyDetails,
+      '',
+      'Community Amenities:',
+      property.Amenities || ['Entrance Gate with Guard','Clubhouse & Events Place','Church','Swimming Pool','Basketball Court','Playground','Community Plaza'].join('\n'),
+      '',
+      "Price " + (property['Listing Price'] || property.ListingPrice || property.Price || 'On request'),
+      'MOP: ' + (property.MOP || 'Cash or BF'),
+      '',
+      tenantSettings.businessName,
+      formatTenantFooter(),
+      '',
+      (property.Hashtags || '#realestate #realtor #property #home #houseforsale #homeforsale #dreamhome #newhome #homebuyers #househunting #investmentproperty #luxuryhomes #modernhomes #familyhome #readytomovein #Pampanga #Philippines') + mediaInfo,
+    ].join('\n')
   }, [property, hasPhotos, hasVideo])
 
   const copyToClipboard = () => {
@@ -238,46 +277,45 @@ ${property.Hashtags || '#realestate #realtor #property #home #houseforsale #home
     
     // Add Lot Area only if it has a value
     if (property['Lot Area'] && property['Lot Area'] !== 'N/A') {
-      propertyDetails += `\nLot Area: ${property['Lot Area']}`
+      propertyDetails += '\nLot Area: ' + property['Lot Area']
     }
     
     // Add Floor Area only if it has a value and not lot only
     if (!isLotOnly && property['Floor Area'] && property['Floor Area'] !== 'N/A') {
-      propertyDetails += `\nFloor Area: ${property['Floor Area']}`
+      propertyDetails += '\nFloor Area: ' + property['Floor Area']
     }
     
     // Add other details for non-lot properties
     if (!isLotOnly) {
-      if (property.Bedrooms) propertyDetails += `\n${property.Bedrooms} Bedrooms`
-      if (property.Bathrooms) propertyDetails += `\n${property.Bathrooms} Bathrooms`
-      if (property.Carports) propertyDetails += `\n${property.Carports} Carports`
-      if (property.Features) propertyDetails += `\n${property.Features}`
-      if (property.Condition) propertyDetails += `\n${property.Condition}`
+      if (property.Bedrooms) propertyDetails += '\n' + property.Bedrooms + ' Bedrooms'
+      if (property.Bathrooms) propertyDetails += '\n' + property.Bathrooms + ' Bathrooms'
+      if (property.Carports) propertyDetails += '\n' + property.Carports + ' Carports'
+      if (property.Features) propertyDetails += '\n' + property.Features
+      if (property.Condition) propertyDetails += '\n' + property.Condition
     }
     
-    const text = `${heading}${readyText}
-${property.Village || ''} ${property.Location || ''}
-| ${property.Road || property.Street || 'Main Road'}
-${property.Distance || 'Minutes from city center'}
-Near ${property.Landmarks || 'Major landmarks'}
-| ${property.Boundary || 'City boundary'}
-
-Property Highlights:
-${property.Model || 'Property'} ${property.Description || ''}${propertyDetails}
-
-Community Amenities:
-${property.Amenities || 'Entrance Gate with Guard\nClubhouse & Events Place\nChurch\nSwimming Pool\nBasketball Court\nPlayground\nCommunity Plaza'}
-
-Price ${property['Listing Price'] || property.ListingPrice || property.Price || 'On request'}
-MOP: ${property.MOP || 'Cash or BF'}
-
-M. Liang Realty
-Licensed Real Estate Broker
-PRC No. 0019653
-S10, 2nd Floor Plaza Cristina Building
-Dolores, City of San Fernando, Pampanga
-
-${property.Hashtags || '#realestate #realtor #property #home #houseforsale #homeforsale #dreamhome #newhome #homebuyers #househunting #investmentproperty #luxuryhomes #modernhomes #familyhome #readytomovein #Pampanga #Philippines'}${mediaInfo}`
+    const text = [
+      heading + readyText,
+      (property.Village || '') + ' ' + (property.Location || ''),
+      '| ' + (property.Road || property.Street || 'Main Road'),
+      property.Distance || 'Minutes from city center',
+      'Near ' + (property.Landmarks || 'Major landmarks'),
+      '| ' + (property.Boundary || 'City boundary'),
+      '',
+      'Property Highlights:',
+      (property.Model || 'Property') + ' ' + (property.Description || '') + propertyDetails,
+      '',
+      'Community Amenities:',
+      property.Amenities || ['Entrance Gate with Guard','Clubhouse & Events Place','Church','Swimming Pool','Basketball Court','Playground','Community Plaza'].join('\n'),
+      '',
+      "Price " + (property['Listing Price'] || property.ListingPrice || property.Price || 'On request'),
+      'MOP: ' + (property.MOP || 'Cash or BF'),
+      '',
+      tenantSettings.businessName,
+      formatTenantFooter(),
+      '',
+      (property.Hashtags || '#realestate #realtor #property #home #houseforsale #homeforsale #dreamhome #newhome #homebuyers #househunting #investmentproperty #luxuryhomes #modernhomes #familyhome #readytomovein #Pampanga #Philippines') + mediaInfo,
+    ].join('\n')
     
     navigator.clipboard.writeText(text)
     alert('Facebook post format copied to clipboard!')
@@ -292,7 +330,28 @@ ${property.Hashtags || '#realestate #realtor #property #home #houseforsale #home
       `${years} Years: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthly)}/month`
     ).join('\n')
     
-    const text = `MORTGAGE COMPUTATION\n\nProperty #${displayPropertyId}\n${property.Village || ''}, ${property.Location || ''}\n\nFINANCING BREAKDOWN:\n${priceLabel}: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.totalPrice)}\n20% Equity: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.equity)}\n80% Mortgage: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.mortgage)}\n\nMONTHLY PAYMENT OPTIONS (${interestRate}% Interest):\n${monthlyOptions}\n\n* Calculations are estimates\n* Actual rates may vary by lender\n\nM. Liang Realty\n09393440944`
+    const fmtPHP = (v: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(v)
+    const text = [
+      'MORTGAGE COMPUTATION',
+      '',
+      'Property #' + displayPropertyId,
+      (property.Village || '') + ', ' + (property.Location || ''),
+      '',
+      'FINANCING BREAKDOWN:',
+      priceLabel + ': ' + fmtPHP(calculateFinancing.totalPrice),
+      '20% Equity: ' + fmtPHP(calculateFinancing.equity),
+      '80% Mortgage: ' + fmtPHP(calculateFinancing.mortgage),
+      '',
+      'MONTHLY PAYMENT OPTIONS (' + interestRate + '% Interest):',
+      monthlyOptions,
+      '',
+      '* Calculations are estimates',
+      '* Actual rates may vary by lender',
+      '',
+      tenantSettings.businessName,
+      tenantSettings.contactNumber,
+      tenantSettings.emailAddress,
+    ].join('\n')
     
     navigator.clipboard.writeText(text)
     alert('Mortgage computation copied to clipboard!')
@@ -666,7 +725,7 @@ ${property.Hashtags || '#realestate #realtor #property #home #houseforsale #home
                 <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
                   <p>* Calculations are estimates based on {interestRate}% annual interest rate</p>
                   <p>* Actual rates and terms may vary by lender</p>
-                  <p>* Contact M. Liang Realty for detailed financing options</p>
+                  <p>* Contact {tenantSettings.businessName} for detailed financing options</p>
                 </div>
                 
                 <Button className="w-full" onClick={copyMortgageComputation}>

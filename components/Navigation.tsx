@@ -30,7 +30,7 @@ export default function Navigation() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Home className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">MLiang Realty</span>
+            <span className="text-xl font-bold text-gray-900">Marquez Realty</span>
           </div>
         </div>
         
@@ -63,7 +63,7 @@ export default function Navigation() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Home className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">MLiang Realty</span>
+            <span className="text-xl font-bold text-gray-900">Marquez Realty</span>
           </div>
           
           <Button
@@ -88,7 +88,7 @@ export default function Navigation() {
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                     <Home className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-xl font-bold text-gray-900">MLiang Realty</span>
+                  <span className="text-xl font-bold text-gray-900">Marquez Realty</span>
                 </div>
               </div>
               

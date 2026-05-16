@@ -22,7 +22,7 @@ export default function Upload() {
   React.useEffect(() => {
     const img = new Image();
     img.onload = () => setLogoImage(img);
-    img.src = '/mliangrealty.png';
+    img.src = '/marquezrealty.png';
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
