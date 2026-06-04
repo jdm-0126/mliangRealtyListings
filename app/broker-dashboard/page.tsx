@@ -1,18 +1,17 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/app/lib/supabaseClient.js'
 import { 
   DollarSign, 
   TrendingUp, 
   Users, 
-  Eye, 
-  EyeOff,
   Calendar,
-  Award
+  Award,
+  Briefcase
 } from 'lucide-react'
 
 interface SoldProperty {
@@ -32,65 +31,60 @@ interface SoldProperty {
 
 interface Agent {
   id: number
+  broker_id?: number | null
   name: string
   email: string
-  phone: string
-  total_sales: number
-  active_listings: number
+  phone?: string
   status: string
+  license_number?: string
+  profile_photo?: string
+  bio?: string
+  specialization?: string
+  created_at?: string
 }
 
 export default function BrokerDashboard() {
+  const router = useRouter()
   const [soldProperties, setSoldProperties] = useState<SoldProperty[]>([])
   const [agents, setAgents] = useState<Agent[]>([])
-  const [showPropertyData, setShowPropertyData] = useState(true)
   const [loading, setLoading] = useState(true)
   const [totalCommission, setTotalCommission] = useState(0)
   const [pendingCommission, setPendingCommission] = useState(0)
 
   useEffect(() => {
-    fetchDashboardData()
+    const fetchDashboardData = async () => {
+      if (!supabase) return
+
+      setLoading(true)
+
+      const [{ data: soldData, error: soldError }, { data: agentsData, error: agentsError }] = await Promise.all([
+        supabase.from('sold_properties').select('*').order('date_sold', { ascending: false }),
+        supabase.from('agents').select('*').eq('status', 'Active').order('created_at', { ascending: false }),
+      ])
+
+      if (!soldError && soldData) {
+        setSoldProperties(soldData)
+
+        const total = soldData.reduce((sum, prop) =>
+          prop.status === 'Paid' ? sum + prop.commission_amount : sum, 0
+        )
+        const pending = soldData.reduce((sum, prop) =>
+          prop.status === 'Pending' ? sum + prop.commission_amount : sum, 0
+        )
+
+        setTotalCommission(total)
+        setPendingCommission(pending)
+      }
+
+      if (!agentsError && agentsData) {
+        setAgents(agentsData)
+      }
+
+      setLoading(false)
+    }
+
+    void fetchDashboardData()
   }, [])
-
-  const fetchDashboardData = async () => {
-    if (!supabase) return
-    
-    setLoading(true)
-
-    // Fetch sold properties with commissions
-    const { data: soldData, error: soldError } = await supabase
-      .from('sold_properties')
-      .select('*')
-      .order('date_sold', { ascending: false })
-    
-    if (!soldError && soldData) {
-      setSoldProperties(soldData)
-      
-      // Calculate totals
-      const total = soldData.reduce((sum, prop) => 
-        prop.status === 'Paid' ? sum + prop.commission_amount : sum, 0
-      )
-      const pending = soldData.reduce((sum, prop) => 
-        prop.status === 'Pending' ? sum + prop.commission_amount : sum, 0
-      )
-      
-      setTotalCommission(total)
-      setPendingCommission(pending)
-    }
-
-    // Fetch agents
-    const { data: agentsData, error: agentsError } = await supabase
-      .from('brokers')
-      .select('*')
-      .eq('role', 'Agent')
-      .eq('status', 'Active')
-    
-    if (!agentsError && agentsData) {
-      setAgents(agentsData)
-    }
-
-    setLoading(false)
-  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-PH', {
@@ -99,23 +93,6 @@ export default function BrokerDashboard() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Paid': return 'bg-green-100 text-green-800'
-      case 'Pending': return 'bg-yellow-100 text-yellow-800'
-      case 'Partial': return 'bg-blue-100 text-blue-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
   }
 
   if (loading) {
@@ -132,24 +109,9 @@ export default function BrokerDashboard() {
         <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Broker Dashboard</h1>
-            <p style={{ color: '#4b5563' }}>Track your commissions and team performance</p>
+            <p style={{ color: '#4b5563' }}>A quick overview of team activity, sold transactions, and broker priorities.</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setShowPropertyData(!showPropertyData)}
-          >
-            {showPropertyData ? (
-              <>
-                <EyeOff className="w-4 h-4 mr-2" />
-                Hide Data
-              </>
-            ) : (
-              <>
-                <Eye className="w-4 h-4 mr-2" />
-                Show Data
-              </>
-            )}
-          </Button>
+
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -162,7 +124,7 @@ export default function BrokerDashboard() {
                 <div className="ml-4">
                   <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Total Commission</p>
                   <p className="text-2xl font-bold" style={{ color: '#000000' }}>
-                    {showPropertyData ? formatCurrency(totalCommission) : '₱•••••••'}
+                    {formatCurrency(totalCommission)}
                   </p>
                 </div>
               </div>
@@ -178,7 +140,7 @@ export default function BrokerDashboard() {
                 <div className="ml-4">
                   <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Pending Commission</p>
                   <p className="text-2xl font-bold" style={{ color: '#000000' }}>
-                    {showPropertyData ? formatCurrency(pendingCommission) : '₱•••••••'}
+                    {formatCurrency(pendingCommission)}
                   </p>
                 </div>
               </div>
@@ -192,9 +154,9 @@ export default function BrokerDashboard() {
                   <Award className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Properties Sold</p>
+                  <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Sold Transactions</p>
                   <p className="text-2xl font-bold" style={{ color: '#000000' }}>
-                    {showPropertyData ? soldProperties.length : '••'}
+                    {soldProperties.length}
                   </p>
                 </div>
               </div>
@@ -231,17 +193,31 @@ export default function BrokerDashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {agents.map((agent) => (
-                  <div key={agent.id} className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="font-semibold mb-2" style={{ color: '#000000' }}>
-                      {agent.name}
-                    </h3>
-                    <p className="text-sm mb-1" style={{ color: '#4b5563' }}>
-                      {agent.email}
-                    </p>
-                    <p className="text-sm" style={{ color: '#4b5563' }}>
-                      {agent.phone}
-                    </p>
-                  </div>
+                  <button
+                    key={agent.id}
+                    type="button"
+                    onClick={() => router.push(`/agent-profile?id=${agent.id}&email=${encodeURIComponent(agent.email)}`)}
+                    className="w-full rounded-lg border border-gray-200 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      {agent.profile_photo ? (
+                        <Image src={agent.profile_photo} alt={agent.name} width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                          <Users className="h-6 w-6" />
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="font-semibold" style={{ color: '#000000' }}>{agent.name}</h3>
+                        <p className="text-xs text-blue-600">Open profile</p>
+                      </div>
+                    </div>
+                    <p className="text-sm mb-1" style={{ color: '#4b5563' }}>{agent.email}</p>
+                    <p className="text-sm" style={{ color: '#4b5563' }}>{agent.phone || 'No phone on file'}</p>
+                    {agent.specialization && (
+                      <p className="mt-2 text-xs text-gray-500">{agent.specialization}</p>
+                    )}
+                  </button>
                 ))}
               </div>
             )}
@@ -252,75 +228,27 @@ export default function BrokerDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Award className="w-5 h-5 mr-2" />
-              Recently Sold Properties
+              Overview Snapshot
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {soldProperties.length === 0 ? (
-              <p className="text-center py-8 text-gray-500">No sold properties yet</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-3 text-sm font-medium" style={{ color: '#000000' }}>Property</th>
-                      <th className="text-left p-3 text-sm font-medium" style={{ color: '#000000' }}>Agent</th>
-                      <th className="text-left p-3 text-sm font-medium" style={{ color: '#000000' }}>Sale Price</th>
-                      <th className="text-left p-3 text-sm font-medium" style={{ color: '#000000' }}>Commission</th>
-                      <th className="text-left p-3 text-sm font-medium" style={{ color: '#000000' }}>Date Sold</th>
-                      <th className="text-left p-3 text-sm font-medium" style={{ color: '#000000' }}>Date Received</th>
-                      <th className="text-left p-3 text-sm font-medium" style={{ color: '#000000' }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {soldProperties.map((property) => (
-                      <tr key={property.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3">
-                          <div>
-                            <p className="font-medium" style={{ color: '#000000' }}>
-                              {showPropertyData ? property.property_title : '•••••••'}
-                            </p>
-                            <p className="text-sm" style={{ color: '#4b5563' }}>
-                              {showPropertyData ? property.property_location : '•••••••'}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="p-3 text-sm" style={{ color: '#000000' }}>
-                          {property.agent_name}
-                        </td>
-                        <td className="p-3 text-sm font-medium" style={{ color: '#000000' }}>
-                          {showPropertyData ? formatCurrency(property.sale_price) : '₱•••••••'}
-                        </td>
-                        <td className="p-3">
-                          <div>
-                            <p className="text-sm font-medium text-green-600">
-                              {showPropertyData ? formatCurrency(property.commission_amount) : '₱•••••••'}
-                            </p>
-                            <p className="text-xs" style={{ color: '#4b5563' }}>
-                              {showPropertyData ? `${property.commission_percentage}%` : '••%'}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="p-3 text-sm" style={{ color: '#000000' }}>
-                          <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" style={{ color: '#4b5563' }} />
-                            {formatDate(property.date_sold)}
-                          </div>
-                        </td>
-                        <td className="p-3 text-sm" style={{ color: '#000000' }}>
-                          {property.date_commission_received ? formatDate(property.date_commission_received) : '-'}
-                        </td>
-                        <td className="p-3">
-                          <Badge className={getStatusColor(property.status)}>
-                            {property.status}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <p className="text-sm font-semibold text-gray-700">What the broker sees at a glance</p>
+                <ul className="mt-3 space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center gap-2"><Calendar className="w-4 h-4 text-blue-500" /> {soldProperties.length} sold transactions tracked</li>
+                  <li className="flex items-center gap-2"><Users className="w-4 h-4 text-purple-500" /> {agents.length} active agents on the team</li>
+                  <li className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-emerald-500" /> {formatCurrency(totalCommission)} in paid commissions</li>
+                  <li className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-amber-500" /> {formatCurrency(pendingCommission)} still pending follow-up</li>
+                </ul>
               </div>
-            )}
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                <p className="text-sm font-semibold text-blue-900">Next step</p>
+                <p className="mt-2 text-sm text-blue-800">
+                  Use the agent cards above to open each profile directly. This overview is intentionally focused on team activity and transaction health rather than long property lists.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

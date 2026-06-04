@@ -12,24 +12,25 @@ const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home, roles: ['superadmin', 'broker', 'agent'] },
   { name: 'Broker Dashboard', href: '/broker-dashboard', icon: BarChart3, roles: ['superadmin', 'broker'] },
-  { name: 'Leads Monitor', href: '/dashboard', icon: Activity, roles: ['superadmin'] },
   { name: 'Properties', href: '/properties', icon: BarChart3, roles: ['superadmin', 'broker', 'agent'] },
-  { name: 'Upload', href: '/upload', icon: Upload, roles: ['superadmin'] },
-  { name: 'Facebook Posts', href: '/facebook-posts', icon: Facebook, roles: ['superadmin'] },
-  { name: 'Facebook Groups', href: '/facebook-groups', icon: Users, roles: ['superadmin'] },
   { name: 'Brokers', href: '/brokers', icon: Users, roles: ['superadmin'] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['superadmin', 'broker', 'agent'] },
+  { name: 'Agents', href: '/agents', icon: Users, roles: ['superadmin', 'broker'] },
+  { name: 'My Profile', href: '/agent-profile', icon: Settings, roles: ['agent'] },
+  { name: 'Settings', href: '/settings', icon: Settings, roles: ['superadmin', 'broker'] },
 ]
 
 export default function Navigation() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [businessName, setBusinessName] = useState('M. Liang Realty')
+  const [hasMounted, setHasMounted] = useState(false)
   const [userRole, setUserRole] = useState<'superadmin' | 'broker' | 'agent' | null>(null)
   const [viewAsRole, setViewAsRole] = useState<'superadmin' | 'broker' | 'agent'>('superadmin')
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false)
 
   useEffect(() => {
+    setHasMounted(true)
+
     const savedBusinessName = localStorage.getItem('businessName')
     if (savedBusinessName) {
       setBusinessName(savedBusinessName)
@@ -42,16 +43,24 @@ export default function Navigation() {
     if (auth === 'authenticated' && userEmail === SUPERADMIN_EMAIL) {
       setUserRole('superadmin')
       const savedView = sessionStorage.getItem('viewAsRole') || 'superadmin'
-      setViewAsRole(savedView as any)
-    } else if (userEmail) {
-      // In the future, check user role from database
-      // For now, default to 'agent' for non-superadmin users
+      setViewAsRole(savedView === 'superadmin' || savedView === 'broker' || savedView === 'agent' ? savedView : 'superadmin')
+      return
+    }
+
+    if (auth === 'authenticated' && userEmail) {
+      setUserRole('broker')
+      setViewAsRole('broker')
+      return
+    }
+
+    if (userEmail) {
       setUserRole('agent')
       setViewAsRole('agent')
-    } else {
-      setUserRole('agent') // Default role for unauthenticated users
-      setViewAsRole('agent')
+      return
     }
+
+    setUserRole(null)
+    setViewAsRole('superadmin')
   }, [])
 
   const handleViewChange = (role: 'superadmin' | 'broker' | 'agent') => {
@@ -60,9 +69,11 @@ export default function Navigation() {
     setShowRoleSwitcher(false)
   }
 
-  // Filter navigation based on view role
-  const filteredNavigation = navigation.filter(item => 
-    viewAsRole && item.roles.includes(viewAsRole)
+  const isSuperAdmin = userRole === 'superadmin'
+
+  // Superadmin sees the full menu; other roles use their role-based view.
+  const filteredNavigation = navigation.filter(item =>
+    isSuperAdmin || (viewAsRole && item.roles.includes(viewAsRole))
   )
 
   return (
@@ -74,7 +85,7 @@ export default function Navigation() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Home className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">{businessName}</span>
+            <span className="text-xl font-bold text-gray-900">{hasMounted ? businessName : 'M. Liang Realty'}</span>
           </div>
         </div>
         
@@ -149,7 +160,7 @@ export default function Navigation() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Home className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">{businessName}</span>
+            <span className="text-xl font-bold text-gray-900">{hasMounted ? businessName : 'M. Liang Realty'}</span>
           </div>
           
           <Button
@@ -174,7 +185,7 @@ export default function Navigation() {
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                     <Home className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-xl font-bold text-gray-900">{businessName}</span>
+                  <span className="text-xl font-bold text-gray-900">{hasMounted ? businessName : 'M. Liang Realty'}</span>
                 </div>
               </div>
               

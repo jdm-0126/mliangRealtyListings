@@ -23,7 +23,9 @@ import {
   BarChart3,
   Home,
   MapPin,
-  DollarSign
+  DollarSign,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react'
 
 export default function ModernDashboard() {
@@ -47,6 +49,7 @@ export default function ModernDashboard() {
   const [showSaveFBPost, setShowSaveFBPost] = useState(false)
   const [selectedPropertyForFB, setSelectedPropertyForFB] = useState<any>(null)
   const [showEditDelete, setShowEditDelete] = useState(false)
+  const [showStats, setShowStats] = useState(true)
 
   // Initialize filters from URL parameters
   useEffect(() => {
@@ -393,11 +396,28 @@ PRC NO. 0019653
               <h1 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>Property Dashboard</h1>
               <p style={{ color: '#4b5563' }}>Manage your real estate listings</p>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowStats(!showStats)}
+            >
+              {showStats ? (
+                <>
+                  <ChevronUp className="w-4 h-4 mr-2" />
+                  Hide Stats
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  Show Stats
+                </>
+              )}
+            </Button>
           </div>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        {showStats && (
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -467,7 +487,8 @@ PRC NO. 0019653
                 </div>
               </CardContent>
             </Card>
-        </div>
+          </div>
+        )}
 
         {/* Controls */}
         <Card className="mb-6">

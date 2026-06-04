@@ -8,6 +8,18 @@ const withPWA = require("next-pwa")({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "unsplash.com",
+      },
+    ],
+  },
   // Add empty turbopack config to silence the warning
   // next-pwa uses webpack, so we acknowledge this intentionally
   turbopack: {},
