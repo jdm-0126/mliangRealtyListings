@@ -28,8 +28,7 @@ export default function BrokersPage() {
   const [showDialog, setShowDialog] = useState(false)
   const [editingBroker, setEditingBroker] = useState<Broker | null>(null)
   const [formData, setFormData] = useState({
-    agent_id: '',
-    agent_name: '',
+    name: '',
     email: '',
     phone: '',
     status: 'Active',
@@ -82,8 +81,7 @@ export default function BrokersPage() {
   const handleCreate = () => {
     setEditingBroker(null)
     setFormData({
-      agent_id: '',
-      agent_name: '',
+      name: '',
       email: '',
       phone: '',
       status: 'Active',

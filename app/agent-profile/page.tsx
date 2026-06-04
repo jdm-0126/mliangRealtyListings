@@ -19,6 +19,7 @@ export default function AgentProfile() {
   const [loginPassword, setLoginPassword] = useState('')
   const [loginRole, setLoginRole] = useState<'agent' | 'broker' | 'superadmin'>('agent')
   const [loginError, setLoginError] = useState('')
+  const SHARED_ACCESS_PASSWORD = 'agentMliangRealty2026'
   const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
   const SUPERADMIN_PASSWORD = 'EuandaiteD_0126'
   const [formData, setFormData] = useState({
@@ -112,7 +113,7 @@ export default function AgentProfile() {
       return
     }
 
-    if (!email || loginPassword !== 'agentMliangRealty2026') {
+    if (!email || loginPassword !== SHARED_ACCESS_PASSWORD) {
       setLoginError('Please enter your email and the shared access password.')
       return
     }

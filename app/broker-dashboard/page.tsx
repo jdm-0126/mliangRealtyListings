@@ -14,6 +14,8 @@ import {
   Briefcase
 } from 'lucide-react'
 
+const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
+
 interface SoldProperty {
   id: number
   property_id: number
@@ -50,8 +52,20 @@ export default function BrokerDashboard() {
   const [loading, setLoading] = useState(true)
   const [totalCommission, setTotalCommission] = useState(0)
   const [pendingCommission, setPendingCommission] = useState(0)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
 
   useEffect(() => {
+    // Check authentication
+    const auth = sessionStorage.getItem('brokerAdminAuth')
+    const userEmail = sessionStorage.getItem('userEmail')
+    
+    if (auth !== 'authenticated') {
+      router.push('/')
+      return
+    }
+
+    setIsSuperAdmin(userEmail === SUPERADMIN_EMAIL)
+    
     const fetchDashboardData = async () => {
       if (!supabase) return
 
@@ -84,7 +98,7 @@ export default function BrokerDashboard() {
     }
 
     void fetchDashboardData()
-  }, [])
+  }, [router])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-PH', {

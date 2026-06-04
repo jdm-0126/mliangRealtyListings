@@ -32,35 +32,30 @@ export default function Navigation() {
     setHasMounted(true)
 
     const savedBusinessName = localStorage.getItem('businessName')
-    if (savedBusinessName) {
-      setBusinessName(savedBusinessName)
-    }
-
-    // Check if user is authenticated as superadmin
     const auth = sessionStorage.getItem('brokerAdminAuth')
     const userEmail = sessionStorage.getItem('userEmail')
     
+    let role: 'superadmin' | 'broker' | 'agent' | null = null
+    let viewRole: 'superadmin' | 'broker' | 'agent' = 'superadmin'
+    
     if (auth === 'authenticated' && userEmail === SUPERADMIN_EMAIL) {
-      setUserRole('superadmin')
+      role = 'superadmin'
       const savedView = sessionStorage.getItem('viewAsRole') || 'superadmin'
-      setViewAsRole(savedView === 'superadmin' || savedView === 'broker' || savedView === 'agent' ? savedView : 'superadmin')
-      return
+      viewRole = savedView === 'superadmin' || savedView === 'broker' || savedView === 'agent' ? savedView : 'superadmin'
+    } else if (auth === 'authenticated' && userEmail) {
+      role = 'broker'
+      viewRole = 'broker'
+    } else if (userEmail) {
+      role = 'agent'
+      viewRole = 'agent'
+    } else {
+      role = null
+      viewRole = 'superadmin'
     }
-
-    if (auth === 'authenticated' && userEmail) {
-      setUserRole('broker')
-      setViewAsRole('broker')
-      return
-    }
-
-    if (userEmail) {
-      setUserRole('agent')
-      setViewAsRole('agent')
-      return
-    }
-
-    setUserRole(null)
-    setViewAsRole('superadmin')
+    
+    if (savedBusinessName) setBusinessName(savedBusinessName)
+    setUserRole(role)
+    setViewAsRole(viewRole)
   }, [])
 
   const handleViewChange = (role: 'superadmin' | 'broker' | 'agent') => {
