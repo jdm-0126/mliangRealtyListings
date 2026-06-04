@@ -13,13 +13,13 @@ const SUPERADMIN_PASSWORD = 'EuandaiteD_0126'
 const BROKER_PASSWORD = 'brokerMliangAdmin2026'
 
 export default function SettingsPage() {
-  const [businessName, setBusinessName] = useState('Marquez Realty')
-  const [brokerName, setBrokerName] = useState('Marquez Realty')
+  const [businessName, setBusinessName] = useState('RealtyProv1')
+  const [brokerName, setBrokerName] = useState('RealtyProv1')
   const [brokerTitle, setBrokerTitle] = useState('Licensed Real Estate Broker')
   const [prcNumber, setPrcNumber] = useState('0019653')
   const [officeAddress, setOfficeAddress] = useState('S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga')
   const [contactNumber, setContactNumber] = useState('09393440944')
-  const [emailAddress, setEmailAddress] = useState('contact@marquezrealty.com')
+  const [emailAddress, setEmailAddress] = useState('contact@RealtyProv1.com')
   const [saved, setSaved] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userEmail, setUserEmail] = useState('')

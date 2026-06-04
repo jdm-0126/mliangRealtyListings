@@ -15,10 +15,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Marquez Realty - Property Management System",
+  title: "realtyprov1- Property Management System",
   description: "Modern property listings management system for real estate professionals",
   icons: {
-    icon: "/marquezrealty.png",
+    icon: "/realtyprov1.png",
   },
 };
 

@@ -66,7 +66,7 @@ export default function Editor() {
         ctx.font = `${Math.max(16, img.width / 40)}px Arial`
         ctx.fillStyle = 'white'
         ctx.textAlign = 'left'
-        ctx.fillText('Marquez Realty', x + watermarkWidth + 10, y + watermarkHeight / 2)
+        ctx.fillText('RealtyProv1', x + watermarkWidth + 10, y + watermarkHeight / 2)
         
         // Add contact number if provided
         if (contactNumber.trim()) {
@@ -82,7 +82,7 @@ export default function Editor() {
       }
       img.src = URL.createObjectURL(selectedFile)
     }
-    watermarkImg.src = '/marquezrealty.png'
+    watermarkImg.src = '/RealtyProv1.png'
   }
 
   useEffect(() => {

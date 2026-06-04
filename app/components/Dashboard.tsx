@@ -201,16 +201,7 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
     alert('Facebook post format copied to clipboard!');
   };
 
-  const shareItem = (row: any) => {
-    const text = Object.entries(row).map(([key, val]) => `${key}: ${val}`).join('\n');
-    if (navigator.share) {
-      navigator.share({ title: 'Marquez Listing', text });
-    } else {
-      copyToClipboard(row);
-    }
-  };
-
-  const getGooglePhotoThumbnail = (url: string) => {
+   const getGooglePhotoThumbnail = (url: string) => {
     if (url.includes('drive.google.com')) {
       const fileId = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
       if (fileId) {
@@ -284,7 +275,7 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
 
   return (
     <div style={{ padding: '10px', maxWidth: '100vw', overflow: 'hidden' }}>
-      <h1 style={{ fontSize: isMobile ? '18px' : '24px', marginBottom: '15px' }}>🏠 Marquez Realty</h1>
+      <h1 style={{ fontSize: isMobile ? '18px' : '24px', marginBottom: '15px' }}>{}</h1>
       {data.length === 0 ? (
         <p>No data found. Please add records to your Supabase table.</p>
       ) : (

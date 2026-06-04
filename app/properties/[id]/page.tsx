@@ -107,15 +107,7 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
   const [pagibigRate, setPagibigRate] = useState(6.5)
   const [financingMode, setFinancingMode] = useState<'bank' | 'pagibig'>('bank')
   const [customPrice, setCustomPrice] = useState('')
-  const [tenantSettings, setTenantSettings] = useState<TenantSettings>({
-    businessName: 'Marquez Realty',
-    brokerName: 'Marquez Realty',
-    brokerTitle: 'Licensed Real Estate Broker',
-    prcNumber: '0019653',
-    officeAddress: 'S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga',
-    contactNumber: '09393440944',
-    emailAddress: 'contact@marquezrealty.com',
-  })
+  const [tenantSettings, setTenantSettings] = useState<TenantSettings>({} as TenantSettings)
   const router = useRouter()
   const { id } = React.use(params)
 
