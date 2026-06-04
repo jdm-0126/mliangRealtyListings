@@ -161,6 +161,81 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
 
         <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
           <div className="p-6 space-y-6">
+            {/* Photo Upload/Link Section - At the top */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Property Photos</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    Google Photos Link
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData['Google Photos Link'] || formData['Photos'] || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'Google Photos Link': e.target.value, 'Photos': e.target.value }))}
+                    placeholder="Paste Google Photos album link here..."
+                  />
+                  <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
+                    Paste a link to a Google Photos album or any photo gallery
+                  </p>
+                </div>
+
+                <div className="border-t pt-4">
+                  <p className="text-sm font-medium mb-3" style={{ color: '#000000' }}>
+                    Featured Preview Photo
+                  </p>
+                  <p className="text-xs mb-3" style={{ color: '#4b5563' }}>
+                    Upload a featured image that will be displayed in property cards
+                  </p>
+                  
+                  {previewImage ? (
+                    <div className="relative">
+                      <img 
+                        src={previewImage} 
+                        alt="Preview" 
+                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={removePreviewImage}
+                        className="absolute top-2 right-2"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-sm text-gray-600 mb-3">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500 mb-4">
+                        PNG, JPG up to 5MB
+                      </p>
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          disabled={uploadingImage}
+                        />
+                        <Button variant="outline" size="sm" disabled={uploadingImage} asChild>
+                          <span>
+                            {uploadingImage ? 'Uploading...' : 'Choose File'}
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Preview Photo Upload Section */}
             <Card>
               <CardHeader>
@@ -170,49 +245,6 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                 <p className="text-xs text-gray-600">
                   Upload a featured image that will be displayed in property details before viewing the full Google Photos album
                 </p>
-                
-                {previewImage ? (
-                  <div className="relative">
-                    <img 
-                      src={previewImage} 
-                      alt="Preview" 
-                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={removePreviewImage}
-                      className="absolute top-2 right-2"
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Remove
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-sm text-gray-600 mb-3">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500 mb-4">
-                      PNG, JPG up to 5MB
-                    </p>
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                        disabled={uploadingImage}
-                      />
-                      <Button variant="outline" size="sm" disabled={uploadingImage} asChild>
-                        <span>
-                          {uploadingImage ? 'Uploading...' : 'Choose File'}
-                        </span>
-                      </Button>
-                    </label>
-                  </div>
-                )}
               </CardContent>
             </Card>
 

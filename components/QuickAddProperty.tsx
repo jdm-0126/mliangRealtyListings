@@ -191,7 +191,7 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                 value={pastedText}
                 onChange={(e) => setPastedText(e.target.value)}
                 placeholder="Paste the formatted property text here..."
-                className="w-full h-64 p-3 border rounded-md"
+                className="w-full h-64 p-3 border border-gray-300 rounded-md text-black"
                 style={{ color: '#000000' }}
               />
             </div>
@@ -201,16 +201,16 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
             </Button>
             
             {parsedData && (
-              <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
                 <h3 className="font-semibold mb-3" style={{ color: '#000000' }}>Parsed Property Details:</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Title:</label>
                     <input
                       type="text"
                       value={parsedData.title}
                       onChange={(e) => setParsedData({ ...parsedData, title: e.target.value })}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border border-gray-300 rounded text-black"
                       style={{ color: '#000000' }}
                     />
                   </div>
@@ -220,7 +220,7 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                       type="text"
                       value={parsedData.location}
                       onChange={(e) => setParsedData({ ...parsedData, location: e.target.value })}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border border-gray-300 rounded text-black"
                       style={{ color: '#000000' }}
                     />
                   </div>
@@ -230,7 +230,7 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                       type="text"
                       value={parsedData.price || ''}
                       onChange={(e) => setParsedData({ ...parsedData, price: e.target.value })}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border border-gray-300 rounded text-black"
                       style={{ color: '#000000' }}
                     />
                   </div>
@@ -239,7 +239,7 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                     <select
                       value={parsedData.type}
                       onChange={(e) => setParsedData({ ...parsedData, type: e.target.value })}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border border-gray-300 rounded text-black"
                       style={{ color: '#000000' }}
                     >
                       <option value="Residential">Residential</option>
@@ -253,7 +253,7 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                       type="text"
                       value={parsedData.lotArea || ''}
                       onChange={(e) => setParsedData({ ...parsedData, lotArea: e.target.value })}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border border-gray-300 rounded text-black"
                       style={{ color: '#000000' }}
                       placeholder="e.g., 100"
                       name="Lot Area"
@@ -265,7 +265,7 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                       type="text"
                       value={parsedData.floorArea || ''}
                       onChange={(e) => setParsedData({ ...parsedData, floorArea: e.target.value })}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border border-gray-300 rounded text-black"
                       style={{ color: '#000000' }}
                       placeholder="e.g., 80"
                       name="Floor Area"
@@ -277,7 +277,7 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                       type="text"
                       value={parsedData.bedrooms || ''}
                       onChange={(e) => setParsedData({ ...parsedData, bedrooms: e.target.value })}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border border-gray-300 rounded text-black"
                       style={{ color: '#000000' }}
                     />
                   </div>
@@ -287,7 +287,7 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                       type="text"
                       value={parsedData.bathrooms || ''}
                       onChange={(e) => setParsedData({ ...parsedData, bathrooms: e.target.value })}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border border-gray-300 rounded text-black"
                       style={{ color: '#000000' }}
                     />
                   </div>
@@ -300,17 +300,17 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                   <textarea
                     value={parsedData.description}
                     onChange={(e) => setParsedData({ ...parsedData, description: e.target.value })}
-                    className="w-full p-2 border rounded h-32"
+                    className="w-full p-2 border border-gray-300 rounded h-32 text-black"
                     style={{ color: '#000000' }}
                     required
                   />
                 </div>
                 
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 flex flex-col sm:flex-row gap-2">
                   <Button onClick={handleSave} disabled={loading} className="flex-1">
                     {loading ? 'Saving...' : 'Save Property'}
                   </Button>
-                  <Button variant="outline" onClick={() => setParsedData(null)}>
+                  <Button variant="outline" onClick={() => setParsedData(null)} className="flex-1">
                     Edit Text
                   </Button>
                 </div>

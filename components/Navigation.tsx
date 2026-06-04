@@ -11,6 +11,7 @@ const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home, roles: ['superadmin', 'broker', 'agent'] },
+  { name: 'Broker Dashboard', href: '/broker-dashboard', icon: BarChart3, roles: ['superadmin', 'broker'] },
   { name: 'Leads Monitor', href: '/dashboard', icon: Activity, roles: ['superadmin'] },
   { name: 'Properties', href: '/properties', icon: BarChart3, roles: ['superadmin', 'broker', 'agent'] },
   { name: 'Upload', href: '/upload', icon: Upload, roles: ['superadmin'] },
@@ -25,6 +26,8 @@ export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [businessName, setBusinessName] = useState('M. Liang Realty')
   const [userRole, setUserRole] = useState<'superadmin' | 'broker' | 'agent' | null>(null)
+  const [viewAsRole, setViewAsRole] = useState<'superadmin' | 'broker' | 'agent'>('superadmin')
+  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false)
 
   useEffect(() => {
     const savedBusinessName = localStorage.getItem('businessName')
@@ -38,18 +41,28 @@ export default function Navigation() {
     
     if (auth === 'authenticated' && userEmail === SUPERADMIN_EMAIL) {
       setUserRole('superadmin')
+      const savedView = sessionStorage.getItem('viewAsRole') || 'superadmin'
+      setViewAsRole(savedView as any)
     } else if (userEmail) {
       // In the future, check user role from database
       // For now, default to 'agent' for non-superadmin users
       setUserRole('agent')
+      setViewAsRole('agent')
     } else {
       setUserRole('agent') // Default role for unauthenticated users
+      setViewAsRole('agent')
     }
   }, [])
 
-  // Filter navigation based on user role
+  const handleViewChange = (role: 'superadmin' | 'broker' | 'agent') => {
+    setViewAsRole(role)
+    sessionStorage.setItem('viewAsRole', role)
+    setShowRoleSwitcher(false)
+  }
+
+  // Filter navigation based on view role
   const filteredNavigation = navigation.filter(item => 
-    userRole && item.roles.includes(userRole)
+    viewAsRole && item.roles.includes(viewAsRole)
   )
 
   return (
@@ -64,6 +77,48 @@ export default function Navigation() {
             <span className="text-xl font-bold text-gray-900">{businessName}</span>
           </div>
         </div>
+        
+        {/* Role Switcher for Superadmin */}
+        {userRole === 'superadmin' && (
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="relative">
+              <button
+                onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
+                className="w-full px-3 py-2 text-sm bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between"
+              >
+                <span style={{ color: '#000000' }}>View as: {viewAsRole === 'superadmin' ? 'Superadmin' : viewAsRole === 'broker' ? 'Broker' : 'Agent'}</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showRoleSwitcher && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                  <button
+                    onClick={() => handleViewChange('superadmin')}
+                    className="w-full px-3 py-2 text-sm text-left hover:bg-gray-50"
+                    style={{ color: '#000000' }}
+                  >
+                    Superadmin View
+                  </button>
+                  <button
+                    onClick={() => handleViewChange('broker')}
+                    className="w-full px-3 py-2 text-sm text-left hover:bg-gray-50"
+                    style={{ color: '#000000' }}
+                  >
+                    Broker View
+                  </button>
+                  <button
+                    onClick={() => handleViewChange('agent')}
+                    className="w-full px-3 py-2 text-sm text-left hover:bg-gray-50"
+                    style={{ color: '#000000' }}
+                  >
+                    Agent View
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         
         <div className="flex-1 px-4 py-6 space-y-1">
           {filteredNavigation.map((item) => {
