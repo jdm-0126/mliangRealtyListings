@@ -228,7 +228,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                     onChange={(e) => setPasteData(e.target.value)}
                     placeholder="Paste copied Excel row here (tab-separated values)..."
                     rows={3}
-                    className="w-full p-3 border border-gray-300 rounded-md text-sm resize-none"
+                    className="w-full p-3 border border-gray-300 rounded-md text-sm text-black resize-none"
                   />
                   <Button
                     onClick={parseExcelData}
@@ -265,7 +265,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                     <select
                       value={formData[key] || 'Draft'}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
-                      className="w-full p-2 border border-gray-300 rounded-md"
+                      className="w-full p-2 border border-gray-300 rounded-md text-black"
                     >
                       <option value="Draft">Draft</option>
                       <option value="Active">Active</option>
@@ -275,7 +275,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                     <select
                       value={formData[key] || 'Residential'}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
-                      className="w-full p-2 border border-gray-300 rounded-md"
+                      className="w-full p-2 border border-gray-300 rounded-md text-black"
                     >
                       <option value="Residential">Residential</option>
                       <option value="Lot">Lot</option>
@@ -285,7 +285,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                     <select
                       value={formData[key] || 'Seller'}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
-                      className="w-full p-2 border border-gray-300 rounded-md"
+                      className="w-full p-2 border border-gray-300 rounded-md text-black"
                     >
                       <option value="Seller">Seller</option>
                       <option value="Buyer">Buyer</option>
@@ -294,7 +294,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                     <select
                       value={formData[key] || 'Buyer'}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
-                      className="w-full p-2 border border-gray-300 rounded-md"
+                      className="w-full p-2 border border-gray-300 rounded-md text-black"
                     >
                       <option value="Buyer">Buyer</option>
                       <option value="Seller">Seller</option>
@@ -303,7 +303,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                     <select
                       value={formData[key] || 'Yes'}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
-                      className="w-full p-2 border border-gray-300 rounded-md"
+                      className="w-full p-2 border border-gray-300 rounded-md text-black"
                     >
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
@@ -345,7 +345,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                       value={formData[key] || ''}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
                       rows={4}
-                      className="w-full p-3 border border-gray-300 rounded-md resize-none"
+                      className="w-full p-3 border border-gray-300 rounded-md text-black resize-none"
                       placeholder="Enter property details, features, and additional information..."
                     />
                   ) : key.toLowerCase().includes('price') ? (
