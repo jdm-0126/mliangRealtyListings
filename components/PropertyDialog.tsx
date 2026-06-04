@@ -5,7 +5,7 @@ import { supabase } from '@/app/lib/supabaseClient.js'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { X, Plus, Minus, Upload } from 'lucide-react'
+import { X, Plus, Minus, Upload, Eye, EyeOff } from 'lucide-react'
 
 interface PropertyDialogProps {
   property: any
@@ -20,6 +20,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
   const [loading, setLoading] = useState(false)
   const [previewImage, setPreviewImage] = useState<string>('')
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [showListingAgent, setShowListingAgent] = useState(false)
 
   useEffect(() => {
     if (property) {
@@ -284,9 +285,27 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                     {['Village', 'Location', 'Listing Agent'].includes(key) && (
                       <span className="text-red-500 ml-1">*</span>
                     )}
+                    {/* Toggle button for Listing Agent */}
+                    {key === 'Listing Agent' && (
+                      <button
+                        type="button"
+                        onClick={() => setShowListingAgent(v => !v)}
+                        className="ml-2 inline-flex items-center gap-1 text-xs font-normal text-blue-600 hover:text-blue-800"
+                      >
+                        {showListingAgent
+                          ? <><EyeOff className="w-3 h-3" /> Hide</>
+                          : <><Eye className="w-3 h-3" /> Show</>}
+                      </button>
+                    )}
                   </label>
-                  
-                  {key === 'Property ID' ? (
+
+                  {/* Hide Listing Agent field behind toggle */}
+                  {key === 'Listing Agent' && !showListingAgent ? (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-md border border-dashed border-gray-300">
+                      <Eye className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-400 italic">Hidden — click Show to edit</span>
+                    </div>
+                  ) : key === 'Property ID' ? (
                     <Input
                       type="number"
                       value={formData[key] || ''}

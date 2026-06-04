@@ -11,6 +11,9 @@ import PropertyCard from './PropertyCard'
 import PropertyDialog from './PropertyDialog'
 import QuickAddProperty from './QuickAddProperty'
 import SaveFacebookPost from './SaveFacebookPost'
+import BuyerInquiryParser from './BuyerInquiryParser'
+import { Pagination } from './ui/Pagination'
+import { Tooltip } from './ui/tooltip'
 import { 
   Plus, 
   Search, 
@@ -50,6 +53,29 @@ export default function ModernDashboard() {
   const [selectedPropertyForFB, setSelectedPropertyForFB] = useState<any>(null)
   const [showEditDelete, setShowEditDelete] = useState(false)
   const [showStats, setShowStats] = useState(true)
+  const [pageSize, setPageSize] = useState(24)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const SETTINGS_KEY = 'tenantSettings'
+  const [tenantSettings, setTenantSettings] = useState({
+    businessName: 'M. Liang Realty',
+    brokerName: 'Melanie Liang',
+    brokerTitle: 'Licensed Real Estate Broker',
+    prcNumber: '0019653',
+    officeAddress: 'S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga',
+    contactNumber: '09393440944',
+    emailAddress: '',
+  })
+
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        setTenantSettings(prev => ({ ...prev, ...parsed }))
+      } catch {}
+    }
+  }, [])
 
   // Initialize filters from URL parameters
   useEffect(() => {
@@ -251,6 +277,7 @@ export default function ModernDashboard() {
     })
     
     setFilteredData(filtered)
+    setCurrentPage(1)
   }, [data, searchText, statusFilter, typeFilter, locationFilter, priceFilter, sizeFilter, sortBy])
 
   const handleCreate = () => {
@@ -307,32 +334,22 @@ export default function ModernDashboard() {
     }
   }
 
-  const copyToClipboard = (row: any) => {
+  const buildPostText = (row: any) => {
     const hasPhotos = Object.keys(row).some(key => key.toLowerCase().includes('photo') && row[key])
     const hasVideo = Object.keys(row).some(key => key.toLowerCase().includes('video') && row[key])
-    
     let mediaInfo = ''
-    if (hasPhotos && hasVideo) {
-      mediaInfo = '\n\nPM for Photos and Video'
-    } else if (hasPhotos) {
-      mediaInfo = '\n\nPM for Photos'
-    } else if (hasVideo) {
-      mediaInfo = '\n\nPM for Video'
-    }
-    
+    if (hasPhotos && hasVideo) mediaInfo = '\n\nPM for Photos and Video'
+    else if (hasPhotos) mediaInfo = '\n\nPM for Photos'
+    else if (hasVideo) mediaInfo = '\n\nPM for Video'
+
     const lotArea = row['Lot Area'] || row.LotArea || ''
     const floorArea = row['Floor Area'] || row.FloorArea || ''
     const notes = (row.Notes || '').replace(/[^\w\s.,;:()\-₱\n]/g, '')
-    
     let areaInfo = ''
-    if (lotArea) {
-      areaInfo += `\nLot Area : ${lotArea}`
-    }
-    if (floorArea) {
-      areaInfo += `\nFloor Area : ${floorArea}`
-    }
-    
-    const text = `HOUSE AND LOT FOR SALE
+    if (lotArea) areaInfo += `\nLot Area : ${lotArea}`
+    if (floorArea) areaInfo += `\nFloor Area : ${floorArea}`
+
+    return `HOUSE AND LOT FOR SALE
 
 ${row.Village || ''},
 ${row.Location || ''},
@@ -344,24 +361,37 @@ ${notes}
 CGT - ${row.CGT || ''}
 Transfer - ${row['Transfer Title'] || ''}
 
-Marquez Realty
-LICENSED REAL ESTATE BROKER
-PRC NO. 0019653
-09393440944
+${tenantSettings.businessName}
+${tenantSettings.brokerName}
+${tenantSettings.brokerTitle}
+PRC No. ${tenantSettings.prcNumber}
+${tenantSettings.officeAddress}
+${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSettings.emailAddress : ''}
 
 #realestate #realtor #realtorlife #realestateagent #property #home #broker #forsale #justlisted #newlisting #listingagent #homesforsale #houseforsale #homeforsale #firsttimehomebuyer #homebuyers #househunting #newhome #dreamhome #homeownership #investmentproperty #homedecor #luxurylifestyle #luxuryhomes #homesweethome #SanFernando #Pampanga #Philippines${mediaInfo}`
-    
-    navigator.clipboard.writeText(text)
+  }
+
+  const copyToClipboard = (row: any) => {
+    navigator.clipboard.writeText(buildPostText(row))
     alert('Facebook post format copied to clipboard!')
   }
 
   const shareItem = (row: any) => {
-    const text = Object.entries(row).map(([key, val]) => `${key}: ${val}`).join('\n')
     if (navigator.share) {
-      navigator.share({ title: 'Marquez Listing', text })
+      navigator.share({ title: tenantSettings.businessName, text: buildPostText(row) })
     } else {
       copyToClipboard(row)
     }
+  }
+
+  const handleInstagramPost = (row: any) => {
+    navigator.clipboard.writeText(buildPostText(row))
+    alert('Caption copied! Open the Instagram app and paste it into your post/reel caption.')
+  }
+
+  const handleTikTokPost = (row: any) => {
+    navigator.clipboard.writeText(buildPostText(row))
+    alert('Caption copied! Open the TikTok app and paste it into your video caption.')
   }
 
   const postToFacebook = (row: any) => {
@@ -490,6 +520,9 @@ PRC NO. 0019653
           </div>
         )}
 
+        {/* Buyer Inquiry Parser */}
+        <BuyerInquiryParser allProperties={data} />
+
         {/* Controls */}
         <Card className="mb-6">
           <CardContent className="p-6">
@@ -517,13 +550,13 @@ PRC NO. 0019653
 
               {/* Filters - Collapsible */}
               {showFilters && (
-                <div className="flex flex-col lg:flex-row gap-4">
-                  {/* Filters */}
-                  <div className="flex gap-2 flex-wrap">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 items-end">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</label>
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
                       style={{ color: '#000000' }}
                     >
                       <option value="all">All Status</option>
@@ -531,11 +564,14 @@ PRC NO. 0019653
                       <option value="draft">Draft</option>
                       <option value="sold">Sold</option>
                     </select>
-                    
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Type</label>
                     <select
                       value={typeFilter}
                       onChange={(e) => setTypeFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
                       style={{ color: '#000000' }}
                     >
                       <option value="all">All Types</option>
@@ -543,25 +579,34 @@ PRC NO. 0019653
                       <option value="lot">Lot Only</option>
                       <option value="commercial">Commercial</option>
                     </select>
-                    
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Location</label>
                     <Input
-                      placeholder="Location (e.g., San Fernando, Mexico, Bacolor)"
+                      placeholder="e.g. San Fernando, Clark"
                       value={locationFilter}
                       onChange={(e) => setLocationFilter(e.target.value)}
-                      className="w-64"
+                      className="w-full"
                     />
-                    
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Budget</label>
                     <Input
-                      placeholder="Budget (e.g., 2M to 5M, Under 3M, Above 10M, Around 4.5M)"
+                      placeholder="e.g. 2M to 5M, Under 3M"
                       value={priceFilter}
                       onChange={(e) => setPriceFilter(e.target.value)}
-                      className="w-80"
+                      className="w-full"
                     />
-                    
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Sort By</label>
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
                       style={{ color: '#000000' }}
                     >
                       <option value="newest">Newest First</option>
@@ -569,31 +614,49 @@ PRC NO. 0019653
                       <option value="price-high">Price: High to Low</option>
                       <option value="price-low">Price: Low to High</option>
                     </select>
-                    
-                    <Button
-                      variant={showEditDelete ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setShowEditDelete(!showEditDelete)}
-                    >
-                      {showEditDelete ? 'Hide' : 'Show'} Edit/Delete
-                    </Button>
                   </div>
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      variant={viewMode === 'grid' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setViewMode('grid')}
-                    >
-                      <Grid3X3 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant={viewMode === 'list' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setViewMode('list')}
-                    >
-                      <List className="w-4 h-4" />
-                    </Button>
+
+                  {/* Bottom row: clear + edit toggle + view toggle */}
+                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-5">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <button
+                        onClick={() => {
+                          setStatusFilter('all')
+                          setTypeFilter('all')
+                          setLocationFilter('')
+                          setPriceFilter('')
+                          setSizeFilter('')
+                          setSortBy('newest')
+                          setSearchText('')
+                        }}
+                        className="text-xs text-red-500 hover:text-red-700 underline"
+                      >
+                        Clear all filters
+                      </button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={showEditDelete ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setShowEditDelete(!showEditDelete)}
+                        >
+                          {showEditDelete ? '✏️ Editing On' : '✏️ Edit Mode'}
+                        </Button>
+                        <Button
+                          variant={viewMode === 'grid' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setViewMode('grid')}
+                        >
+                          <Grid3X3 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant={viewMode === 'list' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setViewMode('list')}
+                        >
+                          <List className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -608,14 +671,27 @@ PRC NO. 0019653
                   <Upload className="w-4 h-4 mr-2" />
                   Quick Add
                 </Button>
-                <Button variant="outline" onClick={() => window.location.href = '/upload'} className="flex-shrink-0">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload
-                </Button>
               </div>
 
-              <div className="text-sm" style={{ color: '#4b5563' }}>
-                Showing {filteredData.length} of {data.length} properties
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="text-sm" style={{ color: '#4b5563' }}>
+                  Showing {Math.min((currentPage - 1) * pageSize + 1, filteredData.length)}–{Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} properties
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Per page:</label>
+                  <select
+                    value={pageSize}
+                    onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1) }}
+                    className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                    style={{ color: '#000000' }}
+                  >
+                    <option value={12}>12</option>
+                    <option value={24}>24</option>
+                    <option value={48}>48</option>
+                    <option value={96}>96</option>
+                    <option value={99999}>All</option>
+                  </select>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -627,25 +703,41 @@ PRC NO. 0019653
             <p className="text-gray-500">No properties found</p>
           </div>
         ) : (
-          <div className={
-            viewMode === 'grid' 
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-              : 'space-y-4'
-          }>
-            {filteredData.map((property) => (
-              <PropertyCard
-                key={property['Property ID']}
-                property={property}
-                viewMode={viewMode}
-                onEdit={showEditDelete ? handleEdit : undefined}
-                onShare={shareItem}
-                onCopy={copyToClipboard}
-                onFacebookPost={postToFacebook}
-                onHide={showEditDelete ? handleHide : undefined}
-                onDelete={showEditDelete ? handleDelete : undefined}
+          <>
+            <div className={
+              viewMode === 'grid' 
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+                : 'space-y-4'
+            }>
+              {filteredData
+                .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                .map((property) => (
+                  <PropertyCard
+                    key={property['Property ID']}
+                    property={property}
+                    viewMode={viewMode}
+                    onEdit={showEditDelete ? handleEdit : undefined}
+                    onShare={shareItem}
+                    onCopy={copyToClipboard}
+                    onFacebookPost={postToFacebook}
+                    onInstagramPost={handleInstagramPost}
+                    onTikTokPost={handleTikTokPost}
+                    onHide={showEditDelete ? handleHide : undefined}
+                    onDelete={showEditDelete ? handleDelete : undefined}
+                  />
+                ))}
+            </div>
+
+            {/* Pagination controls */}
+            {filteredData.length > pageSize && (
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredData.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
               />
-            ))}
-          </div>
+            )}
+          </>
         )}
 
         {/* Property Dialog */}

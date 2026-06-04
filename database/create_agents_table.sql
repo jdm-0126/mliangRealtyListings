@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS agents (
     profile_photo TEXT,
     bio TEXT,
     specialization TEXT,
+    password TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

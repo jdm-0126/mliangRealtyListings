@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Home, Upload, Settings, BarChart3, Users, Menu, X, Facebook, Activity } from 'lucide-react'
+import { Home, Upload, Settings, BarChart3, Users, Menu, X, Facebook, Activity, KeyRound } from 'lucide-react'
 import { Button } from './ui/button'
 
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
@@ -13,6 +13,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: Home, roles: ['superadmin', 'broker', 'agent'] },
   { name: 'Broker Dashboard', href: '/broker-dashboard', icon: BarChart3, roles: ['superadmin', 'broker'] },
   { name: 'Properties', href: '/properties', icon: BarChart3, roles: ['superadmin', 'broker', 'agent'] },
+  { name: 'Rentals', href: '/rentals', icon: KeyRound, roles: ['superadmin', 'broker', 'agent'] },
   { name: 'Brokers', href: '/brokers', icon: Users, roles: ['superadmin'] },
   { name: 'Agents', href: '/agents', icon: Users, roles: ['superadmin', 'broker'] },
   { name: 'My Profile', href: '/agent-profile', icon: Settings, roles: ['agent'] },

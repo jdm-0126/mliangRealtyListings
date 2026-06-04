@@ -14,6 +14,7 @@ export default function CrudTable({ data, onDataChange }: CrudTableProps) {
   const [filters, setFilters] = useState<{[key: string]: string}>({});
   const [sortConfig, setSortConfig] = useState<{column: string, direction: 'asc' | 'desc'} | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [showListingAgent, setShowListingAgent] = useState(false);
 
   const filteredData = data.filter(row => {
     return Object.keys(filters).every(column => {
@@ -282,13 +283,28 @@ export default function CrudTable({ data, onDataChange }: CrudTableProps) {
             </div>
 
             <div>
-              <label>Listing Agent (required):</label>
-              <input
-                type="text"
-                value={formData['Listing Agent'] || ''}
-                onChange={(e) => setFormData((prev: any) => ({ ...prev, 'Listing Agent': e.target.value }))}
-                required
-              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Listing Agent (required):
+                <button
+                  type="button"
+                  onClick={() => setShowListingAgent(v => !v)}
+                  style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  {showListingAgent ? '🙈 Hide' : '👁 Show'}
+                </button>
+              </label>
+              {showListingAgent ? (
+                <input
+                  type="text"
+                  value={formData['Listing Agent'] || ''}
+                  onChange={(e) => setFormData((prev: any) => ({ ...prev, 'Listing Agent': e.target.value }))}
+                  required
+                />
+              ) : (
+                <div style={{ padding: '6px 10px', background: '#f3f4f6', border: '1px dashed #d1d5db', borderRadius: '4px', color: '#9ca3af', fontSize: '13px', fontStyle: 'italic' }}>
+                  Hidden — click Show to edit
+                </div>
+              )}
             </div>
 
             <div>

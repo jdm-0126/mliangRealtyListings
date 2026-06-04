@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Badge } from '../../components/ui/badge'
-import { Settings, User, Database, Bell, Shield, Palette, LogIn, LogOut } from 'lucide-react'
+import { Settings, User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp } from 'lucide-react'
 
 const SETTINGS_KEY = 'tenantSettings'
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
 const SUPERADMIN_PASSWORD = 'EuandaiteD_0126'
+const BROKER_PASSWORD = 'brokerMliangAdmin2026'
 
 export default function SettingsPage() {
   const [businessName, setBusinessName] = useState('Marquez Realty')
@@ -60,19 +61,38 @@ export default function SettingsPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Superadmin login
     if (loginEmail === SUPERADMIN_EMAIL && loginPassword === SUPERADMIN_PASSWORD) {
       sessionStorage.setItem('brokerAdminAuth', 'authenticated')
       sessionStorage.setItem('userEmail', loginEmail)
+      sessionStorage.setItem('viewAsRole', 'superadmin')
       setIsLoggedIn(true)
       setUserEmail(loginEmail)
       setUserRole('Superadmin')
       setShowLoginForm(false)
       setLoginEmail('')
       setLoginPassword('')
-      alert('Login successful!')
-    } else {
-      alert('Invalid credentials')
+      alert('Login successful as Superadmin!')
+      return
     }
+    
+    // Broker/Admin login
+    if (loginEmail && loginPassword === BROKER_PASSWORD) {
+      sessionStorage.setItem('brokerAdminAuth', 'authenticated')
+      sessionStorage.setItem('userEmail', loginEmail)
+      sessionStorage.setItem('viewAsRole', 'broker')
+      setIsLoggedIn(true)
+      setUserEmail(loginEmail)
+      setUserRole('Broker/Admin')
+      setShowLoginForm(false)
+      setLoginEmail('')
+      setLoginPassword('')
+      alert('Login successful as Broker/Admin!')
+      return
+    }
+    
+    alert('Invalid credentials. Use your email and the broker password.')
   }
 
   const handleLogout = () => {
@@ -375,6 +395,115 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* SEO Tips */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <TrendingUp className="w-5 h-5 mr-2" />
+                SEO Tips for Real Estate Listings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+
+              {/* Step 1 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">1</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Use Location-Specific Keywords in Titles</h3>
+                  <p className="text-sm text-gray-600">Include the city, barangay, or landmark in every listing title. Example: <span className="font-medium text-blue-700">"House and Lot for Sale near Clark, Mabalacat"</span> ranks better than just "House for Sale".</p>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">2</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Write Detailed Property Descriptions</h3>
+                  <p className="text-sm text-gray-600">Describe the property fully — lot area, floor area, number of bedrooms/bathrooms, proximity to landmarks (school, hospital, highway). Longer, specific descriptions help search engines index your listing.</p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">3</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Add High-Quality Photos with Alt Text</h3>
+                  <p className="text-sm text-gray-600">Upload clear photos of the property exterior, interior, and lot. Google Images can surface your listing. Name your images descriptively (e.g., <span className="font-medium text-blue-700">house-lot-san-fernando-pampanga.jpg</span>).</p>
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">4</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Optimize Your Facebook Posts with Hashtags</h3>
+                  <p className="text-sm text-gray-600">Use relevant hashtags on every FB/IG/TikTok post. Include both general tags (<span className="font-medium">#realestate #forsale</span>) and local tags (<span className="font-medium">#Pampanga #SanFernando #ClarkArea</span>). This improves discoverability on social search.</p>
+                </div>
+              </div>
+
+              {/* Step 5 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">5</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Post Consistently Across Platforms</h3>
+                  <p className="text-sm text-gray-600">Share listings on Facebook, Instagram, and TikTok regularly. Platforms reward consistent posters with better organic reach. Use Reels/TikTok videos for walkthroughs — video content gets 3× more engagement than photos.</p>
+                </div>
+              </div>
+
+              {/* Step 6 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">6</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Include Price and Key Details in Post Copy</h3>
+                  <p className="text-sm text-gray-600">Buyers search for listings with specific prices. Always include the price, lot/floor area, and number of bedrooms in the first few lines of your post. This also helps the platform algorithm match your post to the right audience.</p>
+                </div>
+              </div>
+
+              {/* Step 7 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">7</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Register on Google Business Profile</h3>
+                  <p className="text-sm text-gray-600">Create or claim your <span className="font-medium text-blue-700">Google Business Profile</span> (free). Add your business name, address, contact, photos, and listings. This makes you appear in local Google Search and Google Maps when buyers search "real estate agent Pampanga".</p>
+                </div>
+              </div>
+
+              {/* Step 8 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">8</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Get Client Reviews and Testimonials</h3>
+                  <p className="text-sm text-gray-600">Ask satisfied buyers/sellers to leave a Google review. More positive reviews boost your ranking in local search results. Even a few reviews can significantly improve trust and click-through rates.</p>
+                </div>
+              </div>
+
+              {/* Step 9 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">9</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Cross-Link Between Your Listings</h3>
+                  <p className="text-sm text-gray-600">When posting about one property, mention other nearby listings you have. Internal links (or mentions) keep buyers engaged and help search engines understand the breadth of your inventory in a specific area.</p>
+                </div>
+              </div>
+
+              {/* Step 10 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">10</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Use a Consistent Brand Signature on Every Post</h3>
+                  <p className="text-sm text-gray-600">Always end posts with your business name, broker name, PRC license number, and contact number. Consistent branding builds name recognition and helps buyers find you across platforms. Update your signature once in <span className="font-medium">Settings → Profile</span> and it applies everywhere automatically.</p>
+                </div>
+              </div>
+
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-sm text-blue-800 font-medium">💡 Quick Win</p>
+                <p className="text-sm text-blue-700 mt-1">The single highest-impact action: post a <strong>short video walkthrough</strong> of a property on TikTok and Instagram Reels with the property address in the caption. Local video content consistently outperforms static posts for real estate in the Philippines.</p>
+              </div>
+
+            </CardContent>
+          </Card>
+
         </div>
       </div>
     </div>

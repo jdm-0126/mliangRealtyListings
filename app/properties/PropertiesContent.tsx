@@ -8,12 +8,15 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import PropertyCard from '@/components/PropertyCard'
+import PropertyDialog from '@/components/PropertyDialog'
+import { Pagination } from '@/components/ui/Pagination'
 import { 
   Search, 
   Filter, 
   Grid3X3, 
   List,
-  Home
+  Home,
+  Settings2,
 } from 'lucide-react'
 
 export default function PropertiesContent() {
@@ -23,13 +26,18 @@ export default function PropertiesContent() {
   const [searchText, setSearchText] = useState('')
   const [filteredData, setFilteredData] = useState<any[]>([])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('active')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [locationFilter, setLocationFilter] = useState<string>('')
   const [priceFilter, setPriceFilter] = useState<string>('')
   const [sizeFilter, setSizeFilter] = useState<string>('')
   const [sortBy, setSortBy] = useState('newest')
   const [showFilters, setShowFilters] = useState(false)
+  const [showEditControls, setShowEditControls] = useState(false)
+  const [editingProperty, setEditingProperty] = useState<any>(null)
+  const [columns, setColumns] = useState<string[]>([])
+  const [pageSize, setPageSize] = useState(24)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     const type = searchParams.get('type')
@@ -73,6 +81,9 @@ export default function PropertiesContent() {
       return
     }
     setData(data || [])
+    if (data && data.length > 0) {
+      setColumns(Object.keys(data[0]))
+    }
     setLoading(false)
   }, [])
 
@@ -179,7 +190,56 @@ export default function PropertiesContent() {
     })
     
     setFilteredData(filtered)
+    setCurrentPage(1)
   }, [data, searchText, statusFilter, typeFilter, locationFilter, priceFilter, sizeFilter, sortBy])
+
+  const handleDelete = async (property: any) => {
+    const id = property['Property ID']
+    if (!confirm(`Delete Property #${id > 2 ? id - 1 : id}? This cannot be undone.`)) return
+    if (!supabase) return
+    const { error } = await supabase
+      .from('mlianglistings')
+      .delete()
+      .eq('Property ID', id)
+    if (error) {
+      alert('Error deleting property: ' + error.message)
+    } else {
+      fetchData()
+    }
+  }
+
+  const buildPostText = (property: any) => {
+    const hasPhotos = Object.keys(property).some(key => key.toLowerCase().includes('photo') && property[key])
+    const hasVideo = Object.keys(property).some(key => key.toLowerCase().includes('video') && property[key])
+    let mediaInfo = ''
+    if (hasPhotos && hasVideo) mediaInfo = '\n\nPM for Photos and Video'
+    else if (hasPhotos) mediaInfo = '\n\nPM for Photos'
+    else if (hasVideo) mediaInfo = '\n\nPM for Video'
+    const lotArea = property['Lot Area'] || property.LotArea || ''
+    const floorArea = property['Floor Area'] || property.FloorArea || ''
+    const notes = (property.Notes || '').replace(/[^\w\s.,;:()\-₱\n]/g, '')
+    let areaInfo = ''
+    if (lotArea) areaInfo += `\nLot Area : ${lotArea}`
+    if (floorArea) areaInfo += `\nFloor Area : ${floorArea}`
+    const s = JSON.parse(localStorage.getItem('tenantSettings') || '{}')
+    const biz = s.businessName || 'M. Liang Realty'
+    const broker = s.brokerName || ''
+    const title = s.brokerTitle || 'Licensed Real Estate Broker'
+    const prc = s.prcNumber || '0019653'
+    const addr = s.officeAddress || ''
+    const phone = s.contactNumber || '09393440944'
+    return `HOUSE AND LOT FOR SALE\n\n${property.Village ? property.Village + ',\n' : ''}${property.Location || ''},\n\n${property['Listing Price'] || ''}${areaInfo}\n\n${notes}\n\n${biz}\n${broker}\n${title}\nPRC No. ${prc}\n${addr}\n${phone}${mediaInfo}`
+  }
+
+  const handleInstagramPost = (property: any) => {
+    navigator.clipboard.writeText(buildPostText(property))
+    alert('Caption copied! Open the Instagram app and paste it into your post/reel caption.')
+  }
+
+  const handleTikTokPost = (property: any) => {
+    navigator.clipboard.writeText(buildPostText(property))
+    alert('Caption copied! Open the TikTok app and paste it into your video caption.')
+  }
 
   if (loading) {
     return (
@@ -240,15 +300,25 @@ export default function PropertiesContent() {
                   <Filter className="w-4 h-4 mr-2" />
                   {showFilters ? 'Hide' : 'Filters'}
                 </Button>
+                <Button
+                  variant={showEditControls ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowEditControls(v => !v)}
+                  title="Toggle edit/delete buttons"
+                >
+                  <Settings2 className="w-4 h-4 mr-2" />
+                  {showEditControls ? 'Editing On' : 'Edit'}
+                </Button>
               </div>
 
               {showFilters && (
-                <div className="flex flex-col lg:flex-row gap-4">
-                  <div className="flex gap-2 flex-wrap">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 items-end">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</label>
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
                       style={{ color: '#000000' }}
                     >
                       <option value="all">All Status</option>
@@ -256,11 +326,14 @@ export default function PropertiesContent() {
                       <option value="draft">Draft</option>
                       <option value="sold">Sold</option>
                     </select>
-                    
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Type</label>
                     <select
                       value={typeFilter}
                       onChange={(e) => setTypeFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
                       style={{ color: '#000000' }}
                     >
                       <option value="all">All Types</option>
@@ -268,25 +341,34 @@ export default function PropertiesContent() {
                       <option value="lot">Lot Only</option>
                       <option value="commercial">Commercial</option>
                     </select>
-                    
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Location</label>
                     <Input
-                      placeholder="Location (e.g., San Fernando, Mexico, Bacolor)"
+                      placeholder="e.g. San Fernando, Clark"
                       value={locationFilter}
                       onChange={(e) => setLocationFilter(e.target.value)}
-                      className="w-64"
+                      className="w-full"
                     />
-                    
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Price Range</label>
                     <Input
-                      placeholder="Price range (e.g., 2M to 5M, Under 3M)"
+                      placeholder="e.g. 2M to 5M, Under 3M"
                       value={priceFilter}
                       onChange={(e) => setPriceFilter(e.target.value)}
-                      className="w-64"
+                      className="w-full"
                     />
-                    
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Sort By</label>
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
                       style={{ color: '#000000' }}
                     >
                       <option value="newest">Newest First</option>
@@ -295,28 +377,64 @@ export default function PropertiesContent() {
                       <option value="price-low">Price: Low to High</option>
                     </select>
                   </div>
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      variant={viewMode === 'grid' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setViewMode('grid')}
-                    >
-                      <Grid3X3 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant={viewMode === 'list' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setViewMode('list')}
-                    >
-                      <List className="w-4 h-4" />
-                    </Button>
+
+                  {/* View toggle — sits on its own row on small screens, last column on xl */}
+                  <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-3 xl:col-span-5">
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => {
+                          setStatusFilter('active')
+                          setTypeFilter('all')
+                          setLocationFilter('')
+                          setPriceFilter('')
+                          setSizeFilter('')
+                          setSortBy('newest')
+                          setSearchText('')
+                        }}
+                        className="text-xs text-red-500 hover:text-red-700 underline"
+                      >
+                        Clear all filters
+                      </button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={viewMode === 'grid' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setViewMode('grid')}
+                        >
+                          <Grid3X3 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant={viewMode === 'list' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setViewMode('list')}
+                        >
+                          <List className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
               
-              <div className="text-sm" style={{ color: '#4b5563' }}>
-                Showing {filteredData.length} of {data.length} properties
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="text-sm" style={{ color: '#4b5563' }}>
+                  Showing {Math.min((currentPage - 1) * pageSize + 1, filteredData.length)}–{Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} properties
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Per page:</label>
+                  <select
+                    value={pageSize}
+                    onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1) }}
+                    className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                    style={{ color: '#000000' }}
+                  >
+                    <option value={12}>12</option>
+                    <option value={24}>24</option>
+                    <option value={48}>48</option>
+                    <option value={96}>96</option>
+                    <option value={99999}>All</option>
+                  </select>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -329,19 +447,45 @@ export default function PropertiesContent() {
               <p style={{ color: '#4b5563' }}>Try adjusting your search or filters</p>
             </Card>
         ) : (
-          <div className={viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
-            : 'space-y-4'
-          }>
-            {filteredData.map((property) => (
-              <PropertyCard
-                key={property['Property ID']}
-                property={property}
-                viewMode={viewMode}
+          <>
+            <div className={viewMode === 'grid' 
+              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
+              : 'space-y-4'
+            }>
+              {filteredData
+                .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                .map((property) => (
+                  <PropertyCard
+                    key={property['Property ID']}
+                    property={property}
+                    viewMode={viewMode}
+                    onEdit={showEditControls ? (p) => setEditingProperty(p) : undefined}
+                    onDelete={showEditControls ? handleDelete : undefined}
+                    onInstagramPost={handleInstagramPost}
+                    onTikTokPost={handleTikTokPost}
+                  />
+                ))}
+            </div>
+
+            {/* Pagination controls */}
+            {filteredData.length > pageSize && (
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredData.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
               />
-            ))}
-          </div>
+            )}
+          </>
         )}
+
+        {/* Edit dialog */}
+        <PropertyDialog
+          property={editingProperty}
+          isOpen={!!editingProperty}
+          onClose={() => { setEditingProperty(null); fetchData() }}
+          columns={columns}
+        />
       </div>
     </div>
   )

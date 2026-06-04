@@ -16,6 +16,7 @@ interface ParsedProperty {
   bathrooms?: string
   description: string
   type: string
+  listingMode: 'For Sale' | 'For Rent'
 }
 
 export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
@@ -65,6 +66,10 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
       } else if (text.toLowerCase().includes('commercial')) {
         type = 'Commercial'
       }
+
+      // Determine listing mode — default For Sale, detect For Rent
+      const listingMode: 'For Sale' | 'For Rent' =
+        /for\s*rent/i.test(text) ? 'For Rent' : 'For Sale'
       
       // Extract full description (everything after property details)
       const description = text.trim()
@@ -78,7 +83,8 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
         bedrooms,
         bathrooms,
         description,
-        type
+        type,
+        listingMode,
       }
     } catch (error) {
       console.error('Error parsing text:', error)
@@ -145,11 +151,16 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
         'Listing Price': priceNum || 0,
         'Lot Area sqm': parsedData.lotArea || '',
         'Floor Area sqm': parsedData.floorArea || '',
-        Notes: parsedData.description || '',
+        Notes: parsedData.listingMode === 'For Rent'
+          ? `[FOR RENT]\n${parsedData.description || ''}`
+          : parsedData.description || '',
         Type: parsedData.type || 'Residential',
         Status: 'Active',
-        CGT: 'Seller',
-        'Transfer Title': 'Buyer'
+        // CGT and Transfer Title are sale-specific — omit for rentals
+        ...(parsedData.listingMode !== 'For Rent' && {
+          CGT: 'Seller',
+          'Transfer Title': 'Buyer',
+        }),
       }
       
       const { error } = await supabase
@@ -246,6 +257,31 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                       <option value="Lot">Lot</option>
                       <option value="Commercial">Commercial</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Listing Mode:</label>
+                    <div className="flex gap-3">
+                      {(['For Sale', 'For Rent'] as const).map(mode => (
+                        <label
+                          key={mode}
+                          className={`flex-1 flex items-center justify-center gap-2 p-2 rounded border cursor-pointer transition-colors ${
+                            parsedData.listingMode === mode
+                              ? 'bg-blue-600 border-blue-600 text-white'
+                              : 'bg-white border-gray-300 text-gray-700 hover:bg-blue-50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="listingMode"
+                            value={mode}
+                            checked={parsedData.listingMode === mode}
+                            onChange={() => setParsedData({ ...parsedData, listingMode: mode })}
+                            className="hidden"
+                          />
+                          {mode === 'For Sale' ? '🏷️' : '🔑'} {mode}
+                        </label>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Lot Area (sqm):</label>

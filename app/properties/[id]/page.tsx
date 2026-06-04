@@ -104,6 +104,8 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
   const [showFinancing, setShowFinancing] = useState(false)
   const [showProcesses, setShowProcesses] = useState(false)
   const [interestRate, setInterestRate] = useState(8)
+  const [pagibigRate, setPagibigRate] = useState(6.5)
+  const [financingMode, setFinancingMode] = useState<'bank' | 'pagibig'>('bank')
   const [customPrice, setCustomPrice] = useState('')
   const [tenantSettings, setTenantSettings] = useState<TenantSettings>({
     businessName: 'Marquez Realty',
@@ -183,12 +185,49 @@ ${tenantSettings.officeAddress}`
     const monthlyPayments = terms.map(years => {
       const months = years * 12
       const monthlyRate = (interestRate / 100) / 12
-      const monthlyPayment = (mortgage * monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1)
-      return { years, monthly: monthlyPayment }
+      // Standard amortization formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
+      const monthlyPayment = monthlyRate === 0
+        ? mortgage / months
+        : (mortgage * monthlyRate * Math.pow(1 + monthlyRate, months)) /
+          (Math.pow(1 + monthlyRate, months) - 1)
+      const totalPaid = monthlyPayment * months
+      const totalInterest = totalPaid - mortgage
+      return { years, months, monthly: monthlyPayment, totalPaid, totalInterest }
     })
     
     return { totalPrice: numPrice, equity, mortgage, monthlyPayments }
   }, [property, interestRate, customPrice])
+
+  // Pag-IBIG: max loan ₱6M, terms up to 30 years, lower rates
+  const calculatePagibig = useMemo(() => {
+    if (!property) return null
+    const price = customPrice ? parseFloat(customPrice) : (property['Listing Price'] || property.ListingPrice || property.Price)
+    if (!price) return null
+    const numPrice = typeof price === 'string' ? parseFloat(price.replace(/[^\d.]/g, '')) : price
+    if (isNaN(numPrice)) return null
+
+    const equity = numPrice * 0.2
+    // Pag-IBIG loan is capped at ₱6,000,000
+    const rawMortgage = numPrice * 0.8
+    const PAGIBIG_MAX = 6_000_000
+    const loanAmount = Math.min(rawMortgage, PAGIBIG_MAX)
+    const capped = rawMortgage > PAGIBIG_MAX
+
+    const terms = [5, 10, 15, 20, 25, 30]
+    const monthlyPayments = terms.map(years => {
+      const months = years * 12
+      const monthlyRate = (pagibigRate / 100) / 12
+      const monthlyPayment = monthlyRate === 0
+        ? loanAmount / months
+        : (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, months)) /
+          (Math.pow(1 + monthlyRate, months) - 1)
+      const totalPaid = monthlyPayment * months
+      const totalInterest = totalPaid - loanAmount
+      return { years, months, monthly: monthlyPayment, totalPaid, totalInterest }
+    })
+
+    return { totalPrice: numPrice, equity, loanAmount, rawMortgage, capped, monthlyPayments }
+  }, [property, pagibigRate, customPrice])
 
   const formatPrice = useMemo(() => {
     if (!property) return 'Price on request'
@@ -326,27 +365,49 @@ ${tenantSettings.officeAddress}`
     
     const displayPropertyId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
     const priceLabel = customPrice ? 'Contract Price' : 'Total Price'
-    const monthlyOptions = calculateFinancing.monthlyPayments.map(({ years, monthly }) => 
-      `${years} Years: ${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthly)}/month`
-    ).join('\n')
-    
     const fmtPHP = (v: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(v)
+
+    const buildOptions = (payments: typeof calculateFinancing.monthlyPayments) =>
+      payments.map(({ years, months, monthly, totalInterest, totalPaid }) =>
+        [
+          `${years} Years (${months} months):`,
+          `  Monthly Payment : ${fmtPHP(monthly)}`,
+          `  Total Interest  : ${fmtPHP(totalInterest)}`,
+          `  Total Paid      : ${fmtPHP(totalPaid)}`,
+        ].join('\n')
+      ).join('\n\n')
+
+    const bankSection = [
+      'BANK FINANCING (' + interestRate + '% p.a.):',
+      '  80% Mortgage : ' + fmtPHP(calculateFinancing.mortgage),
+      '',
+      buildOptions(calculateFinancing.monthlyPayments),
+    ].join('\n')
+
+    const pagibigSection = calculatePagibig ? [
+      '',
+      'PAG-IBIG FINANCING (' + pagibigRate + '% p.a., max ₱6M loan):',
+      '  Loan Amount  : ' + fmtPHP(calculatePagibig.loanAmount) + (calculatePagibig.capped ? ' (capped at ₱6M)' : ''),
+      '',
+      buildOptions(calculatePagibig.monthlyPayments),
+    ].join('\n') : ''
+    
     const text = [
       'MORTGAGE COMPUTATION',
+      '====================',
       '',
       'Property #' + displayPropertyId,
-      (property.Village || '') + ', ' + (property.Location || ''),
+      (property.Village || '') + (property.Village ? ', ' : '') + (property.Location || ''),
       '',
       'FINANCING BREAKDOWN:',
-      priceLabel + ': ' + fmtPHP(calculateFinancing.totalPrice),
-      '20% Equity: ' + fmtPHP(calculateFinancing.equity),
-      '80% Mortgage: ' + fmtPHP(calculateFinancing.mortgage),
+      priceLabel + '  : ' + fmtPHP(calculateFinancing.totalPrice),
+      '20% Equity    : ' + fmtPHP(calculateFinancing.equity),
       '',
-      'MONTHLY PAYMENT OPTIONS (' + interestRate + '% Interest):',
-      monthlyOptions,
+      bankSection,
+      pagibigSection,
       '',
-      '* Calculations are estimates',
-      '* Actual rates may vary by lender',
+      '* Diminishing balance amortization',
+      '* Actual rates and terms may vary by lender',
       '',
       tenantSettings.businessName,
       tenantSettings.contactNumber,
@@ -657,6 +718,8 @@ ${tenantSettings.officeAddress}`
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
+
+                {/* Price summary row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-gray-600">{customPrice ? 'Contract Price' : 'Total Price'}</p>
@@ -672,65 +735,162 @@ ${tenantSettings.officeAddress}`
                     </p>
                   </div>
                   <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <p className="text-sm text-gray-600">80% Mortgage</p>
+                    <p className="text-sm text-gray-600">80% Loan Amount</p>
                     <p className="text-xl font-bold text-orange-600">
                       {new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculateFinancing.mortgage)}
                     </p>
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Contract Price (PHP)</label>
-                    <Input 
-                      type="number" 
-                      value={customPrice} 
-                      onChange={(e) => setCustomPrice(e.target.value)} 
-                      placeholder={calculateFinancing.totalPrice.toString()}
-                      className="text-gray-900 font-medium"
-                    />
-                    <p className="text-xs text-gray-600 mt-1">Leave empty to use listing price</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Interest Rate (%)</label>
-                    <Input 
-                      type="number" 
-                      value={interestRate} 
-                      onChange={(e) => setInterestRate(Number(e.target.value))} 
-                      min="1" 
-                      max="20" 
-                      step="0.1"
-                      className="text-gray-900 font-medium"
-                    />
-                  </div>
-                </div>
-                
+
+                {/* Contract price input */}
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-4">Monthly Payment Options ({interestRate}% Interest)</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {calculateFinancing.monthlyPayments.map(({ years, monthly }) => (
-                      <div key={years} className="p-4 border rounded-lg hover:bg-gray-50">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-gray-900">{years} Years</span>
-                          <span className="text-lg font-bold text-blue-600">
-                            {new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthly)}/mo
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-700 mt-1">{years * 12} monthly payments</p>
-                      </div>
-                    ))}
-                  </div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">Contract Price (PHP)</label>
+                  <Input
+                    type="number"
+                    value={customPrice}
+                    onChange={(e) => setCustomPrice(e.target.value)}
+                    placeholder={calculateFinancing.totalPrice.toString()}
+                    className="text-gray-900 font-medium"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">Leave empty to use listing price</p>
                 </div>
-                
+
+                {/* Bank / Pag-IBIG tabs */}
+                <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setFinancingMode('bank')}
+                    className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                      financingMode === 'bank'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    🏦 Bank Financing
+                  </button>
+                  <button
+                    onClick={() => setFinancingMode('pagibig')}
+                    className={`flex-1 py-2 text-sm font-medium transition-colors border-l border-gray-200 ${
+                      financingMode === 'pagibig'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    🏠 Pag-IBIG Fund
+                  </button>
+                </div>
+
+                {/* ── BANK TAB ── */}
+                {financingMode === 'bank' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Interest Rate (% p.a.)</label>
+                      <Input
+                        type="number"
+                        value={interestRate}
+                        onChange={(e) => setInterestRate(Number(e.target.value))}
+                        min="1" max="20" step="0.1"
+                        className="text-gray-900 font-medium"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Typical bank rate: 6–10% p.a. · Terms: 5, 10, 15, 20 years</p>
+                    </div>
+                    <h4 className="font-medium text-gray-900">Monthly Payment Options — {interestRate}% p.a.</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {calculateFinancing.monthlyPayments.map(({ years, months, monthly, totalPaid, totalInterest }) => (
+                        <div key={years} className="p-4 border rounded-lg hover:bg-blue-50">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-bold text-gray-900">{years} yrs ({months} mos)</span>
+                            <span className="text-lg font-bold text-blue-600">
+                              {new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthly)}/mo
+                            </span>
+                          </div>
+                          <div className="space-y-1 text-xs text-gray-600 border-t pt-2">
+                            <div className="flex justify-between">
+                              <span>Total Interest:</span>
+                              <span className="text-red-500 font-medium">{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(totalInterest)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Total Paid:</span>
+                              <span className="font-medium text-gray-800">{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(totalPaid)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── PAG-IBIG TAB ── */}
+                {financingMode === 'pagibig' && calculatePagibig && (
+                  <div className="space-y-4">
+                    {/* Pag-IBIG loan cap notice */}
+                    {calculatePagibig.capped && (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                        ⚠ Pag-IBIG loan is capped at <strong>₱6,000,000</strong>. The remaining balance of{' '}
+                        <strong>{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculatePagibig.rawMortgage - calculatePagibig.loanAmount)}</strong>{' '}
+                        must be covered via supplemental bank financing or additional equity.
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-green-50 rounded-lg text-center">
+                        <p className="text-xs text-gray-600">Pag-IBIG Loan Amount</p>
+                        <p className="text-lg font-bold text-green-700">
+                          {new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(calculatePagibig.loanAmount)}
+                        </p>
+                        {calculatePagibig.capped && <p className="text-xs text-yellow-600">Max ₱6M applied</p>}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-900 mb-2">Interest Rate (% p.a.)</label>
+                        <Input
+                          type="number"
+                          value={pagibigRate}
+                          onChange={(e) => setPagibigRate(Number(e.target.value))}
+                          min="3" max="10" step="0.25"
+                          className="text-gray-900 font-medium"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Pag-IBIG rate: 5.5–6.5% p.a.</p>
+                      </div>
+                    </div>
+                    <h4 className="font-medium text-gray-900">Monthly Payment Options — {pagibigRate}% p.a. (up to 30 years)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {calculatePagibig.monthlyPayments.map(({ years, months, monthly, totalPaid, totalInterest }) => (
+                        <div key={years} className="p-4 border rounded-lg hover:bg-green-50">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-bold text-gray-900">{years} yrs ({months} mos)</span>
+                            <span className="text-lg font-bold text-green-600">
+                              {new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthly)}/mo
+                            </span>
+                          </div>
+                          <div className="space-y-1 text-xs text-gray-600 border-t pt-2">
+                            <div className="flex justify-between">
+                              <span>Total Interest:</span>
+                              <span className="text-red-500 font-medium">{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(totalInterest)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Total Paid:</span>
+                              <span className="font-medium text-gray-800">{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(totalPaid)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-xs text-gray-500 bg-green-50 p-3 rounded border border-green-100">
+                      <p>• Pag-IBIG max loanable: <strong>₱6,000,000</strong></p>
+                      <p>• Requires at least 24 monthly contributions</p>
+                      <p>• Loan term: up to <strong>30 years</strong></p>
+                      <p>• Rate shown is indicative; actual rate depends on loan amount & term</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-                  <p>* Calculations are estimates based on {interestRate}% annual interest rate</p>
+                  <p>* Diminishing balance amortization (standard mortgage formula)</p>
                   <p>* Actual rates and terms may vary by lender</p>
                   <p>* Contact {tenantSettings.businessName} for detailed financing options</p>
                 </div>
-                
+
                 <Button className="w-full" onClick={copyMortgageComputation}>
                   <Copy className="w-4 h-4 mr-2" />
-                  Copy Mortgage Computation
+                  Copy Both Financing Options
                 </Button>
               </CardContent>
             </Card>

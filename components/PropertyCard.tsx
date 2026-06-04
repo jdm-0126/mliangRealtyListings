@@ -4,6 +4,7 @@ import React from 'react'
 import { Card, CardContent, CardFooter } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
+import { Tooltip } from './ui/tooltip'
 import { 
   MapPin, 
   Home, 
@@ -26,6 +27,8 @@ interface PropertyCardProps {
   onShare?: (property: any) => void;
   onCopy?: (property: any) => void;
   onFacebookPost?: (property: any) => void;
+  onInstagramPost?: (property: any) => void;
+  onTikTokPost?: (property: any) => void;
   onDelete?: (property: any) => void;
   onHide?: (property: any) => void;
 }
@@ -36,6 +39,8 @@ export default function PropertyCard({
   onShare, 
   onCopy, 
   onFacebookPost,
+  onInstagramPost,
+  onTikTokPost,
   onDelete,
   onHide,
   viewMode,
@@ -159,70 +164,110 @@ export default function PropertyCard({
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs" style={{ color: '#6b7280' }}>
-            <span>CGT: {property.CGT || 'Seller'}</span>
-            <span>Transfer: {property['Transfer Title'] || 'Buyer'}</span>
-          </div>
+          {/* Only show CGT/Transfer for sale listings, not rentals */}
+          {property['Listing Mode'] !== 'For Rent' &&
+           !String(property.Notes || '').startsWith('[FOR RENT]') && (
+            <div className="flex items-center justify-between text-xs" style={{ color: '#6b7280' }}>
+              <span>CGT: {property.CGT || 'Seller'}</span>
+              <span>Transfer: {property['Transfer Title'] || 'Buyer'}</span>
+            </div>
+          )}
         </div>
       </CardContent>
 
       <CardFooter className="p-6 pt-0 flex flex-wrap gap-2">
-        <Button
-          variant="default"
-          size="sm"
-          onClick={() => {
-            const displayId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
-            window.location.href = `/properties/${displayId}`
-          }}
-          className="flex-1 min-w-[100px]"
-        >
-          View Details
-        </Button>
+        <Tooltip content="View full property details">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => {
+              const displayId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
+              window.location.href = `/properties/${displayId}`
+            }}
+            className="flex-1 min-w-[100px]"
+          >
+            View Details
+          </Button>
+        </Tooltip>
         
         {onEdit && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit?.(property)}
-            className="flex-1 min-w-[80px]"
-          >
-            <Edit className="w-4 h-4 mr-1" />
-            Edit
-          </Button>
+          <Tooltip content="Edit this property">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit?.(property)}
+              className="flex-1 min-w-[80px]"
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
+          </Tooltip>
         )}
         
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onFacebookPost?.(property)}
-          className="flex-1 min-w-[100px] bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
-        >
-          <Share2 className="w-4 h-4 mr-1" />
-          FB Post
-        </Button>
-        
-        {onHide && (
+        <Tooltip content="Copy Facebook post to clipboard">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onHide?.(property)}
-            className="flex-shrink-0 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200"
+            onClick={() => onFacebookPost?.(property)}
+            className="flex-1 min-w-[100px] bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
           >
-            <EyeOff className="w-4 h-4 mr-1" />
-            Hide
+            <Share2 className="w-4 h-4 mr-1" />
+            FB Post
           </Button>
+        </Tooltip>
+
+        {onInstagramPost && (
+          <Tooltip content="Copy Instagram caption to clipboard">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onInstagramPost(property)}
+              className="flex-1 min-w-[80px] bg-pink-50 hover:bg-pink-100 text-pink-700 border-pink-200"
+            >
+              📸 IG
+            </Button>
+          </Tooltip>
+        )}
+
+        {onTikTokPost && (
+          <Tooltip content="Copy TikTok caption to clipboard">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onTikTokPost(property)}
+              className="flex-1 min-w-[90px] bg-gray-900 hover:bg-gray-800 text-white border-gray-700"
+            >
+              🎵 TikTok
+            </Button>
+          </Tooltip>
+        )}
+        
+        {onHide && (
+          <Tooltip content="Hide listing (set to Draft)">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onHide?.(property)}
+              className="flex-shrink-0 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200"
+            >
+              <EyeOff className="w-4 h-4 mr-1" />
+              Hide
+            </Button>
+          </Tooltip>
         )}
         
         {onDelete && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onDelete?.(property)}
-            className="flex-shrink-0 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-          >
-            <Trash2 className="w-4 h-4 mr-1" />
-            Delete
-          </Button>
+          <Tooltip content="Permanently delete this property">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDelete?.(property)}
+              className="flex-shrink-0 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Delete
+            </Button>
+          </Tooltip>
         )}
       </CardFooter>
     </Card>

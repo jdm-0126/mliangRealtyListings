@@ -17,6 +17,17 @@ export default function Dashboard() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pasteData, setPasteData] = useState('');
 
+  const SETTINGS_KEY = 'tenantSettings';
+  const [tenantSettings, setTenantSettings] = useState({
+    businessName: 'M. Liang Realty',
+    brokerName: 'Melanie Liang',
+    brokerTitle: 'Licensed Real Estate Broker',
+    prcNumber: '0019653',
+    officeAddress: 'S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga',
+    contactNumber: '09393440944',
+    emailAddress: '',
+  });
+
   // Location-based video URLs mapping
   const getVideoByLocation = (location: string) => {
     const videoMap: { [key: string]: string } = {
@@ -46,6 +57,16 @@ export default function Dashboard() {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
+
+    // Load tenant settings
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null;
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setTenantSettings(prev => ({ ...prev, ...parsed }));
+      } catch {}
+    }
+
     return () => window.removeEventListener('resize', checkMobile);
   }, [fetchData]);
 
@@ -167,10 +188,12 @@ Floor Area : ${row['Floor Area'] || ''}
 CGT - ${row.CGT || ''}
 Transfer - ${row['Transfer Title'] || ''}
 
-Marquez Realty
-LICENSED REAL ESTATE BROKER
-PRC NO. 0019653
-09393440944
+${tenantSettings.businessName}
+${tenantSettings.brokerName}
+${tenantSettings.brokerTitle}
+PRC No. ${tenantSettings.prcNumber}
+${tenantSettings.officeAddress}
+${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSettings.emailAddress : ''}
 
 #realestate #realtor #realtorlife #realestateagent #property #home #broker #forsale #justlisted #newlisting #listingagent #homesforsale #houseforsale #homeforsale #firsttimehomebuyer #homebuyers #househunting #newhome #dreamhome #homeownership #investmentproperty #homedecor #luxurylifestyle #luxuryhomes #homesweethome #SanFernando #Pampanga #Philippines${mediaInfo}`;
     
@@ -225,10 +248,12 @@ Floor Area : ${row['Floor Area'] || ''}
 CGT - ${row.CGT || ''}
 Transfer - ${row['Transfer Title'] || ''}
 
-Marquez Realty
-LICENSED REAL ESTATE BROKER
-PRC NO. 0019653
-09393440944
+${tenantSettings.businessName}
+${tenantSettings.brokerName}
+${tenantSettings.brokerTitle}
+PRC No. ${tenantSettings.prcNumber}
+${tenantSettings.officeAddress}
+${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSettings.emailAddress : ''}
 
 #realestate #realtor #realtorlife #realestateagent #property #home #broker #forsale #justlisted #newlisting #listingagent #homesforsale #houseforsale #homeforsale #firsttimehomebuyer #homebuyers #househunting #newhome #dreamhome #homeownership #investmentproperty #homedecor #luxurylifestyle #luxuryhomes #homesweethome #SanFernando #Pampanga #Philippines${mediaInfo}`;
     
