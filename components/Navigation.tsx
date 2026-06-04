@@ -7,28 +7,50 @@ import { cn } from '@/lib/utils'
 import { Home, Upload, Settings, BarChart3, Users, Menu, X, Facebook, Activity } from 'lucide-react'
 import { Button } from './ui/button'
 
+const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
+
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Leads Monitor', href: '/dashboard', icon: Activity },
-  { name: 'Properties', href: '/properties', icon: BarChart3 },
-  { name: 'Upload', href: '/upload', icon: Upload },
-  { name: 'Facebook Posts', href: '/facebook-posts', icon: Facebook },
-  { name: 'Facebook Groups', href: '/facebook-groups', icon: Users },
-  { name: 'Brokers', href: '/brokers', icon: Users },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/', icon: Home, roles: ['superadmin', 'broker', 'agent'] },
+  { name: 'Leads Monitor', href: '/dashboard', icon: Activity, roles: ['superadmin'] },
+  { name: 'Properties', href: '/properties', icon: BarChart3, roles: ['superadmin', 'broker', 'agent'] },
+  { name: 'Upload', href: '/upload', icon: Upload, roles: ['superadmin'] },
+  { name: 'Facebook Posts', href: '/facebook-posts', icon: Facebook, roles: ['superadmin'] },
+  { name: 'Facebook Groups', href: '/facebook-groups', icon: Users, roles: ['superadmin'] },
+  { name: 'Brokers', href: '/brokers', icon: Users, roles: ['superadmin'] },
+  { name: 'Settings', href: '/settings', icon: Settings, roles: ['superadmin', 'broker', 'agent'] },
 ]
 
 export default function Navigation() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [businessName, setBusinessName] = useState('M. Liang Realty')
+  const [userRole, setUserRole] = useState<'superadmin' | 'broker' | 'agent' | null>(null)
 
   useEffect(() => {
     const savedBusinessName = localStorage.getItem('businessName')
     if (savedBusinessName) {
       setBusinessName(savedBusinessName)
     }
+
+    // Check if user is authenticated as superadmin
+    const auth = sessionStorage.getItem('brokerAdminAuth')
+    const userEmail = sessionStorage.getItem('userEmail')
+    
+    if (auth === 'authenticated' && userEmail === SUPERADMIN_EMAIL) {
+      setUserRole('superadmin')
+    } else if (userEmail) {
+      // In the future, check user role from database
+      // For now, default to 'agent' for non-superadmin users
+      setUserRole('agent')
+    } else {
+      setUserRole('agent') // Default role for unauthenticated users
+    }
   }, [])
+
+  // Filter navigation based on user role
+  const filteredNavigation = navigation.filter(item => 
+    userRole && item.roles.includes(userRole)
+  )
 
   return (
     <>
@@ -44,7 +66,7 @@ export default function Navigation() {
         </div>
         
         <div className="flex-1 px-4 py-6 space-y-1">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = pathname === item.href
             return (
               <Link
@@ -102,7 +124,7 @@ export default function Navigation() {
               </div>
               
               <div className="px-4 py-6 space-y-1">
-                {navigation.map((item) => {
+                {filteredNavigation.map((item) => {
                   const isActive = pathname === item.href
                   return (
                     <Link

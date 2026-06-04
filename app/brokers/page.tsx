@@ -28,7 +28,8 @@ export default function BrokersPage() {
   const [showDialog, setShowDialog] = useState(false)
   const [editingBroker, setEditingBroker] = useState<Broker | null>(null)
   const [formData, setFormData] = useState({
-    name: '',
+    agent_id: '',
+    agent_name: '',
     email: '',
     phone: '',
     status: 'Active',
@@ -53,6 +54,7 @@ export default function BrokersPage() {
     e.preventDefault()
     if (loginEmail === SUPERADMIN_EMAIL && loginPassword === SUPERADMIN_PASSWORD) {
       sessionStorage.setItem('brokerAdminAuth', 'authenticated')
+      sessionStorage.setItem('userEmail', loginEmail)
       setIsAuthenticated(true)
       fetchBrokers()
     } else {
@@ -80,7 +82,8 @@ export default function BrokersPage() {
   const handleCreate = () => {
     setEditingBroker(null)
     setFormData({
-      name: '',
+      agent_id: '',
+      agent_name: '',
       email: '',
       phone: '',
       status: 'Active',
