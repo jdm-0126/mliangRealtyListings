@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -8,6 +8,18 @@ import { Badge } from '../../components/ui/badge'
 import { Settings, User, Database, Bell, Shield, Palette } from 'lucide-react'
 
 export default function SettingsPage() {
+  const [businessName, setBusinessName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('businessName') || 'M. Liang Realty'
+    }
+    return 'M. Liang Realty'
+  })
+
+  const handleSaveProfile = () => {
+    localStorage.setItem('businessName', businessName)
+    alert('Profile saved successfully!')
+    window.dispatchEvent(new Event('storage'))
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -31,7 +43,10 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Business Name
                   </label>
-                  <Input defaultValue="M. Liang Realty" />
+                  <Input 
+                    value={businessName} 
+                    onChange={(e) => setBusinessName(e.target.value)}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -58,7 +73,7 @@ export default function SettingsPage() {
                 </label>
                 <Input placeholder="Enter your business address" />
               </div>
-              <Button>Save Profile</Button>
+              <Button onClick={handleSaveProfile}>Save Profile</Button>
             </CardContent>
           </Card>
 

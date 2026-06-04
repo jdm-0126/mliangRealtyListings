@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -14,12 +14,21 @@ const navigation = [
   { name: 'Upload', href: '/upload', icon: Upload },
   { name: 'Facebook Posts', href: '/facebook-posts', icon: Facebook },
   { name: 'Facebook Groups', href: '/facebook-groups', icon: Users },
+  { name: 'Brokers', href: '/brokers', icon: Users },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 export default function Navigation() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+  const [businessName, setBusinessName] = useState('M. Liang Realty')
+
+  useEffect(() => {
+    const savedBusinessName = localStorage.getItem('businessName')
+    if (savedBusinessName) {
+      setBusinessName(savedBusinessName)
+    }
+  }, [])
 
   return (
     <>
@@ -30,7 +39,7 @@ export default function Navigation() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Home className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">MLiang Realty</span>
+            <span className="text-xl font-bold text-gray-900">{businessName}</span>
           </div>
         </div>
         
@@ -63,7 +72,7 @@ export default function Navigation() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Home className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">MLiang Realty</span>
+            <span className="text-xl font-bold text-gray-900">{businessName}</span>
           </div>
           
           <Button
@@ -88,7 +97,7 @@ export default function Navigation() {
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                     <Home className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-xl font-bold text-gray-900">MLiang Realty</span>
+                  <span className="text-xl font-bold text-gray-900">{businessName}</span>
                 </div>
               </div>
               
