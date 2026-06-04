@@ -92,8 +92,8 @@ export default function AdminFAQPanel() {
         { id: '27', keyword: 'inherited property', answer: 'For inherited property, ensure the estate tax is SETTLED before buying. The seller must show proof of estate tax payment and extrajudicial settlement. Otherwise, you may inherit tax liabilities.', category: 'buying' },
         { id: '28', keyword: 'tenant rights', answer: 'Tenant rights in the Philippines include: 1) Right to peaceful enjoyment of the property, 2) Right to privacy and advance notice for inspections, 3) Protection from illegal eviction, 4) Right to habitable living conditions, 5) Right to security deposit return upon lease end. Tenants must pay rent on time, maintain the property, and follow lease terms.', category: 'renting' },
         { id: '29', keyword: 'tenant obligations', answer: 'Tenant obligations include: 1) Pay rent on time as agreed, 2) Maintain cleanliness and proper care of the property, 3) Follow house rules and lease conditions, 4) Report damages immediately, 5) Allow reasonable property inspections with notice, 6) Return property in good condition. Failure to meet obligations may result in lease termination.', category: 'renting' },
-        { id: '30', keyword: 'contact', answer: 'You can contact M. Liang Realty at: Phone: 09393440944, Office: S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga. PRC License No. 0019653. We are a licensed real estate broker.', category: 'general' },
-        { id: '31', keyword: 'services', answer: 'M. Liang Realty offers: Property listings (house and lot, lots, commercial), Property buying assistance, Title verification support, Financing guidance, Documentation assistance, and Property viewing arrangements. We serve Pampanga and nearby areas.', category: 'general' },
+        { id: '30', keyword: 'contact', answer: 'You can contact Marquez Realty at: Phone: 09393440944, Office: S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga. PRC License No. 0019653. We are a licensed real estate broker.', category: 'general' },
+        { id: '31', keyword: 'services', answer: 'Marquez Realty offers: Property listings (house and lot, lots, commercial), Property buying assistance, Title verification support, Financing guidance, Documentation assistance, and Property viewing arrangements. We serve Pampanga and nearby areas.', category: 'general' },
         { id: '32', keyword: 'viewing', answer: 'To schedule a property viewing, contact us at 09393440944 or visit our office. We can arrange viewings for any listed property. Bring valid ID and be ready to discuss your budget and requirements.', category: 'general' }
       ];
       setFaqs(defaultFAQs);
@@ -205,7 +205,7 @@ export default function AdminFAQPanel() {
         {
           id: '5',
           keyword: 'contact',
-          answer: 'You can contact M. Liang Realty at: Phone: 09393440944, Office: S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga. PRC License No. 0019653. We are a licensed real estate broker.',
+          answer: 'You can contact Marquez Realty at: Phone: 09393440944, Office: S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga. PRC License No. 0019653. We are a licensed real estate broker.',
           category: 'general'
         }
       ];

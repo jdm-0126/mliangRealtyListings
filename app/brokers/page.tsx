@@ -70,7 +70,7 @@ export default function BrokersPage() {
       .order('created_at', { ascending: false })
     
     if (error) {
-      console.error('Error fetching brokers:', error)
+      console.log('Error fetching brokers:', error)
     } else {
       setBrokers(data || [])
     }

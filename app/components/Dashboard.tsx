@@ -167,7 +167,7 @@ Floor Area : ${row['Floor Area'] || ''}
 CGT - ${row.CGT || ''}
 Transfer - ${row['Transfer Title'] || ''}
 
-M. Liang Realty
+Marquez Realty
 LICENSED REAL ESTATE BROKER
 PRC NO. 0019653
 09393440944
@@ -181,7 +181,7 @@ PRC NO. 0019653
   const shareItem = (row: any) => {
     const text = Object.entries(row).map(([key, val]) => `${key}: ${val}`).join('\n');
     if (navigator.share) {
-      navigator.share({ title: 'MLiang Listing', text });
+      navigator.share({ title: 'Marquez Listing', text });
     } else {
       copyToClipboard(row);
     }
@@ -225,7 +225,7 @@ Floor Area : ${row['Floor Area'] || ''}
 CGT - ${row.CGT || ''}
 Transfer - ${row['Transfer Title'] || ''}
 
-M. Liang Realty
+Marquez Realty
 LICENSED REAL ESTATE BROKER
 PRC NO. 0019653
 09393440944
@@ -259,7 +259,7 @@ PRC NO. 0019653
 
   return (
     <div style={{ padding: '10px', maxWidth: '100vw', overflow: 'hidden' }}>
-      <h1 style={{ fontSize: isMobile ? '18px' : '24px', marginBottom: '15px' }}>🏠 MLiang Realty</h1>
+      <h1 style={{ fontSize: isMobile ? '18px' : '24px', marginBottom: '15px' }}>🏠 Marquez Realty</h1>
       {data.length === 0 ? (
         <p>No data found. Please add records to your Supabase table.</p>
       ) : (

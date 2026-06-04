@@ -1,24 +1,57 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Badge } from '../../components/ui/badge'
 import { Settings, User, Database, Bell, Shield, Palette } from 'lucide-react'
 
-export default function SettingsPage() {
-  const [businessName, setBusinessName] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('businessName') || 'M. Liang Realty'
-    }
-    return 'M. Liang Realty'
-  })
+const SETTINGS_KEY = 'tenantSettings'
 
-  const handleSaveProfile = () => {
+export default function SettingsPage() {
+  const [businessName, setBusinessName] = useState('Marquez Realty')
+  const [brokerName, setBrokerName] = useState('Marquez Realty')
+  const [brokerTitle, setBrokerTitle] = useState('Licensed Real Estate Broker')
+  const [prcNumber, setPrcNumber] = useState('0019653')
+  const [officeAddress, setOfficeAddress] = useState('S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga')
+  const [contactNumber, setContactNumber] = useState('09393440944')
+  const [emailAddress, setEmailAddress] = useState('contact@marquezrealty.com')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        if (parsed.businessName) setBusinessName(parsed.businessName)
+        if (parsed.brokerName) setBrokerName(parsed.brokerName)
+        if (parsed.brokerTitle) setBrokerTitle(parsed.brokerTitle)
+        if (parsed.prcNumber) setPrcNumber(parsed.prcNumber)
+        if (parsed.officeAddress) setOfficeAddress(parsed.officeAddress)
+        if (parsed.contactNumber) setContactNumber(parsed.contactNumber)
+        if (parsed.emailAddress) setEmailAddress(parsed.emailAddress)
+      } catch {
+        // ignore invalid stored settings
+      }
+    }
+  }, [])
+
+  const saveSettings = () => {
+    const settings = {
+      businessName,
+      brokerName,
+      brokerTitle,
+      prcNumber,
+      officeAddress,
+      contactNumber,
+      emailAddress,
+    }
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
     localStorage.setItem('businessName', businessName)
-    alert('Profile saved successfully!')
+    setSaved(true)
     window.dispatchEvent(new Event('storage'))
+    window.setTimeout(() => setSaved(false), 2000)
   }
   return (
     <div className="min-h-screen bg-gray-50">
@@ -40,40 +73,52 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
                     Business Name
                   </label>
-                  <Input 
-                    value={businessName} 
-                    onChange={(e) => setBusinessName(e.target.value)}
-                  />
+                  <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} style={{ color: '#000000' }} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    Broker Name
+                  </label>
+                  <Input value={brokerName} onChange={(e) => setBrokerName(e.target.value)} style={{ color: '#000000' }} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    Broker Title
+                  </label>
+                  <Input value={brokerTitle} onChange={(e) => setBrokerTitle(e.target.value)} style={{ color: '#000000' }} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
                     PRC License Number
                   </label>
-                  <Input defaultValue="0019653" />
+                  <Input value={prcNumber} onChange={(e) => setPrcNumber(e.target.value)} style={{ color: '#000000' }} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
                     Contact Number
                   </label>
-                  <Input defaultValue="09393440944" />
+                  <Input value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} style={{ color: '#000000' }} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
                     Email Address
                   </label>
-                  <Input type="email" placeholder="contact@mliangrealty.com" />
+                  <Input type="email" value={emailAddress} onChange={(e) => setEmailAddress(e.target.value)} style={{ color: '#000000' }} />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Business Address
+                <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                  Office Address
                 </label>
-                <Input placeholder="Enter your business address" />
+                <Input value={officeAddress} onChange={(e) => setOfficeAddress(e.target.value)} style={{ color: '#000000' }} />
               </div>
-              <Button onClick={handleSaveProfile}>Save Profile</Button>
+              <div className="flex items-center gap-3">
+                <Button onClick={saveSettings}>Save Profile</Button>
+                {saved && <span className="text-sm text-green-600">Profile saved</span>}
+              </div>
             </CardContent>
           </Card>
 
@@ -95,13 +140,13 @@ export default function SettingsPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
                     Table Name
                   </label>
                   <Input defaultValue="mlianglistings" disabled />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
                     Records Count
                   </label>
                   <Input defaultValue="Loading..." disabled />
