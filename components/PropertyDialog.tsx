@@ -27,35 +27,22 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
       setFormData({ ...property })
       setPreviewImage(property['Preview Photo'] || '')
     } else {
-      // Fetch the latest Property ID from database to avoid duplicates
-      const fetchMaxId = async () => {
-        if (!supabase) return
-        const { data, error } = await supabase
-          .from('mlianglistings')
-          .select('Property ID')
-          .order('Property ID', { ascending: false })
-          .limit(1)
-        
-        const maxId = data && data.length > 0 ? Number((data[0] as any)['Property ID']) : 0
-        
-        setFormData({
-          'Property ID': maxId + 1,
+      // Don't auto-generate Property ID - let user enter it manually or leave empty
+      setFormData({
+          // 'Property ID' is optional - user can provide it
           Status: 'Active',
           Type: 'Residential',
           CGT: 'Seller',
           'Transfer Title': 'Buyer',
+          'Listing Mode': 'For Sale',
           'Lot Area sqm': '100',
           'Floor Area sqm': '100',
           Location: 'City of San Fernando',
-          Video: '',
           'Listing Price': '',
           Negotiable: 'Yes',
           'Preview Photo': '',
-          'MOP': 'Bank Financing'
+          'Financing options': 'Bank Financing'
         })
-      }
-      
-      fetchMaxId()
       setPreviewImage('')
     }
   }, [property, columns])
@@ -121,7 +108,24 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
   const handleCreate = async () => {
     if (!supabase) return
     setLoading(true)
-    const { error } = await supabase.from('mlianglistings').insert(formData)
+    
+    // Prepare data for insertion - remove Property ID if empty
+    const dataToInsert = { ...formData }
+    
+    // If Property ID is not provided, empty, or invalid, remove it so database can auto-generate it
+    const propertyId = dataToInsert['Property ID']
+    if (!propertyId || 
+        String(propertyId).trim() === '' || 
+        propertyId === 0 || 
+        propertyId === '0' ||
+        isNaN(Number(propertyId))) {
+      delete dataToInsert['Property ID']
+    } else {
+      // Convert to number if it's a valid ID
+      dataToInsert['Property ID'] = Number(propertyId)
+    }
+    
+    const { error } = await supabase.from('mlianglistings').insert(dataToInsert)
     if (error) {
       alert('Record not added. Error: ' + error.message)
     } else {
@@ -151,7 +155,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-900">
             {property ? 'Edit Property' : 'Add New Property'}
@@ -161,8 +165,8 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
           </Button>
         </div>
 
-        <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
-          <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
             {/* Photo Upload/Link Section - At the top */}
             <Card>
               <CardHeader>
@@ -170,8 +174,107 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
+                  <p className="text-sm font-medium mb-3" style={{ color: '#000000' }}>
+                    Featured Preview Photo
+                  </p>
+                  <p className="text-xs mb-3" style={{ color: '#4b5563' }}>
+                    Upload a featured image that will be displayed in property cards
+                  </p>
+                  
+                  {previewImage ? (
+                    <div className="relative">
+                      <img 
+                        src={previewImage} 
+                        alt="Preview" 
+                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-200 cursor-pointer"
+                        onClick={() => {
+                          // Open fullscreen view
+                          const viewer = document.createElement('div')
+                          viewer.className = 'fixed inset-0 z-[100] bg-black flex items-center justify-center'
+                          viewer.onclick = () => viewer.remove()
+                          viewer.innerHTML = `
+                            <button class="absolute top-4 right-4 text-white hover:text-gray-300 z-10" onclick="this.parentElement.remove()">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                            <img src="${previewImage}" alt="Preview" class="max-w-full max-h-full object-contain" onclick="event.stopPropagation()">
+                          `
+                          document.body.appendChild(viewer)
+                        }}
+                      />
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setPreviewImage('')}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          Change Photo
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={removePreviewImage}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Hidden file input */}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={uploadingImage}
+                        id="featured-photo-upload"
+                      />
+                      
+                      {/* Upload button */}
+                      <button
+                        onClick={() => document.getElementById('featured-photo-upload')?.click()}
+                        disabled={uploadingImage}
+                        className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white px-4 py-3 rounded font-medium flex items-center justify-center gap-2"
+                      >
+                        <Upload className="w-5 h-5" />
+                        {uploadingImage ? 'Uploading...' : 'Upload Image from Computer'}
+                      </button>
+                      
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-gray-300"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                          <span className="px-2 bg-white text-gray-500">or</span>
+                        </div>
+                      </div>
+                      
+                      {/* URL input */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: '#4b5563' }}>
+                          Enter Image URL
+                        </label>
+                        <input
+                          type="text"
+                          value={previewImage}
+                          onChange={(e) => {
+                            setPreviewImage(e.target.value)
+                            setFormData((prev: any) => ({ ...prev, 'Preview Photo': e.target.value }))
+                          }}
+                          placeholder="https://example.com/image.jpg"
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          style={{ color: '#000000' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t pt-4">
                   <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
-                    Google Photos Link
+                    Google Photos Link (Optional)
                   </label>
                   <Input
                     type="text"
@@ -186,7 +289,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
 
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
-                    FB Link
+                    FB Link (Optional)
                   </label>
                   <Input
                     type="text"
@@ -198,70 +301,6 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                     Link to the Facebook post or marketplace listing
                   </p>
                 </div>
-
-                <div className="border-t pt-4">
-                  <p className="text-sm font-medium mb-3" style={{ color: '#000000' }}>
-                    Featured Preview Photo
-                  </p>
-                  <p className="text-xs mb-3" style={{ color: '#4b5563' }}>
-                    Upload a featured image that will be displayed in property cards
-                  </p>
-                  
-                  {previewImage ? (
-                    <div className="relative">
-                      <img 
-                        src={previewImage} 
-                        alt="Preview" 
-                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={removePreviewImage}
-                        className="absolute top-2 right-2"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Remove
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-sm text-gray-600 mb-3">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500 mb-4">
-                        PNG, JPG up to 5MB
-                      </p>
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                          disabled={uploadingImage}
-                        />
-                        <Button variant="outline" size="sm" disabled={uploadingImage} asChild>
-                          <span>
-                            {uploadingImage ? 'Uploading...' : 'Choose File'}
-                          </span>
-                        </Button>
-                      </label>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Preview Photo Upload Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Featured Preview Photo</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-xs text-gray-600">
-                  Upload a featured image that will be displayed in property details before viewing the full Google Photos album
-                </p>
               </CardContent>
             </Card>
 
@@ -295,7 +334,11 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
             {/* Form Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {columns
-                .filter(key => !['Photos', 'FB Link', 'Google Photos Link', 'Preview Photo'].includes(key))
+                .filter(key => {
+                  // Filter out photo-related columns (they have their own section above)
+                  const photoColumns = ['Photos', 'FB Link', 'Google Photos Link', 'Preview Photo', 'Featured Preview Photo']
+                  return !photoColumns.some(col => col.toLowerCase() === key.toLowerCase())
+                })
                 .filter(key => {
                   // Hide house-specific fields when Type is "Lot"
                   const isLotOnly = formData['Type'] === 'Lot'
@@ -309,6 +352,9 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                 <div key={key} className={key === 'Notes' || key === 'Description' ? 'md:col-span-2' : ''}>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {key}
+                    {key === 'Property ID' && !property && (
+                      <span className="text-gray-500 text-xs font-normal ml-1">(Optional)</span>
+                    )}
                     {['Village', 'Location', 'Listing Agent'].includes(key) && (
                       <span className="text-red-500 ml-1">*</span>
                     )}
@@ -333,12 +379,20 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                       <span className="text-sm text-gray-400 italic">Hidden — click Show to edit</span>
                     </div>
                   ) : key === 'Property ID' ? (
-                    <Input
-                      type="number"
-                      value={formData[key] || ''}
-                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
-                      className="bg-gray-50"
-                    />
+                    <div>
+                      <Input
+                        type="number"
+                        value={formData[key] || ''}
+                        onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                        placeholder="Leave empty for auto-generated ID (optional)"
+                        className="bg-gray-50"
+                      />
+                      {!property && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          💡 Optional: Enter a specific Property ID or leave empty for database to assign one
+                        </p>
+                      )}
+                    </div>
                   ) : key === 'Status' ? (
                     <select
                       value={formData[key] || 'Draft'}
@@ -386,7 +440,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
                     </select>
-                  ) : key === 'MOP' ? (
+                  ) : (key === 'MOP' || key === 'Financing options') ? (
                     <select
                       value={formData[key] || 'Bank Financing'}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
@@ -453,6 +507,14 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                       </Button>
                       <span className="text-sm text-gray-500">sqm</span>
                     </div>
+                  ) : key === 'Photos' || key === 'FB Link' ? (
+                    <textarea
+                      value={formData[key] || ''}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                      rows={4}
+                      className="w-full p-3 border border-gray-300 rounded-md text-black resize-none"
+                      placeholder={key === 'Photos' ? "Enter property description..." : "Enter property details, features, and additional information..."}
+                    />  
                   ) : key === 'Notes' || key === 'Description' ? (
                     <textarea
                       value={formData[key] || ''}

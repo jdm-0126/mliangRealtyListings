@@ -19,7 +19,10 @@ import {
   Video,
   ExternalLink,
   Calculator,
-  FileText
+  FileText,
+  ImagePlus,
+  X,
+  Maximize2
 } from 'lucide-react'
 import { Tooltip } from '@/components/ui/tooltip'
 
@@ -108,6 +111,11 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
   const [financingMode, setFinancingMode] = useState<'bank' | 'pagibig'>('bank')
   const [customPrice, setCustomPrice] = useState('')
   const [tenantSettings, setTenantSettings] = useState<TenantSettings>({} as TenantSettings)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [newPhotoUrl, setNewPhotoUrl] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { id } = React.use(params)
 
@@ -116,6 +124,63 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
 ${tenantSettings.brokerTitle}
 PRC No. ${tenantSettings.prcNumber}
 ${tenantSettings.officeAddress}`
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB')
+      return
+    }
+
+    setUploadingImage(true)
+    const reader = new FileReader()
+    
+    reader.onload = () => {
+      const base64String = reader.result as string
+      setNewPhotoUrl(base64String)
+      setUploadingImage(false)
+    }
+    
+    reader.onerror = () => {
+      alert('Error reading file')
+      setUploadingImage(false)
+    }
+    
+    reader.readAsDataURL(file)
+  }
+
+  const handlePhotoUpdate = async () => {
+    if (!newPhotoUrl.trim()) {
+      alert('Please enter a valid image URL or upload an image')
+      return
+    }
+
+    if (!supabase) {
+      alert('Database connection error')
+      return
+    }
+
+    const { error } = await supabase
+      .from('mlianglistings')
+      .update({ 'Preview Photo': newPhotoUrl })
+      .eq('Property ID', property['Property ID'])
+
+    if (error) {
+      alert('Error updating photo: ' + error.message)
+    } else {
+      alert('Photo updated successfully!')
+      setIsUploadingPhoto(false)
+      setNewPhotoUrl('')
+      setProperty({ ...property, 'Preview Photo': newPhotoUrl })
+    }
   }
 
   useEffect(() => {
@@ -894,15 +959,37 @@ ${tenantSettings.officeAddress}`
             {/* Property Image Preview */}
             <Card>
               <CardContent className="p-0">
-                <div className="relative w-full h-64 sm:h-80 bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg overflow-hidden">
+                <div className="relative w-full h-64 sm:h-80 bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg overflow-hidden group">
                   {property['Preview Photo'] ? (
                     // Show uploaded preview photo
                     <div className="relative w-full h-full">
                       <img 
                         src={property['Preview Photo']} 
                         alt={`Property #${property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => setIsFullscreen(true)}
                       />
+                      {/* Hover Overlay */}
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-3">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setIsFullscreen(true)}
+                          >
+                            <Maximize2 className="w-4 h-4 mr-2" />
+                            Fullscreen
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setIsUploadingPhoto(true)}
+                          >
+                            <ImagePlus className="w-4 h-4 mr-2" />
+                            Update Featured Preview Photo
+                          </Button>
+                        </div>
+                      </div>
                       {property.Photos && (
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
                           <Button asChild variant="secondary" size="sm">
@@ -925,12 +1012,18 @@ ${tenantSettings.officeAddress}`
                         <p className="text-gray-700 mb-4">
                           Click below to view the photo album
                         </p>
-                        <Button asChild>
-                          <a href={property.Photos} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Open Photo Album
-                          </a>
-                        </Button>
+                        <div className="flex gap-2 justify-center">
+                          <Button asChild>
+                            <a href={property.Photos} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Open Photo Album
+                            </a>
+                          </Button>
+                          <Button variant="outline" onClick={() => setIsUploadingPhoto(true)}>
+                            <ImagePlus className="w-4 h-4 mr-2" />
+                            Add Featured Preview Photo
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -944,6 +1037,14 @@ ${tenantSettings.officeAddress}`
                         <p className="text-gray-500 mt-2">
                           {property.Village}, {property.Location}
                         </p>
+                        <Button 
+                          variant="outline" 
+                          className="mt-4"
+                          onClick={() => setIsUploadingPhoto(true)}
+                        >
+                          <ImagePlus className="w-4 h-4 mr-2" />
+                          Add Featured Preview Photo
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -1048,6 +1149,115 @@ ${tenantSettings.officeAddress}`
           </div>
         </div>
       </div>
+      
+      {/* Fullscreen Image Modal */}
+      {isFullscreen && property['Preview Photo'] && (
+        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setIsFullscreen(false)}>
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img
+            src={property['Preview Photo']}
+            alt={`Property #${property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}`}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+      
+      {/* Upload Photo Modal */}
+      {isUploadingPhoto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4">
+            <h4 className="text-lg font-medium text-center" style={{ color: '#000000' }}>
+              {property['Preview Photo'] ? 'Update Featured Preview Photo' : 'Add Featured Preview Photo'}
+            </h4>
+            
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            
+            {/* Upload button */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white px-4 py-3 rounded font-medium flex items-center justify-center gap-2"
+            >
+              <ImagePlus className="w-5 h-5" />
+              {uploadingImage ? 'Uploading...' : 'Upload Image from Computer'}
+            </button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">or</span>
+              </div>
+            </div>
+            
+            {/* URL input */}
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#4b5563' }}>
+                Enter Image URL
+              </label>
+              <input
+                type="text"
+                value={newPhotoUrl}
+                onChange={(e) => setNewPhotoUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                style={{ color: '#000000' }}
+              />
+            </div>
+            
+            {/* Preview */}
+            {newPhotoUrl && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium" style={{ color: '#4b5563' }}>
+                  Preview
+                </label>
+                <div className="w-full h-48 rounded overflow-hidden border border-gray-300">
+                  <img 
+                    src={newPhotoUrl} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover"
+                    onError={() => alert('Invalid image URL or unable to load image')}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Action buttons */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handlePhotoUpdate}
+                disabled={!newPhotoUrl || uploadingImage}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium"
+              >
+                Save Photo
+              </button>
+              <button
+                onClick={() => {
+                  setIsUploadingPhoto(false)
+                  setNewPhotoUrl('')
+                }}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

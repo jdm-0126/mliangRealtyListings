@@ -151,7 +151,7 @@ export default function Navigation() {
 
       {/* Mobile Navigation */}
       <div className="lg:hidden">
-        <div className="flex items-center justify-between h-16 px-4 bg-white border-b border-gray-200">
+        <div className="sticky top-0 z-50 flex items-center justify-between h-16 px-4 bg-white border-b border-gray-200 shadow-sm">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Home className="w-5 h-5 text-white" />

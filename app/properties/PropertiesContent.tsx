@@ -18,6 +18,7 @@ import {
   List,
   Home,
   Settings2,
+  MoreVertical,
 } from 'lucide-react'
 
 export default function PropertiesContent() {
@@ -39,6 +40,8 @@ export default function PropertiesContent() {
   const [columns, setColumns] = useState<string[]>([])
   const [pageSize, setPageSize] = useState(24)
   const [currentPage, setCurrentPage] = useState(1)
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false)
+  const optionsMenuRef = React.useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const type = searchParams.get('type')
@@ -65,6 +68,22 @@ export default function PropertiesContent() {
       setSizeFilter(size)
     }
   }, [searchParams])
+
+  // Close options menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
+        setShowOptionsMenu(false)
+      }
+    }
+
+    if (showOptionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [showOptionsMenu])
 
   const fetchData = useCallback(async () => {
     if (!supabase) {
@@ -260,16 +279,72 @@ export default function PropertiesContent() {
               <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Properties</h1>
               <p style={{ color: '#4b5563' }}>Browse all available properties</p>
             </div>
-            <Tooltip content="Enable edit/delete buttons">
-              <Button
-                variant={showEditControls ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setShowEditControls(v => !v)}
-              >
-                <Settings2 className="w-4 h-4 mr-2" />
-                {showEditControls ? 'Editing On' : 'Edit'}
-              </Button>
-            </Tooltip>
+            <div className="flex gap-2">
+              <Tooltip content={showFilters ? "Hide search filters" : "Show search filters"}>
+                <Button
+                  variant={showFilters ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </Tooltip>
+              
+              <Tooltip content="Enable edit/delete buttons">
+                <Button
+                  variant={showEditControls ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowEditControls(v => !v)}
+                >
+                  <Settings2 className="w-4 h-4 mr-2" />
+                  {showEditControls ? 'Editing On' : 'Edit'}
+                </Button>
+              </Tooltip>
+              
+              {/* Options Dropdown */}
+              <div className="relative" ref={optionsMenuRef}>
+                <Tooltip content="More options">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </Tooltip>
+                
+                {showOptionsMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                    <button
+                      onClick={() => {
+                        setViewMode('grid')
+                        setShowOptionsMenu(false)
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 ${
+                        viewMode === 'grid' ? 'bg-blue-50 text-blue-700' : ''
+                      }`}
+                      style={{ color: viewMode === 'grid' ? '#1d4ed8' : '#000000' }}
+                    >
+                      <Grid3X3 className="w-4 h-4" />
+                      Grid View
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewMode('list')
+                        setShowOptionsMenu(false)
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 ${
+                        viewMode === 'list' ? 'bg-blue-50 text-blue-700' : ''
+                      }`}
+                      style={{ color: viewMode === 'list' ? '#1d4ed8' : '#000000' }}
+                    >
+                      <List className="w-4 h-4" />
+                      List View
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           {(locationFilter || priceFilter || sizeFilter) && (
             <div className="mt-4 p-4 bg-blue-50 rounded-lg">
@@ -308,16 +383,6 @@ export default function PropertiesContent() {
                     className="pl-10"
                   />
                 </div>
-                <Tooltip content="Toggle search filters">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowFilters(!showFilters)}
-                  >
-                    <Filter className="w-4 h-4 mr-2" />
-                    {showFilters ? 'Hide' : 'Filters'}
-                  </Button>
-                </Tooltip>
               </div>
 
               {showFilters && (
@@ -389,7 +454,7 @@ export default function PropertiesContent() {
 
                   {/* View toggle — sits on its own row on small screens, last column on xl */}
                   <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-3 xl:col-span-5">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-end">
                       <button
                         onClick={() => {
                           setStatusFilter('active')
@@ -404,26 +469,6 @@ export default function PropertiesContent() {
                       >
                         Clear all filters
                       </button>
-                      <div className="flex gap-2">
-                        <Tooltip content="Grid view">
-                          <Button
-                            variant={viewMode === 'grid' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setViewMode('grid')}
-                          >
-                            <Grid3X3 className="w-4 h-4" />
-                          </Button>
-                        </Tooltip>
-                        <Tooltip content="List view">
-                          <Button
-                            variant={viewMode === 'list' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setViewMode('list')}
-                          >
-                            <List className="w-4 h-4" />
-                          </Button>
-                        </Tooltip>
-                      </div>
                     </div>
                   </div>
                 </div>

@@ -32,9 +32,21 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
       // Clean HTML entities
       text = text.replace(/&amp;/g, '&').replace(/&quot;/g, '"')
       
-      // Extract title (first line after FOR SALE)
-      const titleMatch = text.match(/FOR SALE[‼️!]*\s*[✨]*\s*(.+?)(?:\n|📍)/i)
-      const title = titleMatch ? titleMatch[1].trim() : ''
+      // Extract Property ID from first line if present (e.g., "Property #123" or "#123")
+      const firstLine = text.split('\n')[0]
+      const propertyIdMatch = firstLine.match(/(?:#|Property\s*#?)\s*(\d+)/i)
+      const propertyId = propertyIdMatch ? propertyIdMatch[1] : ''
+      
+      // Extract title (first line or line after FOR SALE/RENT)
+      let title = ''
+      const titleMatch = text.match(/FOR\s*(?:SALE|RENT)[‼️!]*\s*[✨]*\s*(.+?)(?:\n|📍)/i)
+      if (titleMatch) {
+        title = titleMatch[1].trim()
+      } else {
+        // Use first non-empty line as title
+        const lines = text.split('\n').filter(l => l.trim())
+        title = lines[0] ? lines[0].trim() : ''
+      }
       
       // Extract location
       const locationMatch = text.match(/📍\s*(.+?)(?:\n|👉)/i)
@@ -44,13 +56,29 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
       const priceMatch = text.match(/₱([\d.,]+[MmKk]?)/i)
       const price = priceMatch ? priceMatch[1].trim() : ''
       
-      // Extract lot area
-      const lotMatch = text.match(/Lot Area[:\s]*(\d+)\s*sqm/i)
-      const lotArea = lotMatch ? lotMatch[1].trim() : ''
+      // Extract lot area - recognize multiple patterns
+      let lotArea = ''
+      // Pattern 1: "Total Lot Area: 4,000 sqm"
+      const totalLotMatch = text.match(/Total Lot Area[:\s]*([\d,]+)\s*sqm/i)
+      if (totalLotMatch) {
+        lotArea = totalLotMatch[1].replace(/,/g, '').trim()
+      } else {
+        // Pattern 2: Standard "Lot Area: 100 sqm"
+        const lotMatch = text.match(/Lot Area[:\s]*([\d,]+)\s*sqm/i)
+        lotArea = lotMatch ? lotMatch[1].replace(/,/g, '').trim() : ''
+      }
       
-      // Extract floor area
-      const floorMatch = text.match(/Floor Area[:\s]*(\d+)\s*sqm/i)
-      const floorArea = floorMatch ? floorMatch[1].trim() : ''
+      // Extract floor area - recognize multiple patterns
+      let floorArea = ''
+      // Pattern 1: "House Lot Area: approx. 1,000 sqm"
+      const houseLotMatch = text.match(/House Lot Area[:\s]*(?:approx\.?\s*)?([\d,]+)\s*sqm/i)
+      if (houseLotMatch) {
+        floorArea = houseLotMatch[1].replace(/,/g, '').trim()
+      } else {
+        // Pattern 2: Standard "Floor Area: 100 sqm"
+        const floorMatch = text.match(/Floor Area[:\s]*([\d,]+)\s*sqm/i)
+        floorArea = floorMatch ? floorMatch[1].replace(/,/g, '').trim() : ''
+      }
       
       // Extract bedrooms
       const bedroomMatch = text.match(/(\d+)\s*Bedroom/i)
@@ -60,13 +88,18 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
       const bathroomMatch = text.match(/(\d+)\s*Toilet\s*&\s*Bath/i)
       const bathrooms = bathroomMatch ? bathroomMatch[1] : ''
       
-      // Extract photo URL (Google Photos, Drive, or any image URL)
-      const photoMatch = text.match(/(https?:\/\/[^\s]+(?:photos\.google\.com|photos\.app\.goo\.gl|drive\.google\.com|\.jpg|\.jpeg|\.png|\.gif|\.webp)[^\s]*)/i)
-      const photoUrl = photoMatch ? photoMatch[1].trim() : ''
-      
-      // Extract Facebook URL
-      const fbMatch = text.match(/(https?:\/\/[^\s]*(?:facebook\.com|fb\.com|m\.facebook\.com)[^\s]*)/i)
+      // Extract Facebook URL - recognize multiple patterns
+      const fbMatch = text.match(/(https?:\/\/(?:www\.|m\.)?facebook\.com\/(?:share\/p\/|[^\s]+)|https?:\/\/fb\.com\/[^\s]+)/i)
       const facebookUrl = fbMatch ? fbMatch[1].trim() : ''
+      
+      // Extract photo URL (Google Photos, Drive, or any image URL) - but NOT Facebook URLs
+      const photoMatch = text.match(/(https?:\/\/[^\s]+(?:photos\.google\.com|photos\.app\.goo\.gl|drive\.google\.com|\.jpg|\.jpeg|\.png|\.gif|\.webp)[^\s]*)/i)
+      let photoUrl = photoMatch ? photoMatch[1].trim() : ''
+      
+      // Make sure photo URL is not a Facebook URL
+      if (photoUrl && photoUrl.includes('facebook.com')) {
+        photoUrl = ''
+      }
       
       // Determine property type
       let type = 'Residential'
@@ -168,7 +201,7 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
         Photos: parsedData.photoUrl || '',
         'FB Link': parsedData.facebookUrl || '',
         'Listing Mode': parsedData.listingMode || 'For Sale',
-        'MOP': parsedData.mop || 'Bank Financing',
+        'Financing options': parsedData.mop || 'Bank Financing',
         Notes: parsedData.listingMode === 'For Rent'
           ? `[FOR RENT]\n${parsedData.description || ''}`
           : parsedData.description || '',
@@ -203,15 +236,15 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between border-b">
           <CardTitle>Quick Add Property</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
                 Paste Property Details:
@@ -230,9 +263,13 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
             </Button>
             
             {parsedData && (
-              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                <h3 className="font-semibold mb-3" style={{ color: '#000000' }}>Parsed Property Details:</h3>
-                <div className="grid grid-cols-1 gap-3">
+              <Card className="border-2 border-blue-200 shadow-md">
+                <CardHeader className="bg-blue-50 border-b border-blue-200">
+                  <h3 className="font-semibold text-lg" style={{ color: '#000000' }}>Parsed Property Details</h3>
+                  <p className="text-sm text-gray-600 mt-1">Review and edit the parsed information before saving</p>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Title:</label>
                     <input
@@ -360,54 +397,57 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                       style={{ color: '#000000' }}
                     />
                   </div>
-                </div>
+                  </div>
+                  
+                  <div className="border-t border-gray-200 pt-4">
+                    <label className="block text-sm font-medium mb-2" style={{ color: '#4b5563' }}>
+                      Description: <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={parsedData.description}
+                      onChange={(e) => setParsedData({ ...parsedData, description: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded h-32 text-black"
+                      style={{ color: '#000000' }}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="border-t border-gray-200 pt-4">
+                    <label className="block text-sm font-medium mb-2" style={{ color: '#4b5563' }}>Google Photos Link (Optional)</label>
+                    <input
+                      type="text"
+                      value={parsedData.photoUrl || ''}
+                      onChange={(e) => setParsedData({ ...parsedData, photoUrl: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded text-black"
+                      style={{ color: '#000000' }}
+                      placeholder="Paste Google Photos album link here..."
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: '#4b5563' }}>FB Link (Optional)</label>
+                    <input
+                      type="text"
+                      value={parsedData.facebookUrl || ''}
+                      onChange={(e) => setParsedData({ ...parsedData, facebookUrl: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded text-black"
+                      style={{ color: '#000000' }}
+                      placeholder="Paste Facebook post or marketplace link here..."
+                    />
+                  </div>
+                </CardContent>
                 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>
-                    Description: <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    value={parsedData.description}
-                    onChange={(e) => setParsedData({ ...parsedData, description: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded h-32 text-black"
-                    style={{ color: '#000000' }}
-                    required
-                  />
+                <div className="border-t border-gray-200 bg-gray-50 p-6">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button onClick={handleSave} disabled={loading} className="flex-1 h-12 text-base">
+                      {loading ? 'Saving...' : '✓ Save Property'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setParsedData(null)} className="flex-1 h-12 text-base">
+                      ← Edit Text
+                    </Button>
+                  </div>
                 </div>
-                
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Google Photos Link</label>
-                  <input
-                    type="text"
-                    value={parsedData.photoUrl || ''}
-                    onChange={(e) => setParsedData({ ...parsedData, photoUrl: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded text-black"
-                    style={{ color: '#000000' }}
-                    placeholder="Paste Google Photos album link here..."
-                  />
-                </div>
-                
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>FB Link</label>
-                  <input
-                    type="text"
-                    value={parsedData.facebookUrl || ''}
-                    onChange={(e) => setParsedData({ ...parsedData, facebookUrl: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded text-black"
-                    style={{ color: '#000000' }}
-                    placeholder="Paste Facebook post or marketplace link here..."
-                  />
-                </div>
-                
-                <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                  <Button onClick={handleSave} disabled={loading} className="flex-1">
-                    {loading ? 'Saving...' : 'Save Property'}
-                  </Button>
-                  <Button variant="outline" onClick={() => setParsedData(null)} className="flex-1">
-                    Edit Text
-                  </Button>
-                </div>
-              </div>
+              </Card>
             )}
           </div>
         </CardContent>

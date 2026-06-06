@@ -7,11 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Tooltip } from '@/components/ui/tooltip'
 import PropertyCard from '@/components/PropertyCard'
 import PropertyDialog from '@/components/PropertyDialog'
 import QuickAddProperty from '@/components/QuickAddProperty'
-import { Tooltip } from '@/components/ui/tooltip'
 import {
   Search,
   Filter,
@@ -20,6 +19,7 @@ import {
   Home,
   Settings2,
   Plus,
+  MoreVertical,
 } from 'lucide-react'
 
 export default function RentalsContent() {
@@ -39,6 +39,8 @@ export default function RentalsContent() {
   const [editingProperty, setEditingProperty] = useState<any>(null)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [columns, setColumns] = useState<string[]>([])
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false)
+  const optionsMenuRef = React.useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const location = searchParams.get('location')
@@ -48,6 +50,22 @@ export default function RentalsContent() {
     if (price) setPriceFilter(price)
     if (size) setSizeFilter(size)
   }, [searchParams])
+
+  // Close options menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
+        setShowOptionsMenu(false)
+      }
+    }
+
+    if (showOptionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [showOptionsMenu])
 
   const fetchData = useCallback(async () => {
     if (!supabase) { setLoading(false); return }
@@ -168,18 +186,98 @@ export default function RentalsContent() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {/* Page header */}
-        <div className="mb-8 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>Rental Properties</h1>
-            <p style={{ color: '#4b5563' }}>Browse all available properties for rent</p>
-            {(locationFilter || priceFilter || sizeFilter) && (
-              <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                <h3 className="font-medium mb-2" style={{ color: '#14532d' }}>Search Filters Applied:</h3>
-                <div className="flex flex-wrap gap-2">
-                  {locationFilter && (
-                    <Badge variant="secondary" className="bg-green-100" style={{ color: '#14532d' }}>
-                      Location: {locationFilter}
+        {/* Page header - now sticky */}
+        <div className="sticky top-0 z-10 bg-gray-50 pb-4 mb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>Rental Properties</h1>
+              <p style={{ color: '#4b5563' }}>Browse all available properties for rent</p>
+            </div>
+            <div className="flex gap-2">
+              <Tooltip content="Add rental property via paste">
+                <Button
+                  onClick={() => setShowQuickAdd(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  size="sm"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Quick Add
+                </Button>
+              </Tooltip>
+              
+              <Tooltip content={showFilters ? "Hide search filters" : "Show search filters"}>
+                <Button
+                  variant={showFilters ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </Tooltip>
+              
+              <Tooltip content="Enable edit/delete buttons">
+                <Button
+                  variant={showEditControls ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowEditControls(v => !v)}
+                >
+                  <Settings2 className="w-4 h-4 mr-2" />
+                  {showEditControls ? 'Editing On' : 'Edit'}
+                </Button>
+              </Tooltip>
+              
+              {/* Options Dropdown */}
+              <div className="relative" ref={optionsMenuRef}>
+                <Tooltip content="More options">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </Tooltip>
+                
+                {showOptionsMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                    <button
+                      onClick={() => {
+                        setViewMode('grid')
+                        setShowOptionsMenu(false)
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 ${
+                        viewMode === 'grid' ? 'bg-blue-50 text-blue-700' : ''
+                      }`}
+                      style={{ color: viewMode === 'grid' ? '#1d4ed8' : '#000000' }}
+                    >
+                      <Grid3X3 className="w-4 h-4" />
+                      Grid View
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewMode('list')
+                        setShowOptionsMenu(false)
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 ${
+                        viewMode === 'list' ? 'bg-blue-50 text-blue-700' : ''
+                      }`}
+                      style={{ color: viewMode === 'list' ? '#1d4ed8' : '#000000' }}
+                    >
+                      <List className="w-4 h-4" />
+                      List View
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          {(locationFilter || priceFilter || sizeFilter) && (
+            <div className="mt-4 p-4 bg-green-50 rounded-lg">
+              <h3 className="font-medium mb-2" style={{ color: '#14532d' }}>Search Filters Applied:</h3>
+              <div className="flex flex-wrap gap-2">
+                {locationFilter && (
+                  <Badge variant="secondary" className="bg-green-100" style={{ color: '#14532d' }}>
+                    Location: {locationFilter}
                     </Badge>
                   )}
                   {priceFilter && (
@@ -195,23 +293,6 @@ export default function RentalsContent() {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Quick Add button */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => setShowQuickAdd(true)}
-                  className="shrink-0 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Quick Add
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Add rental property via paste</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
 
         {/* Search + filter bar */}
@@ -219,7 +300,7 @@ export default function RentalsContent() {
           <CardContent className="p-6">
             <div className="flex flex-col gap-4">
 
-              {/* Top row: search, filter toggle, edit toggle */}
+              {/* Top row: search and edit toggle */}
               <div className="flex gap-2">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -230,36 +311,16 @@ export default function RentalsContent() {
                     className="pl-10"
                   />
                 </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowFilters(v => !v)}
-                      >
-                        <Filter className="w-4 h-4 mr-2" />
-                        {showFilters ? 'Hide' : 'Filters'}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Toggle search filters</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant={showEditControls ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setShowEditControls(v => !v)}
-                      >
-                        <Settings2 className="w-4 h-4 mr-2" />
-                        {showEditControls ? 'Editing On' : 'Edit'}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Enable edit/delete buttons</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip content="Enable edit/delete buttons">
+                  <Button
+                    variant={showEditControls ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowEditControls(v => !v)}
+                  >
+                    <Settings2 className="w-4 h-4 mr-2" />
+                    {showEditControls ? 'Editing On' : 'Edit'}
+                  </Button>
+                </Tooltip>
               </div>
 
               {/* Filter grid */}
@@ -331,36 +392,6 @@ export default function RentalsContent() {
                       >
                         Clear all filters
                       </button>
-                      <div className="flex gap-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant={viewMode === 'grid' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setViewMode('grid')}
-                              >
-                                <Grid3X3 className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Grid view</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant={viewMode === 'list' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setViewMode('list')}
-                              >
-                                <List className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>List view</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardFooter } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
@@ -17,7 +17,9 @@ import {
   Camera,
   Video,
   Trash2,
-  EyeOff
+  EyeOff,
+  ImagePlus,
+  X
 } from 'lucide-react'
 
 interface PropertyCardProps {
@@ -45,12 +47,82 @@ export default function PropertyCard({
   onHide,
   viewMode,
 }: PropertyCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isEditingPhoto, setIsEditingPhoto] = useState(false)
+  const [newPhotoUrl, setNewPhotoUrl] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  
   const hasPhotos = Object.keys(property).some(key => 
     key.toLowerCase().includes('photo') && property[key]
   )
   const hasVideo = Object.keys(property).some(key => 
     key.toLowerCase().includes('video') && property[key]
   )
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB')
+      return
+    }
+
+    setUploadingImage(true)
+    const reader = new FileReader()
+    
+    reader.onload = () => {
+      const base64String = reader.result as string
+      setNewPhotoUrl(base64String)
+      setUploadingImage(false)
+    }
+    
+    reader.onerror = () => {
+      alert('Error reading file')
+      setUploadingImage(false)
+    }
+    
+    reader.readAsDataURL(file)
+  }
+
+  const handlePhotoUpdate = async () => {
+    if (!newPhotoUrl.trim()) {
+      alert('Please enter a valid image URL or upload an image')
+      return
+    }
+
+    try {
+      const { supabase } = await import('@/app/lib/supabaseClient.js')
+      
+      if (!supabase) {
+        alert('Database connection error')
+        return
+      }
+
+      const { error } = await supabase
+        .from('mlianglistings')
+        .update({ 'Preview Photo': newPhotoUrl })
+        .eq('Property ID', property['Property ID'])
+
+      if (error) {
+        alert('Error updating photo: ' + error.message)
+      } else {
+        alert('Photo updated successfully!')
+        setIsEditingPhoto(false)
+        setNewPhotoUrl('')
+        window.location.reload()
+      }
+    } catch (err) {
+      alert('Error updating photo: ' + err)
+    }
+  }
 
   const getStatusVariant = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -75,18 +147,141 @@ export default function PropertyCard({
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 border-gray-200">
-      {/* Preview Photo Thumbnail */}
-      {property['Preview Photo'] && (
-        <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
+      {/* Preview Photo Thumbnail - Only show in grid view */}
+      {viewMode === 'grid' && property['Preview Photo'] && (
+        <div className="relative w-full h-48 overflow-hidden rounded-t-lg group/photo">
           <img 
             src={property['Preview Photo']} 
             alt={`Property #${property['Property ID']}`}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 cursor-pointer"
+            onClick={() => setIsFullscreen(true)}
           />
           <div className="absolute top-2 right-2 flex gap-1">
             <Badge variant={getStatusVariant(property.Status)} className="shadow-md">
               {property.Status || 'Draft'}
             </Badge>
+          </div>
+          
+          {/* Edit Photo Overlay - Only visible in edit mode */}
+          {onEdit && onDelete && (
+            <div 
+              onClick={() => setIsEditingPhoto(true)}
+              className="absolute inset-0 bg-black bg-opacity-0 group-hover/photo:bg-opacity-60 transition-all duration-200 flex items-center justify-center cursor-pointer"
+            >
+              <div className="opacity-0 group-hover/photo:opacity-100 transition-opacity duration-200 flex flex-col items-center gap-2 text-white">
+                <ImagePlus className="w-10 h-10" />
+                <span className="text-sm font-medium">Update Featured Preview Photo</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Fullscreen Image Modal */}
+      {isFullscreen && property['Preview Photo'] && (
+        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setIsFullscreen(false)}>
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img
+            src={property['Preview Photo']}
+            alt={`Property #${property['Property ID']}`}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+      
+      {/* Shared Photo Upload Modal */}
+      {isEditingPhoto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4">
+            <h4 className="text-lg font-medium text-center" style={{ color: '#000000' }}>
+              {property['Preview Photo'] ? 'Update Featured Preview Photo' : 'Add Featured Preview Photo'}
+            </h4>
+            
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            
+            {/* Upload button */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white px-4 py-3 rounded font-medium flex items-center justify-center gap-2"
+            >
+              <ImagePlus className="w-5 h-5" />
+              {uploadingImage ? 'Uploading...' : 'Upload Image from Computer'}
+            </button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">or</span>
+              </div>
+            </div>
+            
+            {/* URL input */}
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#4b5563' }}>
+                Enter Image URL
+              </label>
+              <input
+                type="text"
+                value={newPhotoUrl}
+                onChange={(e) => setNewPhotoUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                style={{ color: '#000000' }}
+              />
+            </div>
+            
+            {/* Preview */}
+            {newPhotoUrl && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium" style={{ color: '#4b5563' }}>
+                  Preview
+                </label>
+                <div className="w-full h-48 rounded overflow-hidden border border-gray-300">
+                  <img 
+                    src={newPhotoUrl} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover"
+                    onError={() => alert('Invalid image URL or unable to load image')}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Action buttons */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handlePhotoUpdate}
+                disabled={!newPhotoUrl || uploadingImage}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium"
+              >
+                Save Photo
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditingPhoto(false)
+                  setNewPhotoUrl('')
+                }}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded font-medium"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -94,7 +289,8 @@ export default function PropertyCard({
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            {!property['Preview Photo'] && (
+            {/* Show badges when in list view OR when no preview photo in grid view */}
+            {(viewMode === 'list' || !property['Preview Photo']) && (
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant={getStatusVariant(property.Status)}>
                   {property.Status || 'Draft'}
@@ -105,9 +301,9 @@ export default function PropertyCard({
               </div>
             )}
             
-            <h3 className="text-lg font-semibold mb-1" style={{ color: '#000000' }}>
+            {/* <h3 className="text-lg font-semibold mb-1" style={{ color: '#000000' }}>
               Property #{property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}
-            </h3>
+            </h3> */}
             
             <div className="flex items-center mb-2" style={{ color: '#4b5563' }}>
               <MapPin className="w-4 h-4 mr-1" />
@@ -118,12 +314,22 @@ export default function PropertyCard({
             </div>
           </div>
           
-          {!property['Preview Photo'] && (
+          {/* Show camera/video icons only in grid view when no preview photo */}
+          {viewMode === 'grid' && !property['Preview Photo'] && (
             <div className="flex items-center gap-1">
               {hasPhotos && (
-                <div className="p-1 bg-blue-50 rounded">
-                  <Camera className="w-4 h-4 text-blue-600" />
-                </div>
+                <Tooltip content={onEdit && onDelete ? "Click to add Featured Preview Photo" : "Has photos"}>
+                  <div 
+                    className={`p-1 bg-blue-50 rounded ${onEdit && onDelete ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                    onClick={() => {
+                      if (onEdit && onDelete) {
+                        setIsEditingPhoto(true)
+                      }
+                    }}
+                  >
+                    <Camera className="w-4 h-4 text-blue-600" />
+                  </div>
+                </Tooltip>
               )}
               {hasVideo && (
                 <div className="p-1 bg-green-50 rounded">
@@ -134,7 +340,7 @@ export default function PropertyCard({
           )}
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold text-green-600">
               {formatPrice(property['Listing Price'] || property.ListingPrice || property.Price)}
@@ -142,119 +348,156 @@ export default function PropertyCard({
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-sm">
-            {property['Lot Area'] && (
+            {/* Left column: Lot Area or Bedroom */}
+            {(property['Lot Area sqm'] || property['Lot Area']) ? (
               <div className="flex items-center">
                 <Maximize className="w-4 h-4 mr-2 text-gray-400" />
-                <span style={{ color: '#4b5563' }}>Lot: {property['Lot Area']} sqm</span>
+                <span style={{ color: '#4b5563' }}>
+                  Lot: {property['Lot Area sqm'] || property['Lot Area']} {property['Lot Area sqm'] ? '' : 'sqm'}
+                </span>
               </div>
-            )}
-            {property['Floor Area'] && (
+            ) : property.Bedroom ? (
               <div className="flex items-center">
                 <Home className="w-4 h-4 mr-2 text-gray-400" />
-                <span style={{ color: '#4b5563' }}>Floor: {property['Floor Area']} sqm</span>
+                <span style={{ color: '#4b5563' }}>{property.Bedroom} BR</span>
               </div>
+            ) : (
+              <div></div>
+            )}
+            
+            {/* Right column: Floor Area or Garage */}
+            {(property['Floor Area sqm'] || property['Floor Area']) ? (
+              <div className="flex items-center">
+                <Home className="w-4 h-4 mr-2 text-gray-400" />
+                <span style={{ color: '#4b5563' }}>
+                  Floor: {property['Floor Area sqm'] || property['Floor Area']} {property['Floor Area sqm'] ? '' : 'sqm'}
+                </span>
+              </div>
+            ) : property.Garage ? (
+              <div className="flex items-center">
+                <Home className="w-4 h-4 mr-2 text-gray-400" />
+                <span style={{ color: '#4b5563' }}>{property.Garage} Garage</span>
+              </div>
+            ) : (
+              <div></div>
             )}
           </div>
 
           {property.Notes && (
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-sm line-clamp-2" style={{ color: '#374151' }}>
-                {property.Notes}
-              </p>
-            </div>
-          )}
-
-          {/* Only show CGT/Transfer for sale listings, not rentals */}
-          {property['Listing Mode'] !== 'For Rent' &&
-           !String(property.Notes || '').startsWith('[FOR RENT]') && (
-            <div className="flex items-center justify-between text-xs" style={{ color: '#6b7280' }}>
-              <span>CGT: {property.CGT || 'Seller'}</span>
-              <span>Transfer: {property['Transfer Title'] || 'Buyer'}</span>
+            <div className="bg-gray-50 rounded-md overflow-hidden">
+              <div className="p-4">
+                <p 
+                  className={`text-sm leading-relaxed whitespace-pre-line ${isExpanded ? '' : 'line-clamp-3'}`}
+                  style={{ color: '#374151' }}
+                >
+                  {property.Notes}
+                </p>
+              </div>
+              {property.Notes.length > 100 && (
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="w-full px-4 py-3 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors text-center border-t border-gray-200"
+                >
+                  {isExpanded ? '↑ Show less' : '↓ Show more'}
+                </button>
+              )}
             </div>
           )}
         </div>
       </CardContent>
 
-      <CardFooter className="p-6 pt-0 flex flex-wrap gap-2">
-        {onEdit && onDelete ? (
-          // Editing mode: Show Edit and Delete icon buttons
-          <>
-            <Tooltip content="Edit this property">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onEdit(property)}
-                className="flex-1 min-w-[44px]"
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-            </Tooltip>
-            
-            <Tooltip content="Delete this property">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onDelete(property)}
-                className="flex-1 min-w-[44px] bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </Tooltip>
-          </>
-        ) : (
-          // Normal mode: Show View Details button
-          <Tooltip content="View full property details">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => {
-                const displayId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
-                window.location.href = `/properties/${displayId}`
-              }}
-              className="flex-1 min-w-[100px]"
-            >
-              View Details
-            </Button>
-          </Tooltip>
-        )}
+      <CardFooter className="p-0 flex flex-col">
+        {/* Main Action Buttons - Edit/Delete or View Details */}
+        <div className="px-6 pb-4">
+          <div className="flex gap-2 w-full">
+            {onEdit && onDelete ? (
+              // Editing mode: Show Edit and Delete icon buttons
+              <>
+                <Tooltip content="Edit this property">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onEdit(property)}
+                    className="flex-1"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </Tooltip>
+                
+                <Tooltip content="Delete this property">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onDelete(property)}
+                    className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </Tooltip>
+              </>
+            ) : (
+              // Normal mode: Show View Details button
+              <Tooltip content="View full property details">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    const displayId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
+                    window.location.href = `/properties/${displayId}`
+                  }}
+                  className="w-full"
+                >
+                  View Details
+                </Button>
+              </Tooltip>
+            )}
+          </div>
+        </div>
         
-        <Tooltip content="Copy Facebook post to clipboard">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onFacebookPost?.(property)}
-            className="flex-1 min-w-[100px] bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
-          >
-            <Share2 className="w-4 h-4 mr-1" />
-            FB Post
-          </Button>
-        </Tooltip>
+        {/* Social Media Footer - Distinct Background */}
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 px-4 py-3 rounded-b-lg">
+          <div className="flex items-center justify-center gap-2">
+            <Tooltip content="Copy Facebook post to clipboard">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onFacebookPost?.(property)}
+                className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
+              >
+                <Share2 className="w-4 h-4 mr-1.5" />
+                <span className="text-xs font-medium">Facebook</span>
+              </Button>
+            </Tooltip>
 
-        {onInstagramPost && (
-          <Tooltip content="Copy Instagram caption to clipboard">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onInstagramPost(property)}
-              className="flex-1 min-w-[80px] bg-pink-50 hover:bg-pink-100 text-pink-700 border-pink-200"
-            >
-              📸 IG
-            </Button>
-          </Tooltip>
-        )}
+            {onInstagramPost && (
+              <Tooltip content="Copy Instagram caption to clipboard">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onInstagramPost(property)}
+                  className="flex-1 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200"
+                >
+                  <span className="mr-1">📸</span>
+                  <span className="text-xs font-medium">Instagram</span>
+                </Button>
+              </Tooltip>
+            )}
 
-        {onTikTokPost && (
-          <Tooltip content="Copy TikTok caption to clipboard">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onTikTokPost(property)}
-              className="flex-1 min-w-[90px] bg-gray-900 hover:bg-gray-800 text-white border-gray-700"
-            >
-              🎵 TikTok
-            </Button>
-          </Tooltip>
-        )}
+            {onTikTokPost && (
+              <Tooltip content="Copy TikTok caption to clipboard">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onTikTokPost(property)}
+                  className="flex-1 bg-gray-900 hover:bg-gray-800 text-white border border-gray-700"
+                >
+                  <span className="mr-1">🎵</span>
+                  <span className="text-xs font-medium">TikTok</span>
+                </Button>
+              </Tooltip>
+            )}
+          </div>
+        </div>
       </CardFooter>
     </Card>
   )

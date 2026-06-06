@@ -62,6 +62,7 @@ export default function ModernDashboard() {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const [pageSize, setPageSize] = useState(24)
   const [currentPage, setCurrentPage] = useState(1)
+  const [isClient, setIsClient] = useState(false)
   const optionsMenuRef = React.useRef<HTMLDivElement>(null)
 
   const SETTINGS_KEY = 'tenantSettings'
@@ -75,15 +76,23 @@ export default function ModernDashboard() {
     emailAddress: '',
   })
 
+  // Client-side only flag
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null
+    setIsClient(true)
+  }, [])
+
+  // Load settings from localStorage only on client
+  useEffect(() => {
+    if (!isClient) return
+    
+    const stored = localStorage.getItem(SETTINGS_KEY)
     if (stored) {
       try {
         const parsed = JSON.parse(stored)
         setTenantSettings(prev => ({ ...prev, ...parsed }))
       } catch {}
     }
-  }, [])
+  }, [isClient])
 
   // Initialize filters from URL parameters
   useEffect(() => {
@@ -111,6 +120,22 @@ export default function ModernDashboard() {
       setSizeFilter(size)
     }
   }, [searchParams])
+
+  // Close options menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
+        setShowOptionsMenu(false)
+      }
+    }
+
+    if (showOptionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [showOptionsMenu])
 
   const fetchData = useCallback(async () => {
     if (!supabase) {
@@ -432,9 +457,19 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
           <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Dashboard</h1>
-              <p style={{ color: '#4b5563' }}>Manage your real estate listings</p>
+              {/* <p style={{ color: '#4b5563' }}>Manage your real estate listings</p> */}
             </div>
             <div className="flex gap-2">
+              <Tooltip content={showFilters ? "Hide search filters" : "Show search filters"}>
+                <Button
+                  variant={showFilters ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </Tooltip>
+              
               <Tooltip content="Enable edit/delete buttons">
                 <Button
                   variant={showEditDelete ? 'default' : 'outline'}
@@ -447,8 +482,8 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
               </Tooltip>
               
               {/* Options Dropdown */}
-              <div className="relative">
-                <Tooltip content="View options">
+              <div className="relative" ref={optionsMenuRef}>
+                <Tooltip content="More options">
                   <Button
                     variant="outline"
                     size="sm"
@@ -459,13 +494,14 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                 </Tooltip>
                 
                 {showOptionsMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                     <button
                       onClick={() => {
                         setShowStats(!showStats)
                         setShowOptionsMenu(false)
                       }}
                       className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                      style={{ color: '#000000' }}
                     >
                       {showStats ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       {showStats ? 'Hide Statistics' : 'Show Statistics'}
@@ -476,9 +512,37 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                         setShowOptionsMenu(false)
                       }}
                       className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                      style={{ color: '#000000' }}
                     >
                       <MessageSquare className="w-4 h-4" />
-                      {showBuyerInquiry ? 'Hide' : 'Show'} Buyer Inquiry Finder
+                      {showBuyerInquiry ? 'Hide' : 'Show'} Buyer Inquiry
+                    </button>
+                    <div className="border-t border-gray-200 my-1"></div>
+                    <button
+                      onClick={() => {
+                        setViewMode('grid')
+                        setShowOptionsMenu(false)
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 ${
+                        viewMode === 'grid' ? 'bg-blue-50 text-blue-700' : ''
+                      }`}
+                      style={{ color: viewMode === 'grid' ? '#1d4ed8' : '#000000' }}
+                    >
+                      <Grid3X3 className="w-4 h-4" />
+                      Grid View
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewMode('list')
+                        setShowOptionsMenu(false)
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 ${
+                        viewMode === 'list' ? 'bg-blue-50 text-blue-700' : ''
+                      }`}
+                      style={{ color: viewMode === 'list' ? '#1d4ed8' : '#000000' }}
+                    >
+                      <List className="w-4 h-4" />
+                      List View
                     </button>
                   </div>
                 )}
@@ -569,7 +633,7 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="flex flex-col gap-4">
-              {/* Search and Toggle */}
+              {/* Search */}
               <div className="flex gap-2">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -580,16 +644,6 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                     className="pl-10"
                   />
                 </div>
-                <Tooltip content="Toggle search filters">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowFilters(!showFilters)}
-                  >
-                    <Filter className="w-4 h-4 mr-2" />
-                    {showFilters ? 'Hide' : 'Filters'}
-                  </Button>
-                </Tooltip>
               </div>
 
               {/* Filters - Collapsible */}
@@ -677,26 +731,6 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                       >
                         Clear all filters
                       </button>
-                      <div className="flex gap-2">
-                        <Tooltip content="Grid view">
-                          <Button
-                            variant={viewMode === 'grid' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setViewMode('grid')}
-                          >
-                            <Grid3X3 className="w-4 h-4" />
-                          </Button>
-                        </Tooltip>
-                        <Tooltip content="List view">
-                          <Button
-                            variant={viewMode === 'list' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setViewMode('list')}
-                          >
-                            <List className="w-4 h-4" />
-                          </Button>
-                        </Tooltip>
-                      </div>
                     </div>
                   </div>
                 </div>
