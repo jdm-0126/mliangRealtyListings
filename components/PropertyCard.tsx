@@ -176,30 +176,44 @@ export default function PropertyCard({
       </CardContent>
 
       <CardFooter className="p-6 pt-0 flex flex-wrap gap-2">
-        <Tooltip content="View full property details">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => {
-              const displayId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
-              window.location.href = `/properties/${displayId}`
-            }}
-            className="flex-1 min-w-[100px]"
-          >
-            View Details
-          </Button>
-        </Tooltip>
-        
-        {onEdit && (
-          <Tooltip content="Edit this property">
+        {onEdit && onDelete ? (
+          // Editing mode: Show Edit and Delete icon buttons
+          <>
+            <Tooltip content="Edit this property">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(property)}
+                className="flex-1 min-w-[44px]"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+            </Tooltip>
+            
+            <Tooltip content="Delete this property">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onDelete(property)}
+                className="flex-1 min-w-[44px] bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </Tooltip>
+          </>
+        ) : (
+          // Normal mode: Show View Details button
+          <Tooltip content="View full property details">
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
-              onClick={() => onEdit?.(property)}
-              className="flex-1 min-w-[80px]"
+              onClick={() => {
+                const displayId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
+                window.location.href = `/properties/${displayId}`
+              }}
+              className="flex-1 min-w-[100px]"
             >
-              <Edit className="w-4 h-4 mr-1" />
-              Edit
+              View Details
             </Button>
           </Tooltip>
         )}
@@ -238,34 +252,6 @@ export default function PropertyCard({
               className="flex-1 min-w-[90px] bg-gray-900 hover:bg-gray-800 text-white border-gray-700"
             >
               🎵 TikTok
-            </Button>
-          </Tooltip>
-        )}
-        
-        {onHide && (
-          <Tooltip content="Hide listing (set to Draft)">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onHide?.(property)}
-              className="flex-shrink-0 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200"
-            >
-              <EyeOff className="w-4 h-4 mr-1" />
-              Hide
-            </Button>
-          </Tooltip>
-        )}
-        
-        {onDelete && (
-          <Tooltip content="Permanently delete this property">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onDelete?.(property)}
-              className="flex-shrink-0 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-            >
-              <Trash2 className="w-4 h-4 mr-1" />
-              Delete
             </Button>
           </Tooltip>
         )}

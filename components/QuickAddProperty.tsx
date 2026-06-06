@@ -17,6 +17,9 @@ interface ParsedProperty {
   description: string
   type: string
   listingMode: 'For Sale' | 'For Rent'
+  photoUrl?: string
+  facebookUrl?: string
+  mop?: string
 }
 
 export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
@@ -57,6 +60,14 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
       const bathroomMatch = text.match(/(\d+)\s*Toilet\s*&\s*Bath/i)
       const bathrooms = bathroomMatch ? bathroomMatch[1] : ''
       
+      // Extract photo URL (Google Photos, Drive, or any image URL)
+      const photoMatch = text.match(/(https?:\/\/[^\s]+(?:photos\.google\.com|photos\.app\.goo\.gl|drive\.google\.com|\.jpg|\.jpeg|\.png|\.gif|\.webp)[^\s]*)/i)
+      const photoUrl = photoMatch ? photoMatch[1].trim() : ''
+      
+      // Extract Facebook URL
+      const fbMatch = text.match(/(https?:\/\/[^\s]*(?:facebook\.com|fb\.com|m\.facebook\.com)[^\s]*)/i)
+      const facebookUrl = fbMatch ? fbMatch[1].trim() : ''
+      
       // Determine property type
       let type = 'Residential'
       if (text.toLowerCase().includes('bungalow') || text.toLowerCase().includes('house')) {
@@ -85,6 +96,9 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
         description,
         type,
         listingMode,
+        photoUrl,
+        facebookUrl,
+        mop: 'Bank Financing', // Default MOP
       }
     } catch (error) {
       console.error('Error parsing text:', error)
@@ -151,6 +165,10 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
         'Listing Price': priceNum || 0,
         'Lot Area sqm': parsedData.lotArea || '',
         'Floor Area sqm': parsedData.floorArea || '',
+        Photos: parsedData.photoUrl || '',
+        'FB Link': parsedData.facebookUrl || '',
+        'Listing Mode': parsedData.listingMode || 'For Sale',
+        'MOP': parsedData.mop || 'Bank Financing',
         Notes: parsedData.listingMode === 'For Rent'
           ? `[FOR RENT]\n${parsedData.description || ''}`
           : parsedData.description || '',
@@ -284,6 +302,21 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                     </div>
                   </div>
                   <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Mode of Payment:</label>
+                    <select
+                      value={parsedData.mop || 'Bank Financing'}
+                      onChange={(e) => setParsedData({ ...parsedData, mop: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded text-black"
+                      style={{ color: '#000000' }}
+                    >
+                      <option value="Cash">Cash</option>
+                      <option value="Bank Financing">Bank Financing</option>
+                      <option value="Pagibig">Pagibig</option>
+                      <option value="Inhouse">Inhouse</option>
+                      <option value="Others">Others</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Lot Area (sqm):</label>
                     <input
                       type="text"
@@ -339,6 +372,30 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
                     className="w-full p-2 border border-gray-300 rounded h-32 text-black"
                     style={{ color: '#000000' }}
                     required
+                  />
+                </div>
+                
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Google Photos Link</label>
+                  <input
+                    type="text"
+                    value={parsedData.photoUrl || ''}
+                    onChange={(e) => setParsedData({ ...parsedData, photoUrl: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded text-black"
+                    style={{ color: '#000000' }}
+                    placeholder="Paste Google Photos album link here..."
+                  />
+                </div>
+                
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>FB Link</label>
+                  <input
+                    type="text"
+                    value={parsedData.facebookUrl || ''}
+                    onChange={(e) => setParsedData({ ...parsedData, facebookUrl: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded text-black"
+                    style={{ color: '#000000' }}
+                    placeholder="Paste Facebook post or marketplace link here..."
                   />
                 </div>
                 

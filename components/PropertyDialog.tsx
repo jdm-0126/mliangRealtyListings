@@ -44,13 +44,14 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
           Type: 'Residential',
           CGT: 'Seller',
           'Transfer Title': 'Buyer',
-          'Lot Area': '100',
-          'Floor Area': '100',
+          'Lot Area sqm': '100',
+          'Floor Area sqm': '100',
           Location: 'City of San Fernando',
           Video: '',
           'Listing Price': '',
           Negotiable: 'Yes',
-          'Preview Photo': ''
+          'Preview Photo': '',
+          'MOP': 'Bank Financing'
         })
       }
       
@@ -174,12 +175,27 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                   </label>
                   <Input
                     type="text"
-                    value={formData['Google Photos Link'] || formData['Photos'] || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'Google Photos Link': e.target.value, 'Photos': e.target.value }))}
+                    value={formData['Photos'] || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'Photos': e.target.value }))}
                     placeholder="Paste Google Photos album link here..."
                   />
                   <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
                     Paste a link to a Google Photos album or any photo gallery
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    FB Link
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData['FB Link'] || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'FB Link': e.target.value }))}
+                    placeholder="Paste Facebook post or marketplace link here..."
+                  />
+                  <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
+                    Link to the Facebook post or marketplace listing
                   </p>
                 </div>
 
@@ -278,8 +294,19 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
 
             {/* Form Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {columns.map(key => (
-                <div key={key} className={key === 'Notes' ? 'md:col-span-2' : ''}>
+              {columns
+                .filter(key => !['Photos', 'FB Link', 'Google Photos Link', 'Preview Photo'].includes(key))
+                .filter(key => {
+                  // Hide house-specific fields when Type is "Lot"
+                  const isLotOnly = formData['Type'] === 'Lot'
+                  const houseOnlyFields = ['Floor Area sqm', 'Bedroom', 'T&B', 'Garage', 'Formal Kitchen', 'Informal kitchen']
+                  if (isLotOnly && houseOnlyFields.includes(key)) {
+                    return false
+                  }
+                  return true
+                })
+                .map(key => (
+                <div key={key} className={key === 'Notes' || key === 'Description' ? 'md:col-span-2' : ''}>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {key}
                     {['Village', 'Location', 'Listing Agent'].includes(key) && (
@@ -359,7 +386,42 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
                     </select>
-                  ) : key === 'Lot Area' || key === 'Floor Area' ? (
+                  ) : key === 'MOP' ? (
+                    <select
+                      value={formData[key] || 'Bank Financing'}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                      className="w-full p-2 border border-gray-300 rounded-md text-black"
+                    >
+                      <option value="Cash">Cash</option>
+                      <option value="Bank Financing">Bank Financing</option>
+                      <option value="Pagibig">Pagibig</option>
+                      <option value="Inhouse">Inhouse</option>
+                      <option value="Others">Others</option>
+                    </select>
+                  ) : key === 'Listing Mode' ? (
+                    <div className="flex gap-3">
+                      {(['For Sale', 'For Rent'] as const).map(mode => (
+                        <label
+                          key={mode}
+                          className={`flex-1 flex items-center justify-center gap-2 p-2 rounded border cursor-pointer transition-colors ${
+                            formData[key] === mode
+                              ? 'bg-blue-600 border-blue-600 text-white'
+                              : 'bg-white border-gray-300 text-gray-700 hover:bg-blue-50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="listingMode"
+                            value={mode}
+                            checked={formData[key] === mode}
+                            onChange={() => setFormData((prev: any) => ({ ...prev, [key]: mode }))}
+                            className="hidden"
+                          />
+                          {mode === 'For Sale' ? '🏷️' : '🔑'} {mode}
+                        </label>
+                      ))}
+                    </div>
+                  ) : key === 'Lot Area sqm' || key === 'Floor Area sqm' ? (
                     <div className="flex items-center space-x-2">
                       <Button
                         type="button"
@@ -391,13 +453,13 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                       </Button>
                       <span className="text-sm text-gray-500">sqm</span>
                     </div>
-                  ) : key === 'Notes' ? (
+                  ) : key === 'Notes' || key === 'Description' ? (
                     <textarea
                       value={formData[key] || ''}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
                       rows={4}
                       className="w-full p-3 border border-gray-300 rounded-md text-black resize-none"
-                      placeholder="Enter property details, features, and additional information..."
+                      placeholder={key === 'Description' ? "Enter property description..." : "Enter property details, features, and additional information..."}
                     />
                   ) : key.toLowerCase().includes('price') ? (
                     <div className="relative">

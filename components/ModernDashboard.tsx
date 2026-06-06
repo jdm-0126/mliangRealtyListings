@@ -28,7 +28,12 @@ import {
   MapPin,
   DollarSign,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Settings2,
+  MoreVertical,
+  Eye,
+  EyeOff,
+  MessageSquare
 } from 'lucide-react'
 
 export default function ModernDashboard() {
@@ -53,8 +58,11 @@ export default function ModernDashboard() {
   const [selectedPropertyForFB, setSelectedPropertyForFB] = useState<any>(null)
   const [showEditDelete, setShowEditDelete] = useState(false)
   const [showStats, setShowStats] = useState(true)
+  const [showBuyerInquiry, setShowBuyerInquiry] = useState(false)
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const [pageSize, setPageSize] = useState(24)
   const [currentPage, setCurrentPage] = useState(1)
+  const optionsMenuRef = React.useRef<HTMLDivElement>(null)
 
   const SETTINGS_KEY = 'tenantSettings'
   const [tenantSettings, setTenantSettings] = useState({
@@ -419,29 +427,63 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-10 bg-gray-50 pb-4 mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>Property Dashboard</h1>
+              <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Dashboard</h1>
               <p style={{ color: '#4b5563' }}>Manage your real estate listings</p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => setShowStats(!showStats)}
-            >
-              {showStats ? (
-                <>
-                  <ChevronUp className="w-4 h-4 mr-2" />
-                  Hide Stats
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="w-4 h-4 mr-2" />
-                  Show Stats
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Tooltip content="Enable edit/delete buttons">
+                <Button
+                  variant={showEditDelete ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowEditDelete(!showEditDelete)}
+                >
+                  <Settings2 className="w-4 h-4 mr-2" />
+                  {showEditDelete ? 'Editing On' : 'Edit'}
+                </Button>
+              </Tooltip>
+              
+              {/* Options Dropdown */}
+              <div className="relative">
+                <Tooltip content="View options">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </Tooltip>
+                
+                {showOptionsMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                    <button
+                      onClick={() => {
+                        setShowStats(!showStats)
+                        setShowOptionsMenu(false)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      {showStats ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showStats ? 'Hide Statistics' : 'Show Statistics'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowBuyerInquiry(!showBuyerInquiry)
+                        setShowOptionsMenu(false)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      {showBuyerInquiry ? 'Hide' : 'Show'} Buyer Inquiry Finder
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -521,7 +563,7 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
         )}
 
         {/* Buyer Inquiry Parser */}
-        <BuyerInquiryParser allProperties={data} />
+        {showBuyerInquiry && <BuyerInquiryParser allProperties={data} />}
 
         {/* Controls */}
         <Card className="mb-6">
@@ -538,14 +580,16 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                     className="pl-10"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  {showFilters ? 'Hide' : 'Filters'}
-                </Button>
+                <Tooltip content="Toggle search filters">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFilters(!showFilters)}
+                  >
+                    <Filter className="w-4 h-4 mr-2" />
+                    {showFilters ? 'Hide' : 'Filters'}
+                  </Button>
+                </Tooltip>
               </div>
 
               {/* Filters - Collapsible */}
@@ -634,27 +678,24 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                         Clear all filters
                       </button>
                       <div className="flex gap-2">
-                        <Button
-                          variant={showEditDelete ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setShowEditDelete(!showEditDelete)}
-                        >
-                          {showEditDelete ? '✏️ Editing On' : '✏️ Edit Mode'}
-                        </Button>
-                        <Button
-                          variant={viewMode === 'grid' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setViewMode('grid')}
-                        >
-                          <Grid3X3 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant={viewMode === 'list' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setViewMode('list')}
-                        >
-                          <List className="w-4 h-4" />
-                        </Button>
+                        <Tooltip content="Grid view">
+                          <Button
+                            variant={viewMode === 'grid' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setViewMode('grid')}
+                          >
+                            <Grid3X3 className="w-4 h-4" />
+                          </Button>
+                        </Tooltip>
+                        <Tooltip content="List view">
+                          <Button
+                            variant={viewMode === 'list' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setViewMode('list')}
+                          >
+                            <List className="w-4 h-4" />
+                          </Button>
+                        </Tooltip>
                       </div>
                     </div>
                   </div>
@@ -667,10 +708,12 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                   <Plus className="w-4 h-4 mr-2" />
                   Add Property
                 </Button>
-                <Button variant="outline" onClick={() => setShowQuickAdd(true)} className="flex-shrink-0">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Quick Add
-                </Button>
+                <Tooltip content="Add property via paste">
+                  <Button variant="outline" onClick={() => setShowQuickAdd(true)} className="flex-shrink-0">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Quick Add
+                  </Button>
+                </Tooltip>
               </div>
 
               <div className="flex items-center justify-between flex-wrap gap-2">

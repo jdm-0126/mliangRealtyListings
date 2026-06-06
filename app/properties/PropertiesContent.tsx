@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import PropertyCard from '@/components/PropertyCard'
 import PropertyDialog from '@/components/PropertyDialog'
 import { Pagination } from '@/components/ui/Pagination'
+import { Tooltip } from '@/components/ui/tooltip'
 import { 
   Search, 
   Filter, 
@@ -252,9 +253,24 @@ export default function PropertiesContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>Properties</h1>
-          <p style={{ color: '#4b5563' }}>Browse all available properties</p>
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-10 bg-gray-50 pb-4 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Properties</h1>
+              <p style={{ color: '#4b5563' }}>Browse all available properties</p>
+            </div>
+            <Tooltip content="Enable edit/delete buttons">
+              <Button
+                variant={showEditControls ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowEditControls(v => !v)}
+              >
+                <Settings2 className="w-4 h-4 mr-2" />
+                {showEditControls ? 'Editing On' : 'Edit'}
+              </Button>
+            </Tooltip>
+          </div>
           {(locationFilter || priceFilter || sizeFilter) && (
             <div className="mt-4 p-4 bg-blue-50 rounded-lg">
               <h3 className="font-medium mb-2" style={{ color: '#1e3a8a' }}>Search Filters Applied:</h3>
@@ -292,23 +308,16 @@ export default function PropertiesContent() {
                     className="pl-10"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  {showFilters ? 'Hide' : 'Filters'}
-                </Button>
-                <Button
-                  variant={showEditControls ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setShowEditControls(v => !v)}
-                  title="Toggle edit/delete buttons"
-                >
-                  <Settings2 className="w-4 h-4 mr-2" />
-                  {showEditControls ? 'Editing On' : 'Edit'}
-                </Button>
+                <Tooltip content="Toggle search filters">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFilters(!showFilters)}
+                  >
+                    <Filter className="w-4 h-4 mr-2" />
+                    {showFilters ? 'Hide' : 'Filters'}
+                  </Button>
+                </Tooltip>
               </div>
 
               {showFilters && (
@@ -396,20 +405,24 @@ export default function PropertiesContent() {
                         Clear all filters
                       </button>
                       <div className="flex gap-2">
-                        <Button
-                          variant={viewMode === 'grid' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setViewMode('grid')}
-                        >
-                          <Grid3X3 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant={viewMode === 'list' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setViewMode('list')}
-                        >
-                          <List className="w-4 h-4" />
-                        </Button>
+                        <Tooltip content="Grid view">
+                          <Button
+                            variant={viewMode === 'grid' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setViewMode('grid')}
+                          >
+                            <Grid3X3 className="w-4 h-4" />
+                          </Button>
+                        </Tooltip>
+                        <Tooltip content="List view">
+                          <Button
+                            variant={viewMode === 'list' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setViewMode('list')}
+                          >
+                            <List className="w-4 h-4" />
+                          </Button>
+                        </Tooltip>
                       </div>
                     </div>
                   </div>

@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import PropertyCard from '@/components/PropertyCard'
 import PropertyDialog from '@/components/PropertyDialog'
 import QuickAddProperty from '@/components/QuickAddProperty'
+import { Tooltip } from '@/components/ui/tooltip'
 import {
   Search,
   Filter,
@@ -196,13 +198,20 @@ export default function RentalsContent() {
           </div>
 
           {/* Quick Add button */}
-          <Button
-            onClick={() => setShowQuickAdd(true)}
-            className="shrink-0 bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Quick Add
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => setShowQuickAdd(true)}
+                  className="shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Quick Add
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add rental property via paste</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Search + filter bar */}
@@ -221,23 +230,36 @@ export default function RentalsContent() {
                     className="pl-10"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowFilters(v => !v)}
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  {showFilters ? 'Hide' : 'Filters'}
-                </Button>
-                <Button
-                  variant={showEditControls ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setShowEditControls(v => !v)}
-                  title="Toggle edit/delete buttons"
-                >
-                  <Settings2 className="w-4 h-4 mr-2" />
-                  {showEditControls ? 'Editing On' : 'Edit'}
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowFilters(v => !v)}
+                      >
+                        <Filter className="w-4 h-4 mr-2" />
+                        {showFilters ? 'Hide' : 'Filters'}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Toggle search filters</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={showEditControls ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setShowEditControls(v => !v)}
+                      >
+                        <Settings2 className="w-4 h-4 mr-2" />
+                        {showEditControls ? 'Editing On' : 'Edit'}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Enable edit/delete buttons</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
               {/* Filter grid */}
@@ -310,20 +332,34 @@ export default function RentalsContent() {
                         Clear all filters
                       </button>
                       <div className="flex gap-2">
-                        <Button
-                          variant={viewMode === 'grid' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setViewMode('grid')}
-                        >
-                          <Grid3X3 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant={viewMode === 'list' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setViewMode('list')}
-                        >
-                          <List className="w-4 h-4" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setViewMode('grid')}
+                              >
+                                <Grid3X3 className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Grid view</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={viewMode === 'list' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setViewMode('list')}
+                              >
+                                <List className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>List view</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </div>
                   </div>

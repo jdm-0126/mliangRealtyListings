@@ -1018,6 +1018,25 @@ ${tenantSettings.officeAddress}`
               </CardContent>
             </Card>
 
+            {property['FB Link'] && (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <span className="text-white font-bold text-lg">f</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">Facebook Post</p>
+                    <Button asChild className="w-full" variant="outline">
+                      <a href={property['FB Link']} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        View on Facebook
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* <Card>
               <CardHeader><CardTitle>Transaction Details</CardTitle></CardHeader>
               <CardContent className="space-y-3">
