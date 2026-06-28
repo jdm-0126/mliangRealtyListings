@@ -261,7 +261,7 @@ function AgentProfileContent() {
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>My Profile</h1>
+            <h2 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>My Profile</h2>
             <p style={{ color: '#4b5563' }}>Manage your agent profile information</p>
           </div>
           <Button variant="outline" onClick={handleLogout} type="button">

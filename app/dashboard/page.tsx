@@ -99,7 +99,7 @@ export default function Dashboard() {
       <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', padding: '16px 24px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1e293b' }}>📊 Facebook Leads Monitor</h1>
+            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1e293b' }}>📊 Facebook Leads Monitor</h2>
             <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>Real-time monitoring of Facebook property inquiries</p>
           </div>
           <button 

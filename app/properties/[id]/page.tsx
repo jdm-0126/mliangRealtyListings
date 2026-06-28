@@ -971,16 +971,24 @@ ${tenantSettings.officeAddress}`
                       />
                       {/* Hover Overlay */}
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-3">
+                        <div className="opacity-100 group-hover:opacity-90 transition-opacity flex gap-3">
+                          <img 
+                            src={property['Preview Photo']} 
+                            alt={`Property #${property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}`}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => setIsFullscreen(true)}
+                          />
                           <Button
+                            asChild 
+                            variant="secondary" 
                             size="sm"
-                            variant="secondary"
                             onClick={() => setIsFullscreen(true)}
                           >
                             <Maximize2 className="w-4 h-4 mr-2" />
                             Fullscreen
                           </Button>
                           <Button
+                            asChild
                             size="sm"
                             variant="secondary"
                             onClick={() => setIsUploadingPhoto(true)}
@@ -991,12 +999,30 @@ ${tenantSettings.officeAddress}`
                         </div>
                       </div>
                       {property.Photos && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
                           <Button asChild variant="secondary" size="sm">
                             <a href={property.Photos} target="_blank" rel="noopener noreferrer">
                               <Camera className="w-4 h-4 mr-2" />
-                              View All Photos
+                              All Photos
                             </a>
+                          </Button>
+                          {/* <Button
+                            className="mr-2 ml-2"
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => setIsFullscreen(true)}
+                          >
+                            <Maximize2 className="w-4 h-4 mr-2" />
+                            Fullscreen
+                          </Button> */}
+                          <Button
+                            className="mr-2 ml-2 mb-2"
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setIsUploadingPhoto(true)}
+                          >
+                            <ImagePlus className="mr-2" />
+                            Update Photo
                           </Button>
                         </div>
                       )}

@@ -187,11 +187,11 @@ export default function RentalsContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Page header - now sticky */}
-        <div className="sticky top-0 z-10 bg-gray-50 pb-4 mb-4">
+        <div className="sticky top-2 z-10 bg-gray-50 pb-4 my-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>Rental Properties</h1>
-              <p style={{ color: '#4b5563' }}>Browse all available properties for rent</p>
+              <h2 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>Rental Properties</h2>
+              {/* <p style={{ color: '#4b5563' }}>Browse all available properties for rent</p> */}
             </div>
             <div className="flex gap-2">
               <Tooltip content="Add rental property via paste">
@@ -201,10 +201,13 @@ export default function RentalsContent() {
                   size="sm"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Quick Add
+                  Add
                 </Button>
               </Tooltip>
-              
+             </div>
+             
+            </div>
+            <div className="flex gap-2"> 
               <Tooltip content={showFilters ? "Hide search filters" : "Show search filters"}>
                 <Button
                   variant={showFilters ? 'default' : 'outline'}
@@ -269,7 +272,6 @@ export default function RentalsContent() {
                   </div>
                 )}
               </div>
-            </div>
           </div>
           {(locationFilter || priceFilter || sizeFilter) && (
             <div className="mt-4 p-4 bg-green-50 rounded-lg">

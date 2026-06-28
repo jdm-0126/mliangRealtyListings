@@ -57,7 +57,7 @@ export default function ModernDashboard() {
   const [showSaveFBPost, setShowSaveFBPost] = useState(false)
   const [selectedPropertyForFB, setSelectedPropertyForFB] = useState<any>(null)
   const [showEditDelete, setShowEditDelete] = useState(false)
-  const [showStats, setShowStats] = useState(true)
+  const [showStats, setShowStats] = useState(false)
   const [showBuyerInquiry, setShowBuyerInquiry] = useState(false)
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const [pageSize, setPageSize] = useState(24)
@@ -456,7 +456,7 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
         <div className="sticky top-0 z-10 bg-gray-50 pb-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Dashboard</h1>
+              <h2 className="text-3xl font-bold" style={{ color: '#000000' }}>Dashboard</h2>
               {/* <p style={{ color: '#4b5563' }}>Manage your real estate listings</p> */}
             </div>
             <div className="flex gap-2">
@@ -504,7 +504,7 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                       style={{ color: '#000000' }}
                     >
                       {showStats ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      {showStats ? 'Hide Statistics' : 'Show Statistics'}
+                      {showStats ? 'Show Statistics' : 'Hide Statistics'}
                     </button>
                     <button
                       onClick={() => {
@@ -644,6 +644,8 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                     className="pl-10"
                   />
                 </div>
+                
+                
               </div>
 
               {/* Filters - Collapsible */}
@@ -737,22 +739,49 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
               )}
 
               {/* Actions */}
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={handleCreate} className="flex-shrink-0">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Property
+              <div className="flex flex-wrap gap-2 mr-2">
+                <Button onClick={handleCreate} className="flex-shrink-0 ">
+                  <Plus className="w-2 h-4 mr-2" />
+                  Add Listing
                 </Button>
                 <Tooltip content="Add property via paste">
-                  <Button variant="outline" onClick={() => setShowQuickAdd(true)} className="flex-shrink-0">
-                    <Upload className="w-4 h-4 mr-2" />
+                  <Button variant="outline" onClick={() => setShowQuickAdd(true)} className="flex-shrink-0 mr-2">
+                    <Upload className="w-2 h-4 mr-2" />
                     Quick Add
                   </Button>
                 </Tooltip>
+               <div className="flex right-4">
+                  <button
+                      onClick={() => {
+                        setViewMode('grid')
+                        setShowOptionsMenu(false)
+                      }}
+                      className={`w-full px-4 py-2 text-right text-sm hover:bg-gray-100 flex items-center gap-2 ${
+                        viewMode === 'grid' ? 'bg-blue-50 text-blue-700' : ''
+                      }`}
+                      style={{ color: viewMode === 'grid' ? '#1d4ed8' : '#000000' }}
+                    >
+                      <Grid3X3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewMode('list')
+                        setShowOptionsMenu(false)
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 ${
+                        viewMode === 'list' ? 'bg-blue-50 text-blue-700' : ''
+                      }`}
+                      style={{ color: viewMode === 'list' ? '#1d4ed8' : '#000000' }}
+                    >
+                      <List className="w-4 h-4" />
+                    </button>
+                </div> 
               </div>
+              
 
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="text-sm" style={{ color: '#4b5563' }}>
-                  Showing {Math.min((currentPage - 1) * pageSize + 1, filteredData.length)}–{Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} properties
+                  Showing {Math.min((currentPage - 1) * pageSize + 1, filteredData.length)}–{Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length}
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500">Per page:</label>

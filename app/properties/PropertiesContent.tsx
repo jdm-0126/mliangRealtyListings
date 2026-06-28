@@ -261,6 +261,19 @@ export default function PropertiesContent() {
     alert('Caption copied! Open the TikTok app and paste it into your video caption.')
   }
 
+  const handleFacebookLinkSave = async (property: any, fbLink: string) => {
+    if (!supabase) return
+    const { error } = await supabase
+      .from('mlianglistings')
+      .update({ 'FB Link': fbLink })
+      .eq('Property ID', property['Property ID'])
+    if (error) {
+      alert('Error saving FB link: ' + error.message)
+    } else {
+      fetchData()
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -276,7 +289,7 @@ export default function PropertiesContent() {
         <div className="sticky top-0 z-10 bg-gray-50 pb-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Properties</h1>
+              <h2 className="text-3xl font-bold" style={{ color: '#000000' }}>Properties</h2>
               <p style={{ color: '#4b5563' }}>Browse all available properties</p>
             </div>
             <div className="flex gap-2">
@@ -519,6 +532,7 @@ export default function PropertiesContent() {
                     viewMode={viewMode}
                     onEdit={showEditControls ? (p) => setEditingProperty(p) : undefined}
                     onDelete={showEditControls ? handleDelete : undefined}
+                    onFacebookLinkSave={showEditControls ? handleFacebookLinkSave : undefined}
                     onInstagramPost={handleInstagramPost}
                     onTikTokPost={handleTikTokPost}
                   />

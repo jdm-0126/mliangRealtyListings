@@ -233,9 +233,9 @@ export default function BrokersPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>
+              <h2 className="text-3xl font-bold mb-2" style={{ color: '#000000' }}>
                 Brokers & Agents Management
-              </h1>
+              </h2>
               <p style={{ color: '#4b5563' }}>Manage your team members and their access</p>
             </div>
             <Button onClick={handleCreate}>

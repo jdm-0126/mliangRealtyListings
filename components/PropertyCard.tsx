@@ -29,6 +29,7 @@ interface PropertyCardProps {
   onShare?: (property: any) => void;
   onCopy?: (property: any) => void;
   onFacebookPost?: (property: any) => void;
+  onFacebookLinkSave?: (property: any, fbLink: string) => void;
   onInstagramPost?: (property: any) => void;
   onTikTokPost?: (property: any) => void;
   onDelete?: (property: any) => void;
@@ -41,6 +42,7 @@ export default function PropertyCard({
   onShare, 
   onCopy, 
   onFacebookPost,
+  onFacebookLinkSave,
   onInstagramPost,
   onTikTokPost,
   onDelete,
@@ -49,10 +51,22 @@ export default function PropertyCard({
 }: PropertyCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isEditingPhoto, setIsEditingPhoto] = useState(false)
+  const [isEditingFBLink, setIsEditingFBLink] = useState(false)
+  const [fbLinkValue, setFbLinkValue] = useState('')
   const [newPhotoUrl, setNewPhotoUrl] = useState('')
   const [uploadingImage, setUploadingImage] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [savingFBLink, setSavingFBLink] = useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  const handleFBLinkSave = async () => {
+    if (onFacebookLinkSave) {
+      setSavingFBLink(true)
+      await onFacebookLinkSave(property, fbLinkValue.trim())
+      setSavingFBLink(false)
+      setIsEditingFBLink(false)
+    }
+  }
   
   const hasPhotos = Object.keys(property).some(key => 
     key.toLowerCase().includes('photo') && property[key]
@@ -166,7 +180,7 @@ export default function PropertyCard({
           {onEdit && onDelete && (
             <div 
               onClick={() => setIsEditingPhoto(true)}
-              className="absolute inset-0 bg-black bg-opacity-0 group-hover/photo:bg-opacity-60 transition-all duration-200 flex items-center justify-center cursor-pointer"
+              className="absolute inset-0 bg-gray bg-opacity-70 group-hover/photo:bg-opacity-60 transition-all duration-200 flex items-center justify-center cursor-pointer"
             >
               <div className="opacity-0 group-hover/photo:opacity-100 transition-opacity duration-200 flex flex-col items-center gap-2 text-white">
                 <ImagePlus className="w-10 h-10" />
@@ -286,6 +300,64 @@ export default function PropertyCard({
         </div>
       )}
       
+      {/* FB Link Edit Modal */}
+      {isEditingFBLink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4">
+            <h4 className="text-lg font-medium text-center" style={{ color: '#000000' }}>
+              Edit Facebook Link
+            </h4>
+            <p className="text-sm text-gray-500 text-center">
+              {property['FB Link'] ? 'Update the Facebook post or marketplace link for this property.' : 'Add a Facebook post or marketplace link for this property.'}
+            </p>
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#4b5563' }}>
+                Facebook URL
+              </label>
+              <input
+                type="url"
+                value={fbLinkValue}
+                onChange={(e) => setFbLinkValue(e.target.value)}
+                placeholder="https://www.facebook.com/..."
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                style={{ color: '#000000' }}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleFBLinkSave()
+                  if (e.key === 'Escape') setIsEditingFBLink(false)
+                }}
+              />
+            </div>
+            {fbLinkValue.trim() && (
+              <a
+                href={fbLinkValue.trim()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Preview link
+              </a>
+            )}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleFBLinkSave}
+                disabled={savingFBLink}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium"
+              >
+                {savingFBLink ? 'Saving...' : 'Save Link'}
+              </button>
+              <button
+                onClick={() => setIsEditingFBLink(false)}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
@@ -457,15 +529,34 @@ export default function PropertyCard({
         {/* Social Media Footer - Distinct Background */}
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 px-4 py-3 rounded-b-lg">
           <div className="flex items-center justify-center gap-2">
-            <Tooltip content="Copy Facebook post to clipboard">
+            <Tooltip content={onEdit && onDelete ? (property['FB Link'] ? "Edit Facebook link" : "Add Facebook link") : "Copy Facebook post to clipboard"}>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onFacebookPost?.(property)}
-                className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
+                onClick={() => {
+                  if (onEdit && onDelete) {
+                    // Edit mode: open FB link editor
+                    setFbLinkValue(property['FB Link'] || '')
+                    setIsEditingFBLink(true)
+                  } else {
+                    // Normal mode: copy post to clipboard
+                    onFacebookPost?.(property)
+                  }
+                }}
+                className={`flex-1 border ${
+                  onEdit && onDelete
+                    ? property['FB Link']
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-700'
+                      : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+                    : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+                }`}
               >
                 <Share2 className="w-4 h-4 mr-1.5" />
-                <span className="text-xs font-medium">Facebook</span>
+                <span className="text-xs font-medium">
+                  {onEdit && onDelete
+                    ? property['FB Link'] ? 'FB Linked ✓' : 'Add FB Link'
+                    : 'Facebook'}
+                </span>
               </Button>
             </Tooltip>
 

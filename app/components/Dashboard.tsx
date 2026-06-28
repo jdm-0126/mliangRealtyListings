@@ -275,7 +275,7 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
 
   return (
     <div style={{ padding: '10px', maxWidth: '100vw', overflow: 'hidden' }}>
-      <h1 style={{ fontSize: isMobile ? '18px' : '24px', marginBottom: '15px' }}>{}</h1>
+      <h2 style={{ fontSize: isMobile ? '18px' : '24px', marginBottom: '15px' }}>{tenantSettings.businessName}</h2>
       {data.length === 0 ? (
         <p>No data found. Please add records to your Supabase table.</p>
       ) : (

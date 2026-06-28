@@ -164,7 +164,7 @@ export default function Upload() {
         <button onClick={() => window.location.href = '/'} style={{ padding: '8px 16px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }}>← Back to Dashboard</button>
       </div>
       
-      <h1>📤 Upload & Watermark Images</h1>
+      <h2>📤 Upload & Watermark Images</h2>
       
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
         <div>
