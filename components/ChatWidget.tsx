@@ -5,6 +5,14 @@ import { MessageCircle, X, Send } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { supabase } from '@/app/lib/supabaseClient.js'
+import {
+  RecentSearchEntry,
+  loadRecentSearches,
+  saveRecentSearch,
+  persistRecentSearches,
+  clearRecentSearchesStorage,
+  truncateQuery,
+} from '../lib/recentSearches'
 
 type ConversationType = 'buying' | 'selling' | 'renting' | 'investing' | 'general' | 'looking'
 
@@ -157,38 +165,22 @@ const FAQ_DATABASE: { [key: string]: string } = {
 }
 
 export default function ChatWidget() {
-  // Restore persisted chat state from sessionStorage on mount
-  const [isOpen, setIsOpen] = useState<boolean>(() => {
-    try { return JSON.parse(sessionStorage.getItem('chat_isOpen') || 'false') } catch { return false }
-  })
+  // Use a mounted flag to avoid SSR/client hydration mismatch.
+  // All sessionStorage reads happen in a useEffect after mount.
+  const [mounted, setMounted] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
   const [isMinimized] = useState(false)
-  const [conversationType, setConversationType] = useState<ConversationType | null>(() => {
-    try { return sessionStorage.getItem('chat_conversationType') as ConversationType | null } catch { return null }
-  })
-  const [messages, setMessages] = useState<Message[]>(() => {
-    try {
-      const saved = sessionStorage.getItem('chat_messages')
-      if (!saved) return []
-      return JSON.parse(saved).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
-    } catch { return [] }
-  })
+  const [conversationType, setConversationType] = useState<ConversationType | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [waitingForYesNo, setWaitingForYesNo] = useState<boolean>(() => {
-    try { return JSON.parse(sessionStorage.getItem('chat_waitingForYesNo') || 'false') } catch { return false }
-  })
-  const [waitingForPagibigSteps, setWaitingForPagibigSteps] = useState<boolean>(() => {
-    try { return JSON.parse(sessionStorage.getItem('chat_waitingForPagibigSteps') || 'false') } catch { return false }
-  })
-  const [propertySearch, setPropertySearch] = useState<PropertySearch | null>(() => {
-    try {
-      const saved = sessionStorage.getItem('chat_propertySearch')
-      return saved ? JSON.parse(saved) : null
-    } catch { return null }
-  })
+  const [waitingForYesNo, setWaitingForYesNo] = useState(false)
+  const [waitingForPagibigSteps, setWaitingForPagibigSteps] = useState(false)
+  const [propertySearch, setPropertySearch] = useState<PropertySearch | null>(null)
   const [realProperties, setRealProperties] = useState<any[]>([])
   const [propertiesLoaded, setPropertiesLoaded] = useState(false)
   const [businessName, setBusinessName] = useState('M. Liang Realty')
+  const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const conversationTypes: Record<ConversationType, string> = {
@@ -199,6 +191,32 @@ export default function ChatWidget() {
     general: 'General Questions',
     looking: 'Looking for Property',
   }
+
+  // Restore persisted state from sessionStorage after mount (avoids SSR hydration mismatch)
+  useEffect(() => {
+    setMounted(true)
+    try {
+      const savedOpen = sessionStorage.getItem('chat_isOpen')
+      if (savedOpen) setIsOpen(JSON.parse(savedOpen))
+
+      const savedType = sessionStorage.getItem('chat_conversationType')
+      if (savedType) setConversationType(savedType as ConversationType)
+
+      const savedMessages = sessionStorage.getItem('chat_messages')
+      if (savedMessages) {
+        setMessages(JSON.parse(savedMessages).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })))
+      }
+
+      const savedWaiting = sessionStorage.getItem('chat_waitingForYesNo')
+      if (savedWaiting) setWaitingForYesNo(JSON.parse(savedWaiting))
+
+      const savedPagibig = sessionStorage.getItem('chat_waitingForPagibigSteps')
+      if (savedPagibig) setWaitingForPagibigSteps(JSON.parse(savedPagibig))
+
+      const savedSearch = sessionStorage.getItem('chat_propertySearch')
+      if (savedSearch) setPropertySearch(JSON.parse(savedSearch))
+    } catch {}
+  }, [])
 
   useEffect(() => {
     const savedName = localStorage.getItem('businessName')
@@ -300,6 +318,8 @@ export default function ChatWidget() {
         sender: 'bot',
         timestamp: new Date(),
       }])
+      const loaded = loadRecentSearches()
+      setRecentSearches(loaded)
     } else {
       setMessages([{
         id: 1,
@@ -533,6 +553,9 @@ export default function ChatWidget() {
         botResponse = runPropertySearch(text)
         searchCompleted = true
         setPropertySearch(null)
+        const updated = saveRecentSearch(text, recentSearches)
+        persistRecentSearches(updated)
+        setRecentSearches(updated)
       } else if (conversationType) {
         botResponse = findBestMatch(text)
       } else {
@@ -578,6 +601,38 @@ export default function ChatWidget() {
       }
     }, 1000)
   }
+
+  // --- Replay a recent search ---
+  const handleReplay = (entry: RecentSearchEntry) => {
+    if (waitingForYesNo) return;
+
+    const userMsg: Message = { id: messages.length + 1, text: entry.query, sender: 'user', timestamp: new Date() };
+    setMessages(prev => [...prev, userMsg]);
+
+    setIsTyping(true);
+
+    const updated = saveRecentSearch(entry.query, recentSearches);
+    persistRecentSearches(updated);
+    setRecentSearches(updated);
+
+    setTimeout(() => {
+      const botResponse = runPropertySearch(entry.query);
+      setMessages(prev => [...prev, { id: prev.length + 1, text: botResponse, sender: 'bot', timestamp: new Date() }]);
+      setIsTyping(false);
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: prev.length + 1,
+          text: 'Would you like to search for more properties?',
+          sender: 'bot',
+          timestamp: new Date(),
+        }]);
+        setWaitingForYesNo(true);
+      }, 1000);
+    }, 1000);
+  };
+
+  // Don't render anything until after mount — server and first client render must match
+  if (!mounted) return null
 
   return (
     <>
