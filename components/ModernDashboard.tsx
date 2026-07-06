@@ -10,10 +10,11 @@ import { Badge } from './ui/badge'
 import PropertyCard from './PropertyCard'
 import PropertyDialog from './PropertyDialog'
 import QuickAddProperty from './QuickAddProperty'
-import SaveFacebookPost from './SaveFacebookPost'
 import BuyerInquiryParser from './BuyerInquiryParser'
 import { Pagination } from './ui/Pagination'
 import { Tooltip } from './ui/tooltip'
+import { loadRecentSearches, clearRecentSearchesStorage, truncateQuery, type RecentSearchEntry } from '@/lib/recentSearches'
+import { parsePropertyQuery, filterPropertiesByQuery } from '@/lib/parsePropertyQuery'
 import { 
   Plus, 
   Search, 
@@ -33,7 +34,9 @@ import {
   MoreVertical,
   Eye,
   EyeOff,
-  MessageSquare
+  MessageSquare,
+  Clock,
+  X
 } from 'lucide-react'
 
 export default function ModernDashboard() {
@@ -54,8 +57,9 @@ export default function ModernDashboard() {
   const [sizeFilter, setSizeFilter] = useState<string>('')
   const [showFilters, setShowFilters] = useState(false)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
-  const [showSaveFBPost, setShowSaveFBPost] = useState(false)
-  const [selectedPropertyForFB, setSelectedPropertyForFB] = useState<any>(null)
+  const [chatRecentSearches, setChatRecentSearches] = useState<RecentSearchEntry[]>([])
+  const [activeRecentQuery, setActiveRecentQuery] = useState<string>('')
+
   const [showEditDelete, setShowEditDelete] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showBuyerInquiry, setShowBuyerInquiry] = useState(false)
@@ -80,6 +84,17 @@ export default function ModernDashboard() {
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // Load chat recent searches on mount and whenever the filter panel opens
+  useEffect(() => {
+    setChatRecentSearches(loadRecentSearches())
+  }, [])
+
+  useEffect(() => {
+    if (showFilters) {
+      setChatRecentSearches(loadRecentSearches())
+    }
+  }, [showFilters])
 
   // Load settings from localStorage only on client
   useEffect(() => {
@@ -164,6 +179,17 @@ export default function ModernDashboard() {
 
   useEffect(() => {
     let filtered = data
+
+    // If a recent chat search is active, run it through the shared parser and
+    // skip the individual field filters (they've been cleared by handleApplyRecentSearch).
+    if (activeRecentQuery) {
+      const parsed = parsePropertyQuery(activeRecentQuery)
+      filtered = filterPropertiesByQuery(data, parsed)
+      filtered = [...filtered].sort((a, b) => Number(b['Property ID']) - Number(a['Property ID']))
+      setFilteredData(filtered)
+      setCurrentPage(1)
+      return
+    }
 
     // Apply search filter
     if (searchText) {
@@ -311,11 +337,28 @@ export default function ModernDashboard() {
     
     setFilteredData(filtered)
     setCurrentPage(1)
-  }, [data, searchText, statusFilter, typeFilter, locationFilter, priceFilter, sizeFilter, sortBy])
+  }, [data, searchText, statusFilter, typeFilter, locationFilter, priceFilter, sizeFilter, sortBy, activeRecentQuery])
 
   const handleCreate = () => {
     setEditingRow(null)
     setOpenDialog(true)
+  }
+
+  /**
+   * Apply a chat recent search query to the dashboard filters.
+   * Parses price, type, location, and size hints from the natural-language query.
+   */
+  const handleApplyRecentSearch = (entry: RecentSearchEntry) => {
+    // Store the raw query — the filter useEffect will apply it via parsePropertyQuery
+    setActiveRecentQuery(entry.query)
+    // Clear all individual filter fields so they don't conflict
+    setStatusFilter('all')
+    setTypeFilter('all')
+    setLocationFilter('')
+    setPriceFilter('')
+    setSizeFilter('')
+    setSortBy('newest')
+    setSearchText('')
   }
 
   const handleEdit = (property: any) => {
@@ -428,8 +471,8 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
   }
 
   const postToFacebook = (row: any) => {
-    setSelectedPropertyForFB(row)
-    setShowSaveFBPost(true)
+    const text = encodeURIComponent(buildPostText(row))
+    window.open(`https://www.facebook.com/sharer/sharer.php?quote=${text}&u=https://www.facebook.com/`, '_blank', 'noopener,noreferrer')
   }
 
   // Calculate statistics
@@ -629,6 +672,70 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
         {/* Buyer Inquiry Parser */}
         {showBuyerInquiry && <BuyerInquiryParser allProperties={data} />}
 
+        {/* Recent Searches Bar — always visible when there are saved searches */}
+        {chatRecentSearches.length > 0 && (
+          <div className="mb-4 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <Clock className="w-3.5 h-3.5" />
+                Recent Chat Searches
+              </div>
+              <div className="flex items-center gap-3">
+                {activeRecentQuery && (
+                  <span className="text-xs text-blue-600 font-medium">
+                    {filteredData.length} result{filteredData.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {activeRecentQuery && (
+                  <button
+                    onClick={() => setActiveRecentQuery('')}
+                    className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" /> Clear search
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    clearRecentSearchesStorage()
+                    setChatRecentSearches([])
+                    setActiveRecentQuery('')
+                  }}
+                  className="text-xs text-red-400 hover:text-red-600 underline"
+                >
+                  Clear all
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {chatRecentSearches.map((entry, i) => {
+                const isActive = activeRecentQuery === entry.query
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      if (isActive) {
+                        setActiveRecentQuery('')
+                      } else {
+                        handleApplyRecentSearch(entry)
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1.5 text-xs border rounded-full px-3 py-1.5 transition-all ${
+                      isActive
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                        : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700'
+                    }`}
+                    title={entry.query}
+                  >
+                    <Search className="w-3 h-3 flex-shrink-0" />
+                    <span className="max-w-[220px] truncate">{truncateQuery(entry.query, 45)}</span>
+                    {isActive && <X className="w-3 h-3 flex-shrink-0 opacity-70" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Controls */}
         <Card className="mb-6">
           <CardContent className="p-6">
@@ -716,7 +823,7 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                     </select>
                   </div>
 
-                  {/* Bottom row: clear + edit toggle + view toggle */}
+                  {/* Bottom row: clear filters */}
                   <div className="sm:col-span-2 lg:col-span-3 xl:col-span-5">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <button
@@ -728,6 +835,7 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                           setSizeFilter('')
                           setSortBy('newest')
                           setSearchText('')
+                          setActiveRecentQuery('')
                         }}
                         className="text-xs text-red-500 hover:text-red-700 underline"
                       >
@@ -864,17 +972,7 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
           />
         )}
 
-        {/* Save Facebook Post */}
-        {showSaveFBPost && selectedPropertyForFB && (
-          <SaveFacebookPost
-            property={selectedPropertyForFB}
-            onClose={() => {
-              setShowSaveFBPost(false)
-              setSelectedPropertyForFB(null)
-            }}
-            onSuccess={fetchData}
-          />
-        )}
+
       </div>
     </div>
   )
