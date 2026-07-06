@@ -10,7 +10,6 @@ import { Badge } from './ui/badge'
 import PropertyCard from './PropertyCard'
 import PropertyDialog from './PropertyDialog'
 import QuickAddProperty from './QuickAddProperty'
-import BuyerInquiryParser from './BuyerInquiryParser'
 import { Pagination } from './ui/Pagination'
 import { Tooltip } from './ui/tooltip'
 import { loadRecentSearches, clearRecentSearchesStorage, truncateQuery, type RecentSearchEntry } from '@/lib/recentSearches'
@@ -34,9 +33,10 @@ import {
   MoreVertical,
   Eye,
   EyeOff,
-  MessageSquare,
   Clock,
-  X
+  X,
+  Share2,
+  Copy
 } from 'lucide-react'
 
 export default function ModernDashboard() {
@@ -59,10 +59,10 @@ export default function ModernDashboard() {
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [chatRecentSearches, setChatRecentSearches] = useState<RecentSearchEntry[]>([])
   const [activeRecentQuery, setActiveRecentQuery] = useState<string>('')
+  const [facebookPreviewProperty, setFacebookPreviewProperty] = useState<any>(null)
 
   const [showEditDelete, setShowEditDelete] = useState(false)
   const [showStats, setShowStats] = useState(false)
-  const [showBuyerInquiry, setShowBuyerInquiry] = useState(false)
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const [pageSize, setPageSize] = useState(24)
   const [currentPage, setCurrentPage] = useState(1)
@@ -471,8 +471,14 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
   }
 
   const postToFacebook = (row: any) => {
+    // Open preview modal instead of posting immediately
+    setFacebookPreviewProperty(row)
+  }
+
+  const handleConfirmPostToFacebook = (row: any) => {
     const text = encodeURIComponent(buildPostText(row))
     window.open(`https://www.facebook.com/sharer/sharer.php?quote=${text}&u=https://www.facebook.com/`, '_blank', 'noopener,noreferrer')
+    setFacebookPreviewProperty(null)
   }
 
   // Calculate statistics
@@ -548,17 +554,6 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
                     >
                       {showStats ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       {showStats ? 'Show Statistics' : 'Hide Statistics'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowBuyerInquiry(!showBuyerInquiry)
-                        setShowOptionsMenu(false)
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                      style={{ color: '#000000' }}
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      {showBuyerInquiry ? 'Hide' : 'Show'} Buyer Inquiry
                     </button>
                     <div className="border-t border-gray-200 my-1"></div>
                     <button
@@ -668,9 +663,6 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
             </Card>
           </div>
         )}
-
-        {/* Buyer Inquiry Parser */}
-        {showBuyerInquiry && <BuyerInquiryParser allProperties={data} />}
 
         {/* Recent Searches Bar — always visible when there are saved searches */}
         {chatRecentSearches.length > 0 && (
@@ -971,6 +963,73 @@ ${tenantSettings.contactNumber}${tenantSettings.emailAddress ? '\n' + tenantSett
             onSuccess={fetchData}
           />
         )}
+
+        {/* Facebook Post Preview Modal */}
+        {facebookPreviewProperty && (() => {
+          const row = facebookPreviewProperty
+          const postText = buildPostText(row)
+          const displayId = row['Property ID'] > 2 ? row['Property ID'] - 1 : row['Property ID']
+          return (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60"
+              onClick={() => setFacebookPreviewProperty(null)}
+            >
+              <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                      <Share2 className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">Facebook Post Preview</p>
+                      <p className="text-xs text-gray-500">Property #{displayId} · {row.Location}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setFacebookPreviewProperty(null)}
+                    className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Post text preview */}
+                <div className="px-5 py-4 max-h-80 overflow-y-auto">
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                      {postText}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(postText)
+                      alert('Post text copied to clipboard!')
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copy Text
+                  </button>
+                  <button
+                    onClick={() => handleConfirmPostToFacebook(row)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white transition-colors"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Post to Facebook
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
 
       </div>

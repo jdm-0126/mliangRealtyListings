@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import AdminFAQPanel from '../../components/AdminFAQPanel'
+import AdminFAQPanel from '../../../../components/AdminFAQPanel'
 
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
 

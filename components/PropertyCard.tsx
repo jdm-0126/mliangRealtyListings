@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Tooltip } from './ui/tooltip'
+import FeaturedToggle from './FeaturedToggle'
 import { 
   MapPin, 
   Home, 
@@ -34,6 +35,8 @@ interface PropertyCardProps {
   onTikTokPost?: (property: any) => void;
   onDelete?: (property: any) => void;
   onHide?: (property: any) => void;
+  onFeaturedChange?: () => void;
+  canFeature?: boolean;
 }
 
 export default function PropertyCard({ 
@@ -48,6 +51,8 @@ export default function PropertyCard({
   onDelete,
   onHide,
   viewMode,
+  onFeaturedChange,
+  canFeature = false,
 }: PropertyCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isEditingPhoto, setIsEditingPhoto] = useState(false)
@@ -483,7 +488,7 @@ export default function PropertyCard({
         <div className="px-6 pb-4">
           <div className="flex gap-2 w-full">
             {onEdit && onDelete ? (
-              // Editing mode: Show Edit and Delete icon buttons
+              // Editing mode: Show Edit, Delete, and Featured toggle
               <>
                 <Tooltip content="Edit this property">
                   <Button
@@ -506,6 +511,13 @@ export default function PropertyCard({
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </Tooltip>
+
+                <FeaturedToggle
+                  propertyId={property['Property ID']}
+                  isFeatured={!!property.featured}
+                  canToggle={canFeature}
+                  onToggle={onFeaturedChange}
+                />
               </>
             ) : (
               // Normal mode: Show View Details button

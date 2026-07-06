@@ -36,6 +36,31 @@ export default function PropertiesContent() {
   const [sortBy, setSortBy] = useState('newest')
   const [showFilters, setShowFilters] = useState(false)
   const [showEditControls, setShowEditControls] = useState(false)
+  const [canFeature, setCanFeature] = useState(false)
+
+  // Check role once on mount
+  useEffect(() => {
+    try {
+      const role = sessionStorage.getItem('viewAsRole') ?? ''
+      setCanFeature(['superadmin', 'broker'].includes(role))
+    } catch { /* ignore */ }
+  }, [])
+
+  async function handleEditToggle() {
+    const turningOff = showEditControls
+    setShowEditControls(v => !v)
+
+    // When turning edit mode OFF, revalidate the public homepage
+    if (turningOff) {
+      try {
+        await fetch('/api/revalidate-home', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ secret: 'mliang-revalidate-2024' }),
+        })
+      } catch { /* non-critical */ }
+    }
+  }
   const [editingProperty, setEditingProperty] = useState<any>(null)
   const [columns, setColumns] = useState<string[]>([])
   const [pageSize, setPageSize] = useState(24)
@@ -307,7 +332,7 @@ export default function PropertiesContent() {
                 <Button
                   variant={showEditControls ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setShowEditControls(v => !v)}
+                  onClick={handleEditToggle}
                 >
                   <Settings2 className="w-4 h-4 mr-2" />
                   {showEditControls ? 'Editing On' : 'Edit'}
@@ -535,6 +560,7 @@ export default function PropertiesContent() {
                     onFacebookLinkSave={showEditControls ? handleFacebookLinkSave : undefined}
                     onInstagramPost={handleInstagramPost}
                     onTikTokPost={handleTikTokPost}
+                    canFeature={showEditControls ? canFeature : false}
                   />
                 ))}
             </div>

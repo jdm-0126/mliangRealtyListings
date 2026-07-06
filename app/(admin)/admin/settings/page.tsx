@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Badge } from '../../components/ui/badge'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { Settings, User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp } from 'lucide-react'
 
 const SETTINGS_KEY = 'tenantSettings'
@@ -13,6 +14,7 @@ const SUPERADMIN_PASSWORD = 'EuandaiteD_0126'
 const BROKER_PASSWORD = 'brokerMliangAdmin2026'
 
 export default function SettingsPage() {
+  const router = useRouter()
   const [businessName, setBusinessName] = useState('RealtyProv1')
   const [brokerName, setBrokerName] = useState('RealtyProv1')
   const [brokerTitle, setBrokerTitle] = useState('Licensed Real Estate Broker')
@@ -101,8 +103,7 @@ export default function SettingsPage() {
     setIsLoggedIn(false)
     setUserEmail('')
     setUserRole('')
-    alert('Logged out successfully!')
-    window.location.reload()
+    router.push('/')
   }
 
   const saveSettings = () => {

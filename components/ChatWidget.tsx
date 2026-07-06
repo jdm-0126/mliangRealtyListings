@@ -52,7 +52,7 @@ const FAQ_DATABASE: { [key: string]: string } = {
   'services': 'We offer: Property listings (house and lot, lots, commercial), Property buying assistance, Title verification support, Financing guidance (Bank and Pag-IBIG), Documentation assistance, and Property viewing arrangements.',
 }
 
-export default function ChatWidget() {
+export default function ChatWidget({ hidePropertySearch = false }: { hidePropertySearch?: boolean }) {
   // Use a mounted flag to avoid SSR/client hydration mismatch.
   // All sessionStorage reads happen in a useEffect after mount.
   const [mounted, setMounted] = useState(false)
@@ -72,7 +72,7 @@ export default function ChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const autoLoadFiredRef = useRef(false)
 
-  const conversationTypes: Record<ConversationType, string> = {
+  const allConversationTypes: Record<ConversationType, string> = {
     buying: 'Home Buying',
     selling: 'Home Selling',
     renting: 'Rental Properties',
@@ -80,6 +80,10 @@ export default function ChatWidget() {
     general: 'General Questions',
     looking: 'Looking for Property',
   }
+
+  const conversationTypes: Partial<Record<ConversationType, string>> = hidePropertySearch
+    ? (({ looking: _omit, ...rest }) => rest)(allConversationTypes)
+    : allConversationTypes
 
   // Restore persisted state from sessionStorage after mount (avoids SSR hydration mismatch)
   useEffect(() => {
@@ -124,6 +128,7 @@ export default function ChatWidget() {
   // Auto-load: replay most recent search on widget open (controlled by ENABLE_AUTO_LOAD constant)
   useEffect(() => {
     if (!ENABLE_AUTO_LOAD) return;
+    if (hidePropertySearch) return; // Skip auto-load when property search is hidden
     if (!isOpen) return;
     if (conversationType !== null) return;
     if (autoLoadFiredRef.current) return;
@@ -254,7 +259,7 @@ export default function ChatWidget() {
     } else {
       setMessages([{
         id: 1,
-        text: `Great! I'm here to help with ${conversationTypes[type].toLowerCase()}. What would you like to know?`,
+        text: `Great! I'm here to help with ${(conversationTypes[type] ?? type).toLowerCase()}. What would you like to know?`,
         sender: 'bot',
         timestamp: new Date(),
       }])

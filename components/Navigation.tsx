@@ -10,14 +10,14 @@ import { Button } from './ui/button'
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home, roles: ['superadmin', 'broker', 'agent'] },
-  { name: 'Broker Dashboard', href: '/broker-dashboard', icon: BarChart3, roles: ['superadmin', 'broker'] },
-  { name: 'Properties', href: '/properties', icon: BarChart3, roles: ['superadmin', 'broker', 'agent'] },
-  { name: 'Rentals', href: '/rentals', icon: KeyRound, roles: ['superadmin', 'broker', 'agent'] },
-  { name: 'Brokers', href: '/brokers', icon: Users, roles: ['superadmin'] },
-  { name: 'Agents', href: '/agents', icon: Users, roles: ['superadmin', 'broker'] },
-  { name: 'My Profile', href: '/agent-profile', icon: Settings, roles: ['agent'] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['superadmin', 'broker'] },
+  { name: 'Dashboard', href: '/admin', icon: Home, roles: ['superadmin', 'broker', 'agent'] },
+  { name: 'Broker Dashboard', href: '/admin/broker-dashboard', icon: BarChart3, roles: ['superadmin', 'broker'] },
+  { name: 'Properties', href: '/admin/properties', icon: BarChart3, roles: ['superadmin', 'broker', 'agent'] },
+  { name: 'Rentals', href: '/admin/rentals', icon: KeyRound, roles: ['superadmin', 'broker', 'agent'] },
+  { name: 'Brokers', href: '/admin/brokers', icon: Users, roles: ['superadmin'] },
+  { name: 'Agents', href: '/admin/agents', icon: Users, roles: ['superadmin', 'broker'] },
+  { name: 'My Profile', href: '/admin/agent-profile', icon: Settings, roles: ['agent'] },
+  { name: 'Settings', href: '/admin/settings', icon: Settings, roles: ['superadmin', 'broker'] },
 ]
 
 export default function Navigation() {
