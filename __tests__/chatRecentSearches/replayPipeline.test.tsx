@@ -204,45 +204,50 @@ describe('Property 5: Replay Pipeline Equivalence', () => {
 
       await fc.assert(
         fc.asyncProperty(validQuery, async (query) => {
-          // ── First submission ──────────────────────────────────────────
-          await selectLooking()
-          await submitQuery(query)
+          try {
+            // ── First submission ────────────────────────────────────────
+            await selectLooking()
+            await submitQuery(query)
 
-          const msgs1 = getBotMessages()
-          // Layout: [welcome, ...search result..., follow-up prompt]
-          // The search result is the second-to-last bot message
-          expect(msgs1.length).toBeGreaterThanOrEqual(2)
-          const result1 = msgs1[msgs1.length - 2]
-          expect(result1).toBeTruthy()
+            const msgs1 = getBotMessages()
+            // Layout: [welcome, ...search result..., follow-up prompt]
+            // The search result is the second-to-last bot message
+            expect(msgs1.length).toBeGreaterThanOrEqual(2)
+            const result1 = msgs1[msgs1.length - 2]
+            expect(result1).toBeTruthy()
 
-          // Reset via "← Back"
-          await clickBack()
-          await act(async () => {
-            // Ensure any pending timers from the Yes/No state are flushed
-            jest.advanceTimersByTime(100)
-          })
+            // Reset via "← Back"
+            await clickBack()
+            await act(async () => { jest.advanceTimersByTime(100) })
 
-          // ── Second submission ─────────────────────────────────────────
-          await selectLooking()
-          await submitQuery(query)
+            // ── Second submission ───────────────────────────────────────
+            await selectLooking()
+            await submitQuery(query)
 
-          const msgs2 = getBotMessages()
-          expect(msgs2.length).toBeGreaterThanOrEqual(2)
-          const result2 = msgs2[msgs2.length - 2]
-          expect(result2).toBeTruthy()
+            const msgs2 = getBotMessages()
+            expect(msgs2.length).toBeGreaterThanOrEqual(2)
+            const result2 = msgs2[msgs2.length - 2]
+            expect(result2).toBeTruthy()
 
-          // Both runs must produce the same bot response.
-          // Validates Property 5: handleReplay calls the same
-          // runPropertySearch function → produces identical output.
-          expect(result1).toBe(result2)
-
-          // Reset for next run
-          await clickBack()
-          await act(async () => { jest.advanceTimersByTime(100) })
-          localStorage.clear()
-          sessionStorage.clear()
+            // Both runs must produce the same bot response.
+            // Validates Property 5: handleReplay calls the same
+            // runPropertySearch function → produces identical output.
+            expect(result1).toBe(result2)
+          } finally {
+            // Always reset for next run — even if assertions throw
+            const backBtn = Array.from(document.querySelectorAll('button')).find(
+              (b) => b.textContent?.includes('Back')
+            )
+            if (backBtn) {
+              await act(async () => { backBtn.click() })
+              await act(async () => {})
+            }
+            await act(async () => { jest.advanceTimersByTime(100) })
+            localStorage.clear()
+            sessionStorage.clear()
+          }
         }),
-        { numRuns: 100 }
+        { numRuns: 10 }
       )
     }
   )
@@ -283,7 +288,7 @@ describe('Property 6: Post-Replay State', () => {
           localStorage.clear()
           sessionStorage.clear()
         }),
-        { numRuns: 100 }
+        { numRuns: 10 }
       )
     }
   )

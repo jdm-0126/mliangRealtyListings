@@ -50,15 +50,15 @@ Tasks to implement the Chat Recent Searches feature. All implementation is scope
 - [x] 5. Implement `handleReplay` handler in `ChatWidget.tsx`
   - [x] 5.1 Implement `handleReplay(entry: RecentSearchEntry)`: guard on `waitingForYesNo`; append user message; `setIsTyping(true)`; call `saveRecentSearch` + `persistRecentSearches` + `setRecentSearches`; after 1 000 ms setTimeout call `runPropertySearch(entry.query)`, append bot message, `setIsTyping(false)`; after another 1 000 ms setTimeout append follow-up prompt and `setWaitingForYesNo(true)`
 
-- [~] 6. Write property tests for replay pipeline
-  - [-] 6.1 Write property test for Property 5 (Replay Pipeline Equivalence) — for any valid `RecentSearchEntry`, the bot message produced by `handleReplay` equals the string returned by `runPropertySearch(entry.query)` directly **Validates: Requirements 3.2**
-  - [ ] 6.2 Write property test for Property 6 (Post-Replay State) — for any valid entry replayed when `waitingForYesNo` is false, after replay the messages array ends with `'Would you like to search for more properties?'` and `waitingForYesNo` is true **Validates: Requirements 3.4**
+- [ ] 6. Write property tests for replay pipeline
+  - [x] 6.1 Write property test for Property 5 (Replay Pipeline Equivalence) — for any valid `RecentSearchEntry`, the bot message produced by `handleReplay` equals the string returned by `runPropertySearch(entry.query)` directly **Validates: Requirements 3.2**
+  - [x] 6.2 Write property test for Property 6 (Post-Replay State) — for any valid entry replayed when `waitingForYesNo` is false, after replay the messages array ends with `'Would you like to search for more properties?'` and `waitingForYesNo` is true **Validates: Requirements 3.4**
 
-- [ ] 7. Implement `clearRecentSearches` handler and `RecentSearchesPanel` UI in `ChatWidget.tsx`
-  - [ ] 7.1 Implement `clearRecentSearches()`: call `clearRecentSearchesStorage()` then `setRecentSearches([])`
-  - [ ] 7.2 Add inline `RecentSearchesPanel` JSX (or a local sub-component) inside the messages area, rendered only when `conversationType === 'looking'`; props: `entries`, `onReplay`, `onClear`, `disabled` (= `waitingForYesNo`)
-  - [ ] 7.3 Panel heading row: `"Recent Searches"` text + `"Clear"` button (hidden when `entries` is empty); empty state: `"No recent searches"` italic text; entry buttons: `w-full text-left` with `truncateQuery(entry.query, 80)` label; apply styling per design spec (`bg-gray-100 border border-gray-300 rounded-lg`)
-  - [ ] 7.4 Disable entry buttons and Clear control when `disabled` prop is true (prevent double-submission during active Yes/No prompt)
+- [x] 7. Implement `clearRecentSearches` handler and `RecentSearchesPanel` UI in `ChatWidget.tsx`
+  - [x] 7.1 Implement `clearRecentSearches()`: call `clearRecentSearchesStorage()` then `setRecentSearches([])`
+  - [x] 7.2 Add inline `RecentSearchesPanel` JSX (or a local sub-component) inside the messages area, rendered only when `conversationType === 'looking'`; props: `entries`, `onReplay`, `onClear`, `disabled` (= `waitingForYesNo`)
+  - [x] 7.3 Panel heading row: `"Recent Searches"` text + `"Clear"` button (hidden when `entries` is empty); empty state: `"No recent searches"` italic text; entry buttons: `w-full text-left` with `truncateQuery(entry.query, 80)` label; apply styling per design spec (`bg-gray-100 border border-gray-300 rounded-lg`)
+  - [x] 7.4 Disable entry buttons and Clear control when `disabled` prop is true (prevent double-submission during active Yes/No prompt)
 
 - [ ] 8. Write property and unit tests for `RecentSearchesPanel` and clear behavior
   - [ ] 8.1 Write property test for Property 10 (Panel Renders Entries in Store Order) — for any array of 1–5 valid entries, rendered button elements appear in same order as the array and each label equals `truncateQuery(entry.query, 80)` **Validates: Requirements 2.1, 2.3**
@@ -68,22 +68,22 @@ Tasks to implement the Chat Recent Searches feature. All implementation is scope
   - [ ] 8.5 Write unit test: Clear button absent when store is empty; present and functional when store has entries **Validates: Requirement 5.1**
   - [ ] 8.6 Write unit test: Clear with `localStorage` throwing — in-memory state still set to `[]` **Validates: Requirement 5.4**
 
-- [ ] 9. Write property test for `resetChat` not touching the store
-  - [ ] 9.1 Write property test for Property 7 (resetChat Does Not Touch the Store) — for any store state written to `localStorage` before calling `resetChat()`, the `localStorage` value at `chat_recent_searches` is identical after the call **Validates: Requirements 5.3**
+- [x] 9. Write property test for `resetChat` not touching the store
+  - [x] 9.1 Write property test for Property 7 (resetChat Does Not Touch the Store) — for any store state written to `localStorage` before calling `resetChat()`, the `localStorage` value at `chat_recent_searches` is identical after the call **Validates: Requirements 5.3**
 
-- [ ] 10. Write unit tests for error-handling and edge-case paths
-  - [ ] 10.1 Write unit test: `persistRecentSearches` with `localStorage` unavailable (throws) — no exception propagates to the caller **Validates: Requirement 1.5**
-  - [ ] 10.2 Write unit test: `loadRecentSearches` with `localStorage` unavailable — returns `[]` without throwing **Validates: Requirement 1.5**
-  - [ ] 10.3 Write unit test: typing indicator is visible during replay (from button activation until bot results message appears) **Validates: Requirement 3.5**
-  - [ ] 10.4 Write unit test: full save → reload cycle — after writing an entry and re-reading via `loadRecentSearches()`, the entry is present (simulates hard reload by directly reading `localStorage`) **Validates: Requirement 1.6**
+- [x] 10. Write unit tests for error-handling and edge-case paths
+  - [x] 10.1 Write unit test: `persistRecentSearches` with `localStorage` unavailable (throws) — no exception propagates to the caller **Validates: Requirement 1.5**
+  - [x] 10.2 Write unit test: `loadRecentSearches` with `localStorage` unavailable — returns `[]` without throwing **Validates: Requirement 1.5**
+  - [x] 10.3 Write unit test: typing indicator is visible during replay (from button activation until bot results message appears) **Validates: Requirement 3.5**
+  - [x] 10.4 Write unit test: full save → reload cycle — after writing an entry and re-reading via `loadRecentSearches()`, the entry is present (simulates hard reload by directly reading `localStorage`) **Validates: Requirement 1.6**
 
-- [ ] 11. Implement optional auto-load behavior (controlled by `ENABLE_AUTO_LOAD` constant)
-  - [ ] 11.1 Add `const autoLoadFiredRef = useRef(false)` to the component
-  - [ ] 11.2 Add `useEffect([isOpen])` that returns immediately if `!ENABLE_AUTO_LOAD`, `!isOpen`, `conversationType !== null`, or `autoLoadFiredRef.current` is already true; otherwise loads entries, guards on empty store, sets `autoLoadFiredRef.current = true`, sets conversation type + state, appends system note message, shows typing indicator, then after 1 000 ms appends `runPropertySearch` bot message + hides indicator, then after another 1 000 ms appends follow-up prompt + sets `waitingForYesNo(true)`
+- [x] 11. Implement optional auto-load behavior (controlled by `ENABLE_AUTO_LOAD` constant)
+  - [x] 11.1 Add `const autoLoadFiredRef = useRef(false)` to the component
+  - [x] 11.2 Add `useEffect([isOpen])` that returns immediately if `!ENABLE_AUTO_LOAD`, `!isOpen`, `conversationType !== null`, or `autoLoadFiredRef.current` is already true; otherwise loads entries, guards on empty store, sets `autoLoadFiredRef.current = true`, sets conversation type + state, appends system note message, shows typing indicator, then after 1 000 ms appends `runPropertySearch` bot message + hides indicator, then after another 1 000 ms appends follow-up prompt + sets `waitingForYesNo(true)`
 
-- [ ] 12. Write unit tests for auto-load behavior
-  - [ ] 12.1 Write unit test: auto-load does NOT fire when `ENABLE_AUTO_LOAD = false` **Validates: Requirement 4.6**
-  - [ ] 12.2 Write unit test: auto-load does NOT fire when the store is empty **Validates: Requirement 4.5**
+- [x] 12. Write unit tests for auto-load behavior
+  - [x] 12.1 Write unit test: auto-load does NOT fire when `ENABLE_AUTO_LOAD = false` **Validates: Requirement 4.6**
+  - [x] 12.2 Write unit test: auto-load does NOT fire when the store is empty **Validates: Requirement 4.5**
   - [ ] 12.3 Write unit test: auto-load system note contains the replayed query text **Validates: Requirement 4.3**
   - [ ] 12.4 Write unit test: auto-load fires at most once per page load (second widget open does not re-trigger) **Validates: Requirement 4.1**
 

@@ -12,7 +12,9 @@ import {
   persistRecentSearches,
   clearRecentSearchesStorage,
   truncateQuery,
+  ENABLE_AUTO_LOAD,
 } from '../lib/recentSearches'
+import { parsePropertyQuery, filterPropertiesByQuery, type ParsedQuery } from '../lib/parsePropertyQuery'
 
 type ConversationType = 'buying' | 'selling' | 'renting' | 'investing' | 'general' | 'looking'
 
@@ -25,120 +27,6 @@ interface Message {
 
 interface PropertySearch {
   step: 'freeform' | 'complete'
-}
-
-// Parsed filters from a natural language property query
-interface ParsedQuery {
-  location?: string
-  minLotArea?: number
-  maxLotArea?: number
-  minFloorArea?: number
-  maxFloorArea?: number
-  minPrice?: number
-  maxPrice?: number
-  propertyType?: string
-  bedrooms?: number
-}
-
-// Parse a free-text query like "110 sqm lot area, near Clark, under 5M"
-function parsePropertyQuery(input: string): ParsedQuery {
-  const q = input.toLowerCase()
-  const result: ParsedQuery = {}
-
-  // --- Lot area (sqm) ---
-  const lotRange  = q.match(/(\d+(?:\.\d+)?)\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*sqm?\s*lot/)
-  const lotLabel  = q.match(/lot\s*area\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*sqm?/)
-  const lotInline = q.match(/(\d+(?:\.\d+)?)\s*sqm?\s*lot/)
-  const lotMin    = q.match(/(?:at\s*least|min(?:imum)?)\s*(\d+(?:\.\d+)?)\s*sqm/)
-  const lotMax    = q.match(/(?:at\s*most|max(?:imum)?|under|below)\s*(\d+(?:\.\d+)?)\s*sqm/)
-
-  if (lotRange) {
-    result.minLotArea = parseFloat(lotRange[1])
-    result.maxLotArea = parseFloat(lotRange[2])
-  } else if (lotLabel) {
-    const v = parseFloat(lotLabel[1])
-    result.minLotArea = v * 0.85
-    result.maxLotArea = v * 1.15
-  } else if (lotInline) {
-    const v = parseFloat(lotInline[1])
-    result.minLotArea = v * 0.85
-    result.maxLotArea = v * 1.15
-  } else if (lotMin) {
-    result.minLotArea = parseFloat(lotMin[1])
-  } else if (lotMax) {
-    result.maxLotArea = parseFloat(lotMax[1])
-  }
-
-  // --- Floor area (sqm) ---
-  const floorRange  = q.match(/(\d+(?:\.\d+)?)\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*sqm?\s*floor/)
-  const floorLabel  = q.match(/floor\s*area\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*sqm?/)
-  const floorInline = q.match(/(\d+(?:\.\d+)?)\s*sqm?\s*floor/)
-
-  if (floorRange) {
-    result.minFloorArea = parseFloat(floorRange[1])
-    result.maxFloorArea = parseFloat(floorRange[2])
-  } else if (floorLabel) {
-    const v = parseFloat(floorLabel[1])
-    result.minFloorArea = v * 0.85
-    result.maxFloorArea = v * 1.15
-  } else if (floorInline) {
-    const v = parseFloat(floorInline[1])
-    result.minFloorArea = v * 0.85
-    result.maxFloorArea = v * 1.15
-  }
-
-  // --- Price ---
-  const priceRange  = q.match(/(\d+(?:\.\d+)?)\s*m(?:illion)?\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*m(?:illion)?/)
-  const priceUnder  = q.match(/(?:under|below|max(?:imum)?(?:\s*(?:price|budget))?|budget\s*(?:of)?)\s*(\d+(?:\.\d+)?)\s*m(?:illion)?/)
-  const priceAbove  = q.match(/(?:above|over|min(?:imum)?(?:\s*price)?)\s*(\d+(?:\.\d+)?)\s*m(?:illion)?/)
-  const priceSingle = q.match(/(\d+(?:\.\d+)?)\s*m(?:illion)?/)
-
-  if (priceRange) {
-    result.minPrice = parseFloat(priceRange[1]) * 1_000_000
-    result.maxPrice = parseFloat(priceRange[2]) * 1_000_000
-  } else if (priceUnder) {
-    result.maxPrice = parseFloat(priceUnder[1]) * 1_000_000
-  } else if (priceAbove) {
-    result.minPrice = parseFloat(priceAbove[1]) * 1_000_000
-  } else if (priceSingle && !result.minLotArea && !result.maxLotArea) {
-    // Only treat as price if no sqm context already captured this number
-    const v = parseFloat(priceSingle[1])
-    result.minPrice = v * 1_000_000 * 0.8
-    result.maxPrice = v * 1_000_000 * 1.2
-  }
-
-  // --- Bedrooms ---
-  const bedMatch = q.match(/(\d+)\s*(?:br|bed(?:room)?s?)/)
-  if (bedMatch) result.bedrooms = parseInt(bedMatch[1])
-
-  // --- Property type ---
-  if (q.includes('condo')) result.propertyType = 'condo'
-  else if (q.includes('house and lot') || q.includes('h&l') || q.includes('h & l')) result.propertyType = 'house and lot'
-  else if (q.includes('lot only')) result.propertyType = 'lot'
-  else if (q.includes('townhouse')) result.propertyType = 'townhouse'
-  else if (q.includes('house')) result.propertyType = 'house'
-  else if (q.includes('commercial')) result.propertyType = 'commercial'
-
-  // --- Location ---
-  // Try explicit "near/in/at/around X"
-  const nearMatch = input.match(/(?:near|in|at|around|close\s*to|beside|along)\s+([A-Za-z][A-Za-z\s]+?)(?:,|$|\d)/i)
-  if (nearMatch) {
-    result.location = nearMatch[1].trim()
-  } else {
-    // Strip numbers+units and known keyword tokens; remainder is likely location
-    let loc = input
-      .replace(/\d+(?:\.\d+)?\s*sqm?\s*(?:lot\s*area|floor\s*area|lot|floor)?/gi, '')
-      .replace(/\d+(?:\.\d+)?\s*m(?:illion)?\b/gi, '')
-      .replace(/\d+\s*(?:br|bed(?:room)?s?)/gi, '')
-      .replace(/(?:near|in|at|around|close\s*to|beside|along|under|below|above|over|budget|minimum|maximum|min|max|at\s*least|at\s*most)/gi, '')
-      .replace(/(?:house\s*and\s*lot|lot\s*only|townhouse|condo|commercial|house|lot|floor\s*area|lot\s*area)/gi, '')
-      .replace(/[,;.]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-    if (loc.length > 1) result.location = loc
-  }
-
-  return result
 }
 
 // Real Estate FAQ Knowledge Base
@@ -164,7 +52,7 @@ const FAQ_DATABASE: { [key: string]: string } = {
   'services': 'We offer: Property listings (house and lot, lots, commercial), Property buying assistance, Title verification support, Financing guidance (Bank and Pag-IBIG), Documentation assistance, and Property viewing arrangements.',
 }
 
-export default function ChatWidget() {
+export default function ChatWidget({ hidePropertySearch = false }: { hidePropertySearch?: boolean }) {
   // Use a mounted flag to avoid SSR/client hydration mismatch.
   // All sessionStorage reads happen in a useEffect after mount.
   const [mounted, setMounted] = useState(false)
@@ -182,8 +70,9 @@ export default function ChatWidget() {
   const [businessName, setBusinessName] = useState('M. Liang Realty')
   const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const autoLoadFiredRef = useRef(false)
 
-  const conversationTypes: Record<ConversationType, string> = {
+  const allConversationTypes: Record<ConversationType, string> = {
     buying: 'Home Buying',
     selling: 'Home Selling',
     renting: 'Rental Properties',
@@ -191,6 +80,10 @@ export default function ChatWidget() {
     general: 'General Questions',
     looking: 'Looking for Property',
   }
+
+  const conversationTypes: Partial<Record<ConversationType, string>> = hidePropertySearch
+    ? (({ looking: _omit, ...rest }) => rest)(allConversationTypes)
+    : allConversationTypes
 
   // Restore persisted state from sessionStorage after mount (avoids SSR hydration mismatch)
   useEffect(() => {
@@ -231,6 +124,49 @@ export default function ChatWidget() {
   useEffect(() => { try { sessionStorage.setItem('chat_waitingForYesNo', JSON.stringify(waitingForYesNo)) } catch {} }, [waitingForYesNo])
   useEffect(() => { try { sessionStorage.setItem('chat_waitingForPagibigSteps', JSON.stringify(waitingForPagibigSteps)) } catch {} }, [waitingForPagibigSteps])
   useEffect(() => { try { sessionStorage.setItem('chat_propertySearch', JSON.stringify(propertySearch)) } catch {} }, [propertySearch])
+
+  // Auto-load: replay most recent search on widget open (controlled by ENABLE_AUTO_LOAD constant)
+  useEffect(() => {
+    if (!ENABLE_AUTO_LOAD) return;
+    if (hidePropertySearch) return; // Skip auto-load when property search is hidden
+    if (!isOpen) return;
+    if (conversationType !== null) return;
+    if (autoLoadFiredRef.current) return;
+
+    const entries = loadRecentSearches();
+    if (entries.length === 0) return;
+
+    autoLoadFiredRef.current = true;
+    const topEntry = entries[0];
+
+    setConversationType('looking');
+    setPropertySearch({ step: 'freeform' });
+    setRecentSearches(entries);
+
+    const noteMsg: Message = {
+      id: 1,
+      text: `📂 Showing your last search: *${topEntry.query}*`,
+      sender: 'bot',
+      timestamp: new Date(),
+    };
+    setMessages([noteMsg]);
+    setIsTyping(true);
+
+    setTimeout(() => {
+      const botResponse = runPropertySearch(topEntry.query);
+      setMessages(prev => [...prev, { id: prev.length + 1, text: botResponse, sender: 'bot', timestamp: new Date() }]);
+      setIsTyping(false);
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: prev.length + 1,
+          text: 'Would you like to search for more properties?',
+          sender: 'bot',
+          timestamp: new Date(),
+        }]);
+        setWaitingForYesNo(true);
+      }, 1000);
+    }, 1000);
+  }, [isOpen]);
 
   const fetchRealProperties = async () => {
     if (!supabase) return
@@ -323,7 +259,7 @@ export default function ChatWidget() {
     } else {
       setMessages([{
         id: 1,
-        text: `Great! I'm here to help with ${conversationTypes[type].toLowerCase()}. What would you like to know?`,
+        text: `Great! I'm here to help with ${(conversationTypes[type] ?? type).toLowerCase()}. What would you like to know?`,
         sender: 'bot',
         timestamp: new Date(),
       }])
@@ -333,39 +269,7 @@ export default function ChatWidget() {
   // --- Property filtering ---
   const filterProperties = (parsed: ParsedQuery) => {
     if (!propertiesLoaded || realProperties.length === 0) return []
-    return realProperties.filter(prop => {
-      // Location
-      if (parsed.location) {
-        const loc = parsed.location.toLowerCase()
-        const propLoc = (prop.Location || prop.Address || '').toLowerCase()
-        if (!propLoc.includes(loc)) return false
-      }
-      // Lot area — handle all known column name variants incl. "LA" abbreviation
-      const lotRaw = parseFloat(String(
-        prop['Lot Area'] || prop['Lot Area sqm'] || prop['LA'] || prop.LotArea || '0'
-      ).replace(/[^\d.]/g, '')) || 0
-      if (parsed.minLotArea && lotRaw > 0 && lotRaw < parsed.minLotArea) return false
-      if (parsed.maxLotArea && lotRaw > 0 && lotRaw > parsed.maxLotArea) return false
-      // Floor area
-      const floorRaw = parseFloat(String(prop['Floor Area'] || prop.FloorArea || '0').replace(/[^\d.]/g, '')) || 0
-      if (parsed.minFloorArea && floorRaw > 0 && floorRaw < parsed.minFloorArea) return false
-      if (parsed.maxFloorArea && floorRaw > 0 && floorRaw > parsed.maxFloorArea) return false
-      // Price
-      const propPrice = parseFloat(String(prop['Listing Price'] || prop.ListingPrice || prop.Price || '0').replace(/[^\d.]/g, '')) || 0
-      if (parsed.minPrice && propPrice < parsed.minPrice) return false
-      if (parsed.maxPrice && propPrice > parsed.maxPrice) return false
-      // Bedrooms
-      if (parsed.bedrooms) {
-        const propBeds = parseInt(String(prop.Bedrooms || prop['No. of Bedrooms'] || '0').replace(/[^\d]/g, '')) || 0
-        if (propBeds > 0 && propBeds !== parsed.bedrooms) return false
-      }
-      // Property type
-      if (parsed.propertyType) {
-        const propType = (prop['Property Type'] || prop.PropertyType || prop.Type || '').toLowerCase()
-        if (propType && !propType.includes(parsed.propertyType)) return false
-      }
-      return true
-    })
+    return filterPropertiesByQuery(realProperties, parsed)
   }
 
   const formatPrice = (price: any): string => {
@@ -602,6 +506,12 @@ export default function ChatWidget() {
     }, 1000)
   }
 
+  // --- Clear all recent searches ---
+  const clearRecentSearches = () => {
+    clearRecentSearchesStorage();
+    setRecentSearches([]);
+  };
+
   // --- Replay a recent search ---
   const handleReplay = (entry: RecentSearchEntry) => {
     if (waitingForYesNo) return;
@@ -721,6 +631,40 @@ export default function ChatWidget() {
                         </div>
                       </div>
                     ))}
+                    {/* Recent Searches Panel */}
+                    {conversationType === 'looking' && (
+                      <div className="bg-gray-100 border border-gray-300 rounded-lg mx-0 my-2 p-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                            Recent Searches
+                          </span>
+                          {recentSearches.length > 0 && (
+                            <button
+                              onClick={clearRecentSearches}
+                              disabled={waitingForYesNo}
+                              className="text-xs text-red-500 hover:text-red-700 underline disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                        {recentSearches.length === 0 ? (
+                          <p className="text-xs text-gray-400 italic">No recent searches</p>
+                        ) : (
+                          recentSearches.map((entry, index) => (
+                            <button
+                              key={`${entry.query}-${index}`}
+                              onClick={() => handleReplay(entry)}
+                              disabled={waitingForYesNo}
+                              className="w-full text-left text-sm bg-white hover:bg-blue-50 border border-gray-200 rounded px-3 py-2 mb-1 truncate text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {truncateQuery(entry.query, 80)}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+
                     {isTyping && (
                       <div className="flex justify-start">
                         <div className="bg-white shadow rounded-lg p-3">

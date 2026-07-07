@@ -1,11 +1,14 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Badge } from '../../components/ui/badge'
-import { Settings, User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp } from 'lucide-react'
+import ThemeToggleButton from '@/app/(admin)/components/ThemeToggleButton'
+import ColorPaletteCard from '@/app/(admin)/components/ColorPaletteCard'
 
 const SETTINGS_KEY = 'tenantSettings'
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
@@ -13,6 +16,7 @@ const SUPERADMIN_PASSWORD = 'EuandaiteD_0126'
 const BROKER_PASSWORD = 'brokerMliangAdmin2026'
 
 export default function SettingsPage() {
+  const router = useRouter()
   const [businessName, setBusinessName] = useState('RealtyProv1')
   const [brokerName, setBrokerName] = useState('RealtyProv1')
   const [brokerTitle, setBrokerTitle] = useState('Licensed Real Estate Broker')
@@ -101,8 +105,7 @@ export default function SettingsPage() {
     setIsLoggedIn(false)
     setUserEmail('')
     setUserRole('')
-    alert('Logged out successfully!')
-    window.location.reload()
+    router.push('/')
   }
 
   const saveSettings = () => {
@@ -122,7 +125,7 @@ export default function SettingsPage() {
     window.setTimeout(() => setSaved(false), 2000)
   }
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'hsl(var(--background))', color: 'hsl(var(--foreground))' }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Settings</h2>
@@ -378,23 +381,18 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div>
-                  <h3 className="font-medium mb-2" style={{ color: '#000000' }}>Theme</h3>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">Light</Button>
-                    <Button variant="outline" size="sm">Dark</Button>
-                    <Button variant="outline" size="sm">System</Button>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-medium mb-2" style={{ color: '#000000' }}>Default View</h3>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">Grid</Button>
-                    <Button variant="outline" size="sm">List</Button>
-                  </div>
+                  <h3 className="font-medium mb-1" style={{ color: 'hsl(var(--foreground))' }}>Admin Panel Theme</h3>
+                  <p className="text-sm mb-3" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                    Switch between light and dark mode. Your preference is saved automatically.
+                  </p>
+                  <ThemeToggleButton />
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* Color Palette */}
+          <ColorPaletteCard />
 
           {/* SEO Tips */}
           <Card>
