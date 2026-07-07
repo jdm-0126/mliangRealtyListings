@@ -1,22 +1,19 @@
-// app/(public)/layout.tsx
-// Server Component — no 'use client' directive
-
+// app/(public)/layout.tsx — Estatein dark theme wrapper
 import { getTenantSettingsServer } from '@/lib/tenantServer'
 import PublicHeader from './components/PublicHeader'
 import PublicFooter from './components/PublicFooter'
-import ChatWidget from '@/components/ChatWidget'
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const settings = getTenantSettingsServer()
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div
+      className="flex min-h-screen flex-col"
+      style={{ background: 'var(--est-bg)', color: 'var(--est-text)' }}
+    >
       <PublicHeader businessName={settings.businessName} />
-      <main className="flex-1">
-        {children}
-      </main>
+      <main className="flex-1">{children}</main>
       <PublicFooter settings={settings} />
-      <ChatWidget hidePropertySearch={true} />
     </div>
   )
 }

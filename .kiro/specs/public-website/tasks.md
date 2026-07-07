@@ -102,7 +102,7 @@ Work is organized in layers: shared foundation first (types, utilities, SEO help
     - Locate the logout handler in `app/(admin)/admin/settings/page.tsx`; ensure it clears both `brokerAdminAuth` and `userEmail` from `sessionStorage` and calls `router.push('/')`
     - _Requirements: 9.5_
 
-- [~] 5. Checkpoint — verify route group structure compiles
+- [x] 5. Checkpoint — verify route group structure compiles
   - Ensure all moved admin pages import correctly from their new paths, the app builds without TypeScript or import errors, and navigating to `/admin` triggers the AuthGuard loading state (manually or via `npm run build`)
 
 - [x] 6. Build Public Layout components
@@ -145,7 +145,7 @@ Work is organized in layers: shared foundation first (types, utilities, SEO help
     - Place an `og-image.jpg` (1200×630) in the `public/` directory for use as the default Open Graph image
     - _Requirements: 2.7_
 
-- [ ] 8. Implement the Public Homepage (`/`)
+- [x] 8. Implement the Public Homepage (`/`)
   - [x] 8.1 Create the homepage server component with Hero section
     - Implement `app/(public)/page.tsx` as a server component
     - Render Hero section with brokerage name, tagline, CTA buttons linking to `/listings` and `/contact`
@@ -160,7 +160,7 @@ Work is organized in layers: shared foundation first (types, utilities, SEO help
     - Render "Unable to load listings at this time" when the query returns an error
     - _Requirements: 2.2, 2.3, 2.4_
 
-  - [-] 8.3 Write property test for featured listings invariant (Property 3)
+  - [x] 8.3 Write property test for featured listings invariant (Property 3)
     - **Property 3: Featured listings obey the "up to 6, newest first" invariant**
     - **Validates: Requirements 2.2, 2.3**
     - Create `__tests__/public/home-listings.property.test.ts`; use `fast-check` to generate arbitrary arrays of active listing objects; assert exactly `Math.min(N, 6)` cards are displayed with the highest-ID listings; when N=0 assert placeholder renders; `numRuns: 200`
@@ -222,7 +222,7 @@ Work is organized in layers: shared foundation first (types, utilities, SEO help
     - Export static `metadata` with required title and description keywords
     - _Requirements: 3.1, 3.7, 3.8_
 
-- [ ] 11. Implement the Property Detail Page (`/listings/[id]`)
+- [x] 11. Implement the Property Detail Page (`/listings/[id]`)
   - [x] 11.1 Create the Property Detail page server component
     - Create `app/(public)/listings/[id]/page.tsx`
     - Reverse displayId to internalId: `internalId = displayId >= 2 ? displayId + 1 : displayId`
@@ -234,12 +234,12 @@ Work is organized in layers: shared foundation first (types, utilities, SEO help
     - Include `<JsonLd>` with `buildRealEstateListingJsonLd(listing)`
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-  - [-] 11.2 Write property test for detail page non-null fields (Property 9)
+  - [x] 11.2 Write property test for detail page non-null fields (Property 9)
     - **Property 9: Property detail page renders all non-null fields for any listing**
     - **Validates: Requirements 4.3**
     - Create `__tests__/public/property-detail.property.test.ts`; use `fast-check` to generate listing objects with arbitrary subsets of optional fields (some null, some present); assert every non-null field appears in the rendered output and no render error occurs for null fields; `numRuns: 200`
 
-- [ ] 12. Implement the About Page (`/about`)
+- [x] 12. Implement the About Page (`/about`)
   - [x] 12.1 Create the About page component
     - Create `app/(public)/about/page.tsx` as a client component (needs `useTenantSettings` for localStorage)
     - Display: brokerage name, broker name and title, PRC license number, office address, contact number, email
@@ -247,12 +247,12 @@ Work is organized in layers: shared foundation first (types, utilities, SEO help
     - Export `metadata` with descriptive title and meta description referencing broker name and license
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [-] 12.2 Write property test for tenantSettings fallback (Property 11)
+  - [x] 12.2 Write property test for tenantSettings fallback (Property 11)
     - **Property 11: About/Contact pages display tenantSettings values with correct fallback**
     - **Validates: Requirements 5.2, 6.8**
     - Create `__tests__/public/tenant-settings.property.test.ts`; use `fast-check` to generate partial/complete `tenantSettings` objects; mock `localStorage`; render About page and assert: present fields show stored value, absent fields show `TENANT_DEFAULTS` value, no field renders `undefined` or `null`; `numRuns: 200`
 
-- [ ] 13. Implement the Contact Page and InquiryForm (`/contact`)
+- [x] 13. Implement the Contact Page and InquiryForm (`/contact`)
   - [x] 13.1 Create the contact number validator utility
     - Create (or add to `lib/validation.ts`) a `validateContactNumber(s: string): boolean` function that returns `true` iff `s` matches `/^09\d{9}$/`
     - _Requirements: 6.1_
@@ -281,46 +281,46 @@ Work is organized in layers: shared foundation first (types, utilities, SEO help
     - **Validates: Requirements 6.3**
     - Extend `__tests__/public/inquiry-form.property.test.ts`; use `fast-check` to generate valid form values; mock Supabase insert; assert it is called exactly once with correct field mapping and a valid ISO 8601 `created_at`; `numRuns: 200`
 
-  - [-] 13.6 Create the Contact page server component
+  - [x] 13.6 Create the Contact page server component
     - Create `app/(public)/contact/page.tsx` as a server component that reads `property` query param and passes it to `<InquiryForm>`
     - Display brokerage contact number and email alongside the form (from `useTenantSettings`)
     - Export `metadata` with fixed title "Contact M. Liang Realty – Get in Touch" and 150–160 char description
     - _Requirements: 6.2, 6.8, 6.9_
 
-- [~] 14. Checkpoint — verify all public pages render correctly
+- [x] 14. Checkpoint — verify all public pages render correctly
   - Ensure all public pages (`/`, `/listings`, `/listings/[id]`, `/about`, `/contact`) build without TypeScript errors, render with the Public Layout (header + footer), and contain no admin Navigation or ChatWidget
 
-- [ ] 15. Implement SEO infrastructure
-  - [~] 15.1 Create the sitemap generator
+- [x] 15. Implement SEO infrastructure
+  - [x] 15.1 Create the sitemap generator
     - Create `app/sitemap.ts` using the Next.js `MetadataRoute.Sitemap` convention
     - Include 4 static URLs (`/`, `/listings`, `/about`, `/contact`) and one URL per active listing
     - Set `lastModified` from listing's `updated_at`, `changeFrequency: 'weekly'`
     - Apply `displayId` transform
     - _Requirements: 7.1_
 
-  - [~] 15.2 Write property test for sitemap active listings only (Property 15)
+  - [x] 15.2 Write property test for sitemap active listings only (Property 15)
     - **Property 15: Sitemap contains exactly the static pages plus one URL per active listing**
     - **Validates: Requirements 7.1**
     - Create `__tests__/public/sitemap.property.test.ts`; use `fast-check` to generate arbitrary listing datasets with mixed statuses; mock Supabase; assert sitemap has exactly 4 static URLs + one entry per active listing, no duplicates, no inactive listings; `numRuns: 200`
 
-  - [~] 15.3 Create the robots.txt generator
+  - [x] 15.3 Create the robots.txt generator
     - Create `app/robots.ts` using the Next.js `MetadataRoute.Robots` convention
     - Allow `/`, `/listings`, `/listings/`, `/about`, `/contact`; disallow `/admin/`, `/api/`
     - Include `sitemap` pointing to `https://realtyprov1.com/sitemap.xml`
     - _Requirements: 7.2_
 
-- [ ] 16. Create the Supabase `leads` table migration
-  - [~] 16.1 Write the leads table SQL migration script
+- [x] 16. Create the Supabase `leads` table migration
+  - [x] 16.1 Write the leads table SQL migration script
     - Create `database/create_leads_table.sql` with the `CREATE TABLE leads (...)` DDL, `CHECK` constraints, RLS enable, and anon insert policy exactly as specified in the design
     - _Requirements: 6.3_
 
-- [ ] 17. Write property test for public pages performing no sessionStorage reads (Property 2)
-  - [ ] 17.1 Property test: public pages perform no authentication checks
+- [x] 17. Write property test for public pages performing no sessionStorage reads (Property 2)
+  - [x] 17.1 Property test: public pages perform no authentication checks
     - **Property 2: Public pages perform no authentication checks**
     - **Validates: Requirements 1.4**
     - Create `__tests__/public/public-pages.property.test.ts`; spy on `sessionStorage.getItem`; render each public page component; use `fast-check` to vary visitor authentication state; assert `sessionStorage.getItem` is never called from any public page component; `numRuns: 100`
 
-- [~] 18. Final checkpoint — run full test suite
+- [x] 18. Final checkpoint — run full test suite
   - Ensure all tests pass (`npm test -- --testPathPattern=__tests__/public`), the app builds successfully (`npm run build`), all admin routes redirect unauthenticated users, and all public routes are accessible without authentication
 
 ## Notes

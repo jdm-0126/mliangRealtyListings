@@ -24,10 +24,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [])
 
-  // Redirect unauthenticated users to the admin login page
+  // Redirect unauthenticated users to the public homepage
   useEffect(() => {
     if (authState === 'unauthenticated') {
-      router.push('/admin/login')
+      router.push('/')
     }
   }, [authState, router])
 

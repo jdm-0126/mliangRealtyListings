@@ -1,5 +1,4 @@
 // Server Component — no 'use client' needed
-
 import Link from 'next/link'
 import { TenantSettings } from '@/lib/types/public'
 import SocialLinks from './SocialLinks'
@@ -12,37 +11,73 @@ export default function PublicFooter({ settings }: PublicFooterProps) {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="bg-gray-900 text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <footer style={{ background: 'var(--est-surface)', borderTop: '1px solid var(--est-border)' }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
 
-          {/* Brand Block */}
-          <div>
-            <h2 className="text-white text-lg font-bold mb-2">
-              {settings.businessName}
-            </h2>
-            <p className="text-sm text-gray-400">
-              Your trusted partner for properties in Pampanga
+          {/* Brand */}
+          <div className="md:col-span-1">
+            <Link href="/" className="flex items-center gap-2 mb-4 w-fit">
+              <span
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                style={{ background: 'var(--est-purple)' }}
+              >
+                M
+              </span>
+              <span className="text-base font-semibold" style={{ color: 'var(--est-text)' }}>
+                {settings.businessName}
+              </span>
+            </Link>
+            <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--est-muted)' }}>
+              Your trusted partner for properties in Pampanga.
             </p>
-            <div className="mt-4">
-              <SocialLinks />
-            </div>
+            <SocialLinks />
           </div>
 
-          {/* Contact Block */}
+          {/* Quick links */}
           <div>
-            <h3 className="text-white text-sm font-semibold uppercase tracking-wider mb-3">
+            <h3
+              className="text-xs font-semibold uppercase tracking-widest mb-4"
+              style={{ color: 'var(--est-muted)' }}
+            >
+              Explore
+            </h3>
+            <ul className="space-y-2.5 text-sm">
+              {[
+                { label: 'Home', href: '/' },
+                { label: 'Listings', href: '/listings' },
+                { label: 'About', href: '/about' },
+                { label: 'Contact', href: '/contact' },
+              ].map(({ label, href }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="transition-colors hover:opacity-80"
+                    style={{ color: 'var(--est-subtle)' }}
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <h3
+              className="text-xs font-semibold uppercase tracking-widest mb-4"
+              style={{ color: 'var(--est-muted)' }}
+            >
               Contact
             </h3>
-            <address className="not-italic space-y-2 text-sm text-gray-400">
-              {settings.officeAddress && (
-                <p>{settings.officeAddress}</p>
-              )}
+            <address className="not-italic space-y-2.5 text-sm" style={{ color: 'var(--est-subtle)' }}>
+              {settings.officeAddress && <p className="leading-relaxed">{settings.officeAddress}</p>}
               {settings.contactNumber && (
                 <p>
                   <a
                     href={`tel:${settings.contactNumber}`}
-                    className="hover:text-white transition-colors"
+                    className="transition-colors hover:opacity-80"
+                    style={{ color: 'var(--est-subtle)' }}
                   >
                     {settings.contactNumber}
                   </a>
@@ -52,61 +87,46 @@ export default function PublicFooter({ settings }: PublicFooterProps) {
                 <p>
                   <a
                     href={`mailto:${settings.emailAddress}`}
-                    className="hover:text-white transition-colors"
+                    className="transition-colors hover:opacity-80"
+                    style={{ color: 'var(--est-subtle)' }}
                   >
                     {settings.emailAddress}
                   </a>
                 </p>
               )}
-              {settings.prcNumber && (
-                <p>PRC License No. {settings.prcNumber}</p>
-              )}
             </address>
           </div>
 
-          {/* Links Block */}
+          {/* Legal / PRC */}
           <div>
-            <h3 className="text-white text-sm font-semibold uppercase tracking-wider mb-3">
-              Quick Links
+            <h3
+              className="text-xs font-semibold uppercase tracking-widest mb-4"
+              style={{ color: 'var(--est-muted)' }}
+            >
+              License
             </h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link
-                  href="/"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/listings"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Browse Listings
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/contact"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Contact Us
-                </Link>
-              </li>
-            </ul>
+            <p className="text-sm" style={{ color: 'var(--est-subtle)' }}>
+              PRC License No.<br />
+              <span className="font-semibold" style={{ color: 'var(--est-text)' }}>
+                {settings.prcNumber}
+              </span>
+            </p>
           </div>
-
         </div>
 
-        {/* Copyright */}
-        <div className="mt-8 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
+        {/* Bottom bar */}
+        <div
+          className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs"
+          style={{ borderTop: '1px solid var(--est-border)', color: 'var(--est-muted)' }}
+        >
           <p>© {year} {settings.businessName}. All rights reserved.</p>
-          <p className="mt-2">
-            <Link href="/admin/login" className="text-gray-700 hover:text-gray-500 transition-colors">
-              Admin
-            </Link>
-          </p>
+          <Link
+            href="/admin"
+            className="transition-colors hover:opacity-70"
+            style={{ color: 'var(--est-elevated)' }}
+          >
+            Admin
+          </Link>
         </div>
       </div>
     </footer>

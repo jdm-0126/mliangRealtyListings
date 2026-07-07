@@ -1,75 +1,54 @@
 'use client'
+// app/(public)/components/ImageGallery.tsx — Estatein dark theme
 
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface ImageGalleryProps {
   photos: string[]
   alt: string
 }
 
-function HousePlaceholder() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="w-16 h-16 text-gray-400"
-      aria-hidden="true"
-    >
-      <path d="M3 9.75L12 3l9 6.75V21a.75.75 0 0 1-.75.75H15v-6h-6v6H3.75A.75.75 0 0 1 3 21V9.75z" />
-    </svg>
-  )
-}
-
 export default function ImageGallery({ photos, alt }: ImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0)
 
-  // Reset active index when photos change (e.g. navigating between listings)
-  useEffect(() => {
-    setActiveIndex(0)
-  }, [photos])
+  useEffect(() => { setActiveIndex(0) }, [photos])
 
-  // Keyboard navigation
   useEffect(() => {
     if (photos.length <= 1) return
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'ArrowLeft') {
-        setActiveIndex((prev) => (prev - 1 + photos.length) % photos.length)
-      } else if (e.key === 'ArrowRight') {
-        setActiveIndex((prev) => (prev + 1) % photos.length)
-      }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowLeft') setActiveIndex(p => (p - 1 + photos.length) % photos.length)
+      else if (e.key === 'ArrowRight') setActiveIndex(p => (p + 1) % photos.length)
     }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
   }, [photos.length])
 
-  // Empty state — placeholder
   if (photos.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 w-full h-64 bg-gray-100 rounded-lg text-gray-500">
-        <HousePlaceholder />
-        <p className="text-sm">No photos available</p>
+      <div
+        className="flex flex-col items-center justify-center gap-3 w-full h-64 rounded-2xl"
+        style={{ background: 'var(--est-elevated)', border: '1px solid var(--est-border)' }}
+      >
+        <svg className="w-14 h-14" style={{ color: 'var(--est-border)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9.75L12 3l9 6.75V21a.75.75 0 01-.75.75H15v-6h-6v6H3.75A.75.75 0 013 21V9.75z" />
+        </svg>
+        <p className="text-xs" style={{ color: 'var(--est-muted)' }}>No photos available</p>
       </div>
     )
   }
 
-  const goLeft = () =>
-    setActiveIndex((prev) => (prev - 1 + photos.length) % photos.length)
-
-  const goRight = () =>
-    setActiveIndex((prev) => (prev + 1) % photos.length)
+  const goLeft = () => setActiveIndex(p => (p - 1 + photos.length) % photos.length)
+  const goRight = () => setActiveIndex(p => (p + 1) % photos.length)
 
   return (
     <div className="flex flex-col gap-3">
       {/* Main image */}
-      <div className="relative w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
+      <div
+        className="relative w-full aspect-video rounded-2xl overflow-hidden"
+        style={{ background: 'var(--est-elevated)', border: '1px solid var(--est-border)' }}
+      >
         <Image
           src={photos[activeIndex]}
           alt={`${alt} ${activeIndex + 1} of ${photos.length}`}
@@ -80,59 +59,42 @@ export default function ImageGallery({ photos, alt }: ImageGalleryProps) {
           priority={activeIndex === 0}
         />
 
-        {/* Navigation arrows */}
+        {/* Counter pill */}
+        {photos.length > 1 && (
+          <div
+            className="absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full"
+            style={{ background: 'rgba(0,0,0,0.6)', color: '#fff', backdropFilter: 'blur(4px)' }}
+          >
+            {activeIndex + 1} / {photos.length}
+          </div>
+        )}
+
+        {/* Nav arrows */}
         {photos.length > 1 && (
           <>
             <button
               onClick={goLeft}
               aria-label="Previous photo"
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full w-9 h-9 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
+              style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4"
-                aria-hidden="true"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
+              <ChevronLeft className="w-4 h-4" />
             </button>
-
             <button
               onClick={goRight}
               aria-label="Next photo"
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full w-9 h-9 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
+              style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4"
-                aria-hidden="true"
-              >
-                <path d="M9 18l6-6-6-6" />
-              </svg>
+              <ChevronRight className="w-4 h-4" />
             </button>
           </>
         )}
       </div>
 
-      {/* Thumbnail row */}
+      {/* Thumbnails */}
       {photos.length > 1 && (
-        <div
-          className="flex flex-row gap-2 overflow-x-auto pb-1"
-          role="list"
-          aria-label="Photo thumbnails"
-        >
+        <div className="flex flex-row gap-2 overflow-x-auto pb-1" role="list" aria-label="Photo thumbnails">
           {photos.map((url, index) => (
             <button
               key={index}
@@ -140,11 +102,12 @@ export default function ImageGallery({ photos, alt }: ImageGalleryProps) {
               onClick={() => setActiveIndex(index)}
               aria-label={`View photo ${index + 1} of ${photos.length}`}
               aria-current={index === activeIndex ? 'true' : undefined}
-              className={`relative flex-shrink-0 w-16 h-16 rounded overflow-hidden border-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                index === activeIndex
-                  ? 'border-blue-600'
-                  : 'border-transparent hover:border-gray-400'
-              }`}
+              className="relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden transition-all hover:opacity-90 focus:outline-none"
+              style={{
+                border: index === activeIndex
+                  ? '2px solid var(--est-purple)'
+                  : '2px solid var(--est-border)',
+              }}
             >
               <Image
                 src={url}
