@@ -5,7 +5,7 @@ import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
 import FeaturedSearchSection from '@/app/(public)/components/FeaturedSearchSection'
 import FeaturedVideoSection from '@/app/(public)/components/FeaturedVideoSection'
 import BookingCTASection from '@/app/(public)/components/BookingCTASection'
-import { getCachedPublicListings } from '@/lib/listings/publicListings'
+import { getSlimPublicListings } from '@/lib/listings/publicListings'
 
 export const dynamic = 'force-static'
 export const revalidate = 60
@@ -19,19 +19,17 @@ export const metadata: Metadata = {
 }
 
 export default async function ListingsPage() {
-  let allListings: PublicListing[] = []
   let featuredListings: PublicListing[] = []
   let fetchError = false
 
   try {
-    allListings = await getCachedPublicListings()
-    featuredListings = allListings
+    const all = await getSlimPublicListings()
+    featuredListings = all
       .filter(l => l.price !== null || l.previewPhoto !== null)
       .slice(0, 6)
   } catch {
     fetchError = true
   }
-
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <MaintenanceBanner />

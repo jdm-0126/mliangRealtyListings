@@ -8,7 +8,6 @@ import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
 import { getSlimPublicListings } from '@/lib/listings/publicListings'
 
 export const revalidate = 60
-// Uses slim listings (no notes/photos/video URLs) to stay under Vercel's 19 MB ISR limit.
 
 export const metadata: Metadata = {
   title: 'All Properties – M. Liang Realty',
@@ -17,7 +16,12 @@ export const metadata: Metadata = {
     'for sale and rent in Pampanga. Filter by type, location, and price.',
 }
 
-export default async function AllListingsPage() {
+interface Props {
+  searchParams: Promise<{ type?: string; location?: string; price?: string }>
+}
+
+export default async function AllListingsPage({ searchParams }: Props) {
+  const { type, location, price } = await searchParams
   let listings: PublicListing[] = []
   let fetchError = false
 
@@ -31,7 +35,6 @@ export default async function AllListingsPage() {
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <MaintenanceBanner />
 
-      {/* Back link */}
       <Link
         href="/listings"
         className="inline-flex items-center gap-2 text-sm mb-8 transition-colors hover:opacity-70"
@@ -40,7 +43,6 @@ export default async function AllListingsPage() {
         <ArrowLeft className="w-4 h-4" /> Back to Featured
       </Link>
 
-      {/* Page header */}
       <div className="mb-10">
         <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--est-purple)' }}>
           All Listings
@@ -63,7 +65,12 @@ export default async function AllListingsPage() {
           </p>
         </div>
       ) : (
-        <ListingsClientWrapper allListings={listings} />
+        <ListingsClientWrapper
+          allListings={listings}
+          initialType={type}
+          initialLocation={location}
+          initialPrice={price}
+        />
       )}
     </main>
   )

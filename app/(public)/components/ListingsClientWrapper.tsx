@@ -7,6 +7,9 @@ import { SlidersHorizontal, X, LayoutList, LayoutGrid } from 'lucide-react'
 
 interface ListingsClientWrapperProps {
   allListings: PublicListing[]
+  initialType?: string
+  initialLocation?: string
+  initialPrice?: string
 }
 
 const PAGE_SIZE = 12
@@ -64,10 +67,14 @@ const labelStyle: React.CSSProperties = {
   color: 'var(--est-muted)',
 }
 
-export default function ListingsClientWrapper({ allListings }: ListingsClientWrapperProps) {
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('All')
-  const [locationQuery, setLocationQuery] = useState('')
-  const [priceRange, setPriceRange] = useState<PriceRange>('All')
+export default function ListingsClientWrapper({ allListings, initialType, initialLocation, initialPrice }: ListingsClientWrapperProps) {
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>(
+    TYPE_OPTIONS.includes(initialType as TypeFilter) ? (initialType as TypeFilter) : 'All'
+  )
+  const [locationQuery, setLocationQuery] = useState(initialLocation ?? '')
+  const [priceRange, setPriceRange] = useState<PriceRange>(
+    PRICE_RANGE_OPTIONS.includes(initialPrice as PriceRange) ? (initialPrice as PriceRange) : 'All'
+  )
   const [currentPage, setCurrentPage] = useState(1)
   // Default is 'list'; admin can override the default via localStorage setting
   const [viewMode, setViewMode] = useState<ViewMode>('list')
