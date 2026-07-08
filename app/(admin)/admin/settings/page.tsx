@@ -2,13 +2,15 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/app/lib/supabaseClient.js'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp } from 'lucide-react'
+import { User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp, Share2, ExternalLink, Wrench, CalendarCheck, Plus, Trash2 } from 'lucide-react'
 import ThemeToggleButton from '@/app/(admin)/components/ThemeToggleButton'
 import ColorPaletteCard from '@/app/(admin)/components/ColorPaletteCard'
+import WebsiteContentEditor from '@/app/(admin)/components/WebsiteContentEditor'
 
 const SETTINGS_KEY = 'tenantSettings'
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
@@ -25,12 +27,41 @@ export default function SettingsPage() {
   const [contactNumber, setContactNumber] = useState('09393440944')
   const [emailAddress, setEmailAddress] = useState('contact@RealtyProv1.com')
   const [saved, setSaved] = useState(false)
+  const [maintenanceMode, setMaintenanceModeState] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const [userRole, setUserRole] = useState('')
   const [showLoginForm, setShowLoginForm] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
+
+  // Social media links
+  const [socialFacebook, setSocialFacebook] = useState('')
+  const [socialInstagram, setSocialInstagram] = useState('')
+  const [socialTiktok, setSocialTiktok] = useState('')
+  const [socialYoutube, setSocialYoutube] = useState('')
+  const [socialX, setSocialX] = useState('')
+  const [socialLinkedin, setSocialLinkedin] = useState('')
+  const [socialWhatsapp, setSocialWhatsapp] = useState('')
+  const [socialViber, setSocialViber] = useState('')
+  const [socialMessenger, setSocialMessenger] = useState('')
+  const [socialSaved, setSocialSaved] = useState(false)
+
+  // Agent of the day
+  type AgentEntry = { name: string; title: string; phone: string }
+  const DEFAULT_AGENT: AgentEntry = { name: 'M. Liang', title: 'Licensed Broker', phone: '09393440944' }
+  const [agents, setAgents] = useState<AgentEntry[]>(Array(7).fill(null).map(() => ({ ...DEFAULT_AGENT })))
+  const [agentsSaved, setAgentsSaved] = useState(false)
+  const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+  // agentPool — active agents fetched from DB for the dropdown
+  const [agentPool, setAgentPool] = useState<{ id: number; name: string; phone: string | null; specialization: string | null }[]>([])
+  // agentsOfTheDay — 7-element array of agent IDs (one per day, null = unassigned)
+  const [agentsOfTheDay, setAgentsOfTheDay] = useState<(number | null)[]>(Array(7).fill(null))
+
+  // Booking — featured listing names shown in the booking form dropdown
+  const [bookingListings, setBookingListings] = useState<string[]>([])
+  const [bookingListingsSaved, setBookingListingsSaved] = useState(false)
 
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null
@@ -44,10 +75,32 @@ export default function SettingsPage() {
         if (parsed.officeAddress) setOfficeAddress(parsed.officeAddress)
         if (parsed.contactNumber) setContactNumber(parsed.contactNumber)
         if (parsed.emailAddress) setEmailAddress(parsed.emailAddress)
+        // Social media
+        if (parsed.socialFacebook)  setSocialFacebook(parsed.socialFacebook)
+        if (parsed.socialInstagram) setSocialInstagram(parsed.socialInstagram)
+        if (parsed.socialTiktok)    setSocialTiktok(parsed.socialTiktok)
+        if (parsed.socialYoutube)   setSocialYoutube(parsed.socialYoutube)
+        if (parsed.socialX)         setSocialX(parsed.socialX)
+        if (parsed.socialLinkedin)  setSocialLinkedin(parsed.socialLinkedin)
+        if (parsed.socialWhatsapp)  setSocialWhatsapp(parsed.socialWhatsapp)
+        if (parsed.socialViber)     setSocialViber(parsed.socialViber)
+        if (parsed.socialMessenger) setSocialMessenger(parsed.socialMessenger)
+        if (Array.isArray(parsed.agentsOfTheDay) && parsed.agentsOfTheDay.length === 7)
+          setAgentsOfTheDay(parsed.agentsOfTheDay)
+        if (Array.isArray(parsed.featuredBookingListings))
+          setBookingListings(parsed.featuredBookingListings.filter(Boolean))
       } catch {
         // ignore invalid stored settings
       }
     }
+
+    // Load active agents from DB for the dropdown pool
+    if (supabase) {
+      supabase.from('agents').select('id, name, phone, specialization').eq('status', 'Active').order('name')
+        .then(({ data }) => { if (data) setAgentPool(data) })
+    }
+
+    setMaintenanceModeState(localStorage.getItem('maintenanceMode') === 'true')
 
     // Check login status
     const auth = sessionStorage.getItem('brokerAdminAuth')
@@ -117,12 +170,65 @@ export default function SettingsPage() {
       officeAddress,
       contactNumber,
       emailAddress,
+      socialFacebook,
+      socialInstagram,
+      socialTiktok,
+      socialYoutube,
+      socialX,
+      socialLinkedin,
+      socialWhatsapp,
+      socialViber,
+      socialMessenger,
+      agentsOfTheDay: agentsOfTheDay,
     }
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
     localStorage.setItem('businessName', businessName)
     setSaved(true)
     window.dispatchEvent(new Event('storage'))
     window.setTimeout(() => setSaved(false), 2000)
+  }
+
+  const saveSocialLinks = () => {
+    const existing = (() => {
+      try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') } catch { return {} }
+    })()
+    const updated = {
+      ...existing,
+      socialFacebook,
+      socialInstagram,
+      socialTiktok,
+      socialYoutube,
+      socialX,
+      socialLinkedin,
+      socialWhatsapp,
+      socialViber,
+      socialMessenger,
+    }
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated))
+    setSocialSaved(true)
+    window.dispatchEvent(new StorageEvent('storage', { key: SETTINGS_KEY }))
+    window.setTimeout(() => setSocialSaved(false), 2000)
+  }
+
+  const saveAgents = () => {
+    const existing = (() => {
+      try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') } catch { return {} }
+    })()
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...existing, agentsOfTheDay: agentsOfTheDay }))
+    setAgentsSaved(true)
+    window.dispatchEvent(new StorageEvent('storage', { key: SETTINGS_KEY }))
+    window.setTimeout(() => setAgentsSaved(false), 2000)
+  }
+
+  const saveBookingListings = () => {
+    const existing = (() => {
+      try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') } catch { return {} }
+    })()
+    const clean = bookingListings.map(s => s.trim()).filter(Boolean)
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...existing, featuredBookingListings: clean }))
+    setBookingListingsSaved(true)
+    window.dispatchEvent(new StorageEvent('storage', { key: SETTINGS_KEY }))
+    window.setTimeout(() => setBookingListingsSaved(false), 2000)
   }
   return (
     <div className="min-h-screen" style={{ background: 'hsl(var(--background))', color: 'hsl(var(--foreground))' }}>
@@ -268,12 +374,320 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Database Settings */}
+          {/* Social Media Links */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Database className="w-5 h-5 mr-2" />
-                Database Configuration
+                <Share2 className="w-5 h-5 mr-2" />
+                Social Media Links
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-500">
+                These links appear in the public website footer. Leave blank to hide a platform.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Facebook */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    <span className="text-blue-600">f</span> Facebook
+                  </label>
+                  <Input
+                    type="url"
+                    value={socialFacebook}
+                    onChange={e => setSocialFacebook(e.target.value)}
+                    placeholder="https://facebook.com/yourpage"
+                  />
+                </div>
+                {/* Instagram */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    <span className="text-pink-500">📸</span> Instagram
+                  </label>
+                  <Input
+                    type="url"
+                    value={socialInstagram}
+                    onChange={e => setSocialInstagram(e.target.value)}
+                    placeholder="https://instagram.com/yourhandle"
+                  />
+                </div>
+                {/* TikTok */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    <span>🎵</span> TikTok
+                  </label>
+                  <Input
+                    type="url"
+                    value={socialTiktok}
+                    onChange={e => setSocialTiktok(e.target.value)}
+                    placeholder="https://tiktok.com/@yourhandle"
+                  />
+                </div>
+                {/* YouTube */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    <span className="text-red-600">▶</span> YouTube
+                  </label>
+                  <Input
+                    type="url"
+                    value={socialYoutube}
+                    onChange={e => setSocialYoutube(e.target.value)}
+                    placeholder="https://youtube.com/@yourchannel"
+                  />
+                </div>
+                {/* X (Twitter) */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    <span className="font-bold">𝕏</span> X (Twitter)
+                  </label>
+                  <Input
+                    type="url"
+                    value={socialX}
+                    onChange={e => setSocialX(e.target.value)}
+                    placeholder="https://x.com/yourhandle"
+                  />
+                </div>
+                {/* LinkedIn */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    <span className="text-blue-700">in</span> LinkedIn
+                  </label>
+                  <Input
+                    type="url"
+                    value={socialLinkedin}
+                    onChange={e => setSocialLinkedin(e.target.value)}
+                    placeholder="https://linkedin.com/in/yourprofile"
+                  />
+                </div>
+                {/* WhatsApp */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    <span className="text-green-500">💬</span> WhatsApp
+                  </label>
+                  <Input
+                    type="tel"
+                    value={socialWhatsapp}
+                    onChange={e => setSocialWhatsapp(e.target.value)}
+                    placeholder="09XXXXXXXXX or 639XXXXXXXXX"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Enter your phone number. The WhatsApp link is generated automatically.</p>
+                  {socialWhatsapp && (
+                    <a
+                      href={`https://wa.me/${socialWhatsapp.replace(/\D/g, '').replace(/^0/, '63')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-green-600 hover:underline mt-1 inline-block"
+                    >
+                      Preview: wa.me/{socialWhatsapp.replace(/\D/g, '').replace(/^0/, '63')}
+                    </a>
+                  )}
+                </div>
+                {/* Viber */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    <span className="text-purple-500">📲</span> Viber
+                  </label>
+                  <Input
+                    type="tel"
+                    value={socialViber}
+                    onChange={e => setSocialViber(e.target.value)}
+                    placeholder="09XXXXXXXXX or 639XXXXXXXXX"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Enter your phone number. The Viber link is generated automatically.</p>
+                  {socialViber && (
+                    <span className="text-xs text-purple-500 mt-1 inline-block">
+                      Preview: viber://contact?number=+{socialViber.replace(/\D/g, '').replace(/^0/, '63')}
+                    </span>
+                  )}
+                </div>
+                {/* Messenger */}
+                <div className="md:col-span-2">
+                  <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    <span style={{ color: '#0084FF' }}>💬</span> Facebook Messenger URL
+                  </label>
+                  <Input
+                    type="url"
+                    value={socialMessenger}
+                    onChange={e => setSocialMessenger(e.target.value)}
+                    placeholder="https://m.me/YourPageName"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Used for the "Chat on Messenger" button on the public site. Get your link at{' '}
+                    <a href="https://www.facebook.com/pages/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">facebook.com/pages</a>
+                    {' '}→ your page → About → Messenger link.
+                  </p>
+                  {socialMessenger && (
+                    <a href={socialMessenger} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline mt-1 inline-block">
+                      Preview: {socialMessenger}
+                    </a>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <Button onClick={saveSocialLinks}>Save Social Links</Button>
+                {socialSaved && <span className="text-sm text-green-600">Social links saved ✓</span>}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Agent of the Day */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <User className="w-5 h-5 mr-2" />
+                Agent of the Day
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-500">
+                Assign an agent from your team to each day of the week. Shown on the public "Book a Viewing" section.
+              </p>
+              {agentPool.length === 0 ? (
+                <div className="rounded-lg border p-4 text-sm text-gray-500" style={{ borderColor: 'hsl(var(--border))' }}>
+                  No active agents found.{' '}
+                  <a href="/admin/agents" className="text-blue-600 hover:underline">Add agents first →</a>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {DAY_LABELS.map((day, i) => (
+                    <div key={day} className="flex items-center gap-4">
+                      <span className="w-24 text-xs font-semibold uppercase tracking-widest flex-shrink-0"
+                        style={{ color: 'hsl(var(--muted-foreground))' }}>{day}</span>
+                      <select
+                        value={agentsOfTheDay[i] ?? ''}
+                        onChange={e => setAgentsOfTheDay(prev =>
+                          prev.map((v, idx) => idx === i ? (e.target.value ? Number(e.target.value) : null) : v)
+                        )}
+                        className="flex-1 px-3 py-2 rounded-lg border text-sm"
+                        style={{
+                          background: 'hsl(var(--background))',
+                          borderColor: 'hsl(var(--border))',
+                          color: 'hsl(var(--foreground))',
+                        }}
+                      >
+                        <option value="">— No agent assigned —</option>
+                        {agentPool.map(a => (
+                          <option key={a.id} value={a.id}>
+                            {a.name}{a.specialization ? ` · ${a.specialization}` : ''}{a.phone ? ` · ${a.phone}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-3 pt-2">
+                <Button onClick={saveAgents} disabled={agentPool.length === 0}>Save Agents</Button>
+                {agentsSaved && <span className="text-sm text-green-600">Agents saved ✓</span>}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Booking — Featured Listings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CalendarCheck className="w-5 h-5 mr-2" />
+                Booking — Featured Listings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-500">
+                These property names appear as options in the public booking form dropdown.
+                Leave empty to let guests type their own property of interest.
+              </p>
+              <div className="space-y-2">
+                {bookingListings.map((item, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input
+                      value={item}
+                      onChange={e => setBookingListings(prev => prev.map((v, idx) => idx === i ? e.target.value : v))}
+                      placeholder="e.g. House & Lot – Brgy. Dolores, San Fernando"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setBookingListings(prev => prev.filter((_, idx) => idx !== i))}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBookingListings(prev => [...prev, ''])}
+              >
+                <Plus className="w-4 h-4 mr-1" /> Add Listing
+              </Button>
+              <div className="flex items-center gap-3 pt-1">
+                <Button onClick={saveBookingListings}>Save Listings</Button>
+                {bookingListingsSaved && <span className="text-sm text-green-600">Saved ✓</span>}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Maintenance Mode */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Wrench className="w-5 h-5 mr-2" />
+                Maintenance Mode
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                When enabled, an edit toolbar appears on the public <strong>/listings</strong> and <strong>home</strong> pages.
+                Allows quick inline editing of listing type, description, and preview photo without going to the admin panel.
+              </p>
+              <div className="flex items-center justify-between p-4 rounded-lg border" style={{ background: maintenanceMode ? 'rgb(254 242 242)' : 'rgb(240 253 244)', borderColor: maintenanceMode ? 'rgb(252 165 165)' : 'rgb(134 239 172)' }}>
+                <div>
+                  <p className="font-medium" style={{ color: maintenanceMode ? 'rgb(153 27 27)' : 'rgb(20 83 45)' }}>
+                    {maintenanceMode ? '🔧 Maintenance Mode ON' : '✅ Maintenance Mode OFF'}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: maintenanceMode ? 'rgb(185 28 28)' : 'rgb(22 101 52)' }}>
+                    {maintenanceMode ? 'Edit toolbar visible on public pages' : 'Public pages are in normal view mode'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const next = !maintenanceMode
+                    setMaintenanceModeState(next)
+                    if (next) localStorage.setItem('maintenanceMode', 'true')
+                    else localStorage.removeItem('maintenanceMode')
+                    window.dispatchEvent(new Event('maintenanceModeChange'))
+                  }}
+                  className="relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none"
+                  style={{ background: maintenanceMode ? 'hsl(var(--primary))' : '#d1d5db' }}
+                >
+                  <span
+                    className="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform"
+                    style={{ transform: maintenanceMode ? 'translateX(1.375rem)' : 'translateX(0.25rem)' }}
+                  />
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Database Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center">
+                  <Database className="w-5 h-5 mr-2" />
+                  Database Configuration
+                </span>
+                {userRole === 'Superadmin' && (
+                  <a
+                    href="/admin/tenant-management"
+                    className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md"
+                    style={{ color: 'hsl(var(--primary))', background: 'hsl(var(--primary) / 0.08)' }}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Tenant Management
+                  </a>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -393,6 +807,98 @@ export default function SettingsPage() {
 
           {/* Color Palette */}
           <ColorPaletteCard />
+
+          {/* Website content */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Database className="w-5 h-5 mr-2" />
+                Website Content Manager
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Manage reusable website sections from Supabase. These values are stored in the website_content table and can power the homepage, About page, broker profiles, developer profiles, advantages, stories, and captions.
+              </p>
+              <div className="grid gap-4 xl:grid-cols-2">
+                <WebsiteContentEditor
+                  title="Home Hero"
+                  sectionKey="home_hero"
+                  initialValue={{ badge: 'Licensed Real Estate Broker · PRC No. 0019653', title: 'Find Your Dream Property', subtitle: 'Browse active listings and let us help you find the right place in Pampanga.', ctaLabel: 'Browse Listings', secondaryLabel: 'Contact Us' }}
+                  description="Controls the homepage hero badge, heading, subtitle, and CTA labels."
+                />
+                <WebsiteContentEditor
+                  title="Home Services"
+                  sectionKey="home_services"
+                  initialValue={[
+                    { title: 'Property Sales', desc: 'House and lot, townhouse, and commercial properties across Pampanga.' },
+                    { title: 'Rental Properties', desc: 'Residential rentals in San Fernando and nearby areas.' },
+                    { title: 'Lot Sales', desc: 'Premium lots in prime Pampanga locations.' },
+                  ]}
+                  description="Controls the three service cards shown on the homepage."
+                />
+                <WebsiteContentEditor
+                  title="About Hero"
+                  sectionKey="about_hero"
+                  initialValue={{ title: 'About Us', subtitle: 'A licensed brokerage serving buyers, investors, and property owners in Pampanga.' }}
+                  description="Controls the About page hero heading and supporting copy."
+                />
+                <WebsiteContentEditor
+                  title="About Overview"
+                  sectionKey="about_overview"
+                  initialValue={{ headline: 'About RealtyProv1', body: 'We help clients buy, sell, and rent properties with guidance and local expertise.', body2: 'Our team combines professionalism, market knowledge, and personalized service.' }}
+                  description="Controls the main About page description blocks."
+                />
+                <WebsiteContentEditor
+                  title="Broker Profiles"
+                  sectionKey="broker_profiles"
+                  initialValue={[
+                    { name: 'M. Liang', title: 'Licensed Broker', phone: '09393440944', bio: 'Experienced broker focused on trusted service and property guidance.' },
+                  ]}
+                  description="Store broker profile cards that can be displayed on the site."
+                />
+                <WebsiteContentEditor
+                  title="Developer Profiles"
+                  sectionKey="developer_profiles"
+                  initialValue={[
+                    { name: 'Developer Name', title: 'Developer', strengths: ['Trusted development', 'Prime locations', 'Strong investor value'] },
+                  ]}
+                  description="Store developer profile entries and their strengths."
+                />
+                <WebsiteContentEditor
+                  title="Advantages"
+                  sectionKey="advantages"
+                  initialValue={[
+                    { title: 'Transparent Guidance', desc: 'Clear updates, honest advice, and smooth transactions.' },
+                    { title: 'Local Market Expertise', desc: 'Deep knowledge of Pampanga neighborhoods and pricing.' },
+                  ]}
+                  description="Store advantages or value points for the site."
+                />
+                <WebsiteContentEditor
+                  title="Featured Stories"
+                  sectionKey="featured_stories"
+                  initialValue={[
+                    { title: 'Client Success Story', summary: 'A growing family found their ideal home with a smooth buying experience.', quote: 'We felt supported from start to finish.' },
+                  ]}
+                  description="Store featured stories or success highlights."
+                />
+                <WebsiteContentEditor
+                  title="Client Stories"
+                  sectionKey="client_stories"
+                  initialValue={[
+                    { name: 'Client Name', story: 'A short testimonial or client story you want to feature.' },
+                  ]}
+                  description="Store client stories or testimonials for marketing sections."
+                />
+                <WebsiteContentEditor
+                  title="Captions"
+                  sectionKey="captions"
+                  initialValue={{ homepage: 'Discover properties in Pampanga.', about: 'Learn more about our brokerage and values.', contact: 'Reach out for property inquiries and appointments.' }}
+                  description="Store reusable captions and copy snippets for multiple website sections."
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* SEO Tips */}
           <Card>

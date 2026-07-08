@@ -7,6 +7,9 @@ export const supabase = supabaseUrl && supabaseKey
   ? createClient(supabaseUrl, supabaseKey)
   : null
 
+// Default tenant — mliang is tenant 1
+export const DEFAULT_TENANT_ID = 1
+
 // Attach to window for browser extension (localhost only)
 if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && supabase) {
   window.supabase = supabase

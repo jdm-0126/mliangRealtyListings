@@ -163,6 +163,7 @@ export default function ModernDashboard() {
       .from('mlianglistings')
       .select('*')
       .order('Property ID', { ascending: false })
+      .limit(500)
     if (error) {
       console.error('Error fetching data:', error)
       setLoading(false)

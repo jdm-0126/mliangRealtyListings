@@ -34,9 +34,10 @@ export default function AgentManagement({ brokerId }: { brokerId?: number }) {
     setLoading(true)
     
     let query = supabase.from('agents').select('*')
-    
-    if (brokerId) {
-      query = query.eq('broker_id', brokerId)
+
+    if (brokerId != null && !Number.isNaN(Number(brokerId)) && Number(brokerId) > 0) {
+      const numericBrokerId = Number(brokerId)
+      query = query.or(`broker_id.is.null,broker_id.eq.${numericBrokerId}`)
     }
     
     const { data, error } = await query.order('created_at', { ascending: false })
@@ -139,7 +140,7 @@ export default function AgentManagement({ brokerId }: { brokerId?: number }) {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   {agent.profile_photo ? (
-                    <img src={agent.profile_photo} alt={agent.name} className="w-12 h-12 rounded-full object-cover" />
+                    <img src={agent.profile_photo} alt={agent.name} className="w-12 h-12 rounded-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
                       <User className="w-6 h-6 text-blue-600" />

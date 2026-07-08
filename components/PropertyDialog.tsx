@@ -106,7 +106,6 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
   }
 
   const handleCreate = async () => {
-    if (!supabase) return
     setLoading(true)
     
     // Prepare data for insertion - remove Property ID if empty
@@ -124,13 +123,22 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
       // Convert to number if it's a valid ID
       dataToInsert['Property ID'] = Number(propertyId)
     }
-    
-    const { error } = await supabase.from('mlianglistings').insert(dataToInsert)
-    if (error) {
-      alert('Record not added. Error: ' + error.message)
-    } else {
-      alert('Record successfully added!')
-      onClose()
+
+    try {
+      const { getTenantScopedClient } = await import('@/lib/supabase/browserTenantClient')
+      const { supabase: tenantSupabase, tenantId, listingsTable } = await getTenantScopedClient()
+
+      dataToInsert.tenant_id = tenantId
+
+      const { error } = await tenantSupabase.from(listingsTable).insert(dataToInsert)
+      if (error) {
+        alert('Record not added. Error: ' + error.message)
+      } else {
+        alert('Record successfully added!')
+        onClose()
+      }
+    } catch (err: any) {
+      alert('Error: ' + (err?.message ?? String(err)))
     }
     setLoading(false)
   }

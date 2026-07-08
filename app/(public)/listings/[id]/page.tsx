@@ -6,7 +6,7 @@ import type { PublicListing } from '@/lib/types/public'
 import { buildRealEstateListingJsonLd, generateDetailTitle, buildCanonicalUrl } from '@/lib/seo/jsonld'
 import ImageGallery from '@/app/(public)/components/ImageGallery'
 import JsonLd from '@/app/(public)/components/JsonLd'
-import { MapPin, Maximize2, Home, BedDouble, Bath, Mail, ArrowLeft } from 'lucide-react'
+import { MapPin, Maximize2, Home, BedDouble, Bath, Mail, ArrowLeft, Map } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -46,6 +46,7 @@ async function fetchListing(displayId: number): Promise<PublicListing | null> {
     bedrooms: parseNum(row['Bedroom']), bathrooms: parseNum(row['Bathroom']),
     previewPhoto: photos[0] ?? null, photos, notes: String(row['Notes'] ?? ''),
     status: String(row['Status'] ?? ''),
+    mapUrl: typeof row['Map URL'] === 'string' && row['Map URL'].trim() ? row['Map URL'].trim() : null,
     updatedAt: typeof row['updated_at'] === 'string' ? row['updated_at'] : undefined,
   }
 }
@@ -198,6 +199,20 @@ export default async function PropertyDetailPage({ params }: Props) {
                   {listing.notes}
                 </p>
               </div>
+            )}
+
+            {/* Map link */}
+            {listing.mapUrl && (
+              <a
+                href={listing.mapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
+                style={{ background: 'var(--est-elevated)', border: '1px solid var(--est-border)', color: 'var(--est-subtle)' }}
+              >
+                <Map className="w-4 h-4" style={{ color: 'var(--est-purple)' }} />
+                View on Map
+              </a>
             )}
 
             {/* CTA */}

@@ -8,6 +8,11 @@ const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
 const SUPERADMIN_PASSWORD = 'EuandaiteD_0126'
 const BROKER_PASSWORD = 'brokerMliangAdmin2026'
 
+// Tenant administrators — full broker-level access per tenant
+const TENANT_ADMINS: Record<string, { password: string; tenant: string }> = {
+  'admin@realtyprov1.com': { password: 'Password123!', tenant: 'mliang' },
+}
+
 // Accepted broker/agent emails (extend as needed)
 const BROKER_EMAILS = [
   'broker@realtyprov1.com',
@@ -46,6 +51,18 @@ export default function AdminLoginPage() {
       sessionStorage.setItem('brokerAdminAuth', 'authenticated')
       sessionStorage.setItem('userEmail', trimmedEmail)
       sessionStorage.setItem('viewAsRole', 'superadmin')
+      router.replace('/admin')
+      return
+    }
+
+    // Tenant admin check
+    const tenantAdmin = TENANT_ADMINS[trimmedEmail]
+    if (tenantAdmin && trimmedPassword === tenantAdmin.password) {
+      sessionStorage.setItem('brokerAdminAuth', 'authenticated')
+      sessionStorage.setItem('userEmail', trimmedEmail)
+      sessionStorage.setItem('userRole', 'tenant_admin')
+      sessionStorage.setItem('tenant', tenantAdmin.tenant)
+      sessionStorage.setItem('viewAsRole', 'broker')
       router.replace('/admin')
       return
     }

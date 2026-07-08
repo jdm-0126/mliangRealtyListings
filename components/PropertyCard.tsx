@@ -167,13 +167,15 @@ export default function PropertyCard({
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 border-gray-200">
       {/* Preview Photo Thumbnail - Only show in grid view */}
-      {viewMode === 'grid' && property['Preview Photo'] && (
+      {viewMode === 'grid' && (
         <div className="relative w-full h-48 overflow-hidden rounded-t-lg group/photo">
-          <img 
-            src={property['Preview Photo']} 
+          <img
+            src={property['Preview Photo'] || 'https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png'}
             alt={`Property #${property['Property ID']}`}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 cursor-pointer"
-            onClick={() => setIsFullscreen(true)}
+            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 cursor-pointer${!property['Preview Photo'] ? ' opacity-60' : ''}`}
+            loading="lazy"
+            decoding="async"
+            onClick={() => property['Preview Photo'] && setIsFullscreen(true)}
           />
           <div className="absolute top-2 right-2 flex gap-1">
             <Badge variant={getStatusVariant(property.Status)} className="shadow-md">
@@ -209,6 +211,8 @@ export default function PropertyCard({
             src={property['Preview Photo']}
             alt={`Property #${property['Property ID']}`}
             className="max-w-full max-h-full object-contain"
+            loading="lazy"
+            decoding="async"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -276,6 +280,8 @@ export default function PropertyCard({
                     src={newPhotoUrl} 
                     alt="Preview" 
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                     onError={() => alert('Invalid image URL or unable to load image')}
                   />
                 </div>

@@ -28,13 +28,17 @@ export default function ImageGallery({ photos, alt }: ImageGalleryProps) {
   if (photos.length === 0) {
     return (
       <div
-        className="flex flex-col items-center justify-center gap-3 w-full h-64 rounded-2xl"
+        className="relative w-full h-64 rounded-2xl overflow-hidden"
         style={{ background: 'var(--est-elevated)', border: '1px solid var(--est-border)' }}
       >
-        <svg className="w-14 h-14" style={{ color: 'var(--est-border)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9.75L12 3l9 6.75V21a.75.75 0 01-.75.75H15v-6h-6v6H3.75A.75.75 0 013 21V9.75z" />
-        </svg>
-        <p className="text-xs" style={{ color: 'var(--est-muted)' }}>No photos available</p>
+        <Image
+          src="https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png"
+          alt="No photos available"
+          fill
+          className="object-cover opacity-60"
+          sizes="(max-width: 768px) 100vw, 800px"
+        />
+        <p className="absolute bottom-3 left-0 right-0 text-center text-xs" style={{ color: 'var(--est-muted)' }}>No photos available</p>
       </div>
     )
   }
@@ -53,7 +57,6 @@ export default function ImageGallery({ photos, alt }: ImageGalleryProps) {
           src={photos[activeIndex]}
           alt={`${alt} ${activeIndex + 1} of ${photos.length}`}
           fill
-          unoptimized
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 800px"
           priority={activeIndex === 0}
@@ -113,7 +116,7 @@ export default function ImageGallery({ photos, alt }: ImageGalleryProps) {
                 src={url}
                 alt={`${alt} thumbnail ${index + 1}`}
                 fill
-                unoptimized
+                loading="lazy"
                 className="object-cover"
                 sizes="64px"
               />

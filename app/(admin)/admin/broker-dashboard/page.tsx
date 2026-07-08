@@ -215,7 +215,7 @@ export default function BrokerDashboard() {
                   >
                     <div className="flex items-center gap-3 mb-3">
                       {agent.profile_photo ? (
-                        <Image src={agent.profile_photo} alt={agent.name} width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
+                        <Image src={agent.profile_photo} alt={agent.name} width={48} height={48} className="h-12 w-12 rounded-full object-cover" loading="lazy" />
                       ) : (
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-700">
                           <Users className="h-6 w-6" />

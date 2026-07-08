@@ -8,7 +8,11 @@ import { buildLocalBusinessJsonLd } from '@/lib/seo/jsonld'
 import ListingCard from '@/app/(public)/components/ListingCard'
 import SocialLinks from '@/app/(public)/components/SocialLinks'
 import JsonLd from '@/app/(public)/components/JsonLd'
+import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
+import BookingCTASection from '@/app/(public)/components/BookingCTASection'
 import { Home, Building2, MapPin, ArrowRight } from 'lucide-react'
+import { readWebsiteContentJson } from '@/lib/websiteContent'
+import { WEBSITE_SECTIONS } from '@/lib/websiteContentSections'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -52,9 +56,13 @@ function mapListing(row: Record<string, unknown>): PublicListing {
     bedrooms: parseArea(row['Bedroom']), bathrooms: parseArea(row['Bathroom']),
     previewPhoto: row['Preview Photo'] ? String(row['Preview Photo']) : null,
     photos: [], notes: String(row['Notes'] ?? ''), status: String(row['Status'] ?? ''),
+    mapUrl: row['Map URL'] ? String(row['Map URL']) : null,
     updatedAt: row['updated_at'] ? String(row['updated_at']) : undefined,
   }
 }
+
+type HomeHeroContent = { badge?: string; title?: string; subtitle?: string; ctaLabel?: string; secondaryLabel?: string }
+type HomeServiceItem = { title: string; desc: string; icon?: string }
 
 const SERVICES = [
   {
@@ -76,6 +84,8 @@ const SERVICES = [
 
 export default async function HomePage() {
   const settings = getTenantSettingsServer()
+  const heroContent = await readWebsiteContentJson<HomeHeroContent>(WEBSITE_SECTIONS.homeHero, undefined)
+  const serviceContent = await readWebsiteContentJson<HomeServiceItem[]>(WEBSITE_SECTIONS.homeServices, undefined)
   let listings: PublicListing[] = []
   let fetchError = false
   let isFeaturedSet = false
@@ -116,6 +126,7 @@ export default async function HomePage() {
   return (
     <>
       <JsonLd data={buildLocalBusinessJsonLd(settings)} />
+      <MaintenanceBanner />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section
@@ -134,19 +145,17 @@ export default async function HomePage() {
           <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium mb-7"
             style={{ background: 'var(--est-surface)', border: '1px solid var(--est-border)', color: 'var(--est-muted)' }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--est-purple)' }} />
-            Licensed Real Estate Broker · PRC No. {settings.prcNumber}
+            {heroContent?.badge || `Licensed Real Estate Broker · PRC No. ${settings.prcNumber}`}
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-5"
             style={{ color: 'var(--est-text)' }}>
-            Find Your{' '}
-            <span style={{ color: 'var(--est-purple)' }}>Dream Property</span>
-            <br />in Pampanga
+            {heroContent?.title || <>Find Your{' '}<span style={{ color: 'var(--est-purple)' }}>Dream Property</span><br />in Pampanga</>}
           </h1>
 
           <p className="text-base sm:text-lg max-w-2xl mx-auto mb-10"
             style={{ color: 'var(--est-muted)' }}>
-            {settings.businessName} offers house and lot, lot-only, and commercial listings across San Fernando and Pampanga. Browse active properties or send us an inquiry.
+            {heroContent?.subtitle || `${settings.businessName} offers house and lot, lot-only, and commercial listings across San Fernando and Pampanga. Browse active properties or send us an inquiry.`}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -155,14 +164,14 @@ export default async function HomePage() {
               className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
               style={{ background: 'var(--est-purple)', color: '#fff' }}
             >
-              Browse Listings <ArrowRight className="w-4 h-4" />
+              {heroContent?.ctaLabel || 'Browse Listings'} <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/contact"
               className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
               style={{ background: 'var(--est-surface)', color: 'var(--est-text)', border: '1px solid var(--est-border)' }}
             >
-              Contact Us
+              {heroContent?.secondaryLabel || 'Contact Us'}
             </Link>
           </div>
         </div>
@@ -221,9 +230,13 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {SERVICES.map(({ icon: Icon, title, desc }) => (
+            {(serviceContent && serviceContent.length > 0 ? serviceContent : SERVICES).map((item, index) => {
+              const Icon = (SERVICES[index % SERVICES.length]?.icon ?? Home)
+              const title = item.title || SERVICES[index % SERVICES.length]?.title || 'Service'
+              const desc = item.desc || SERVICES[index % SERVICES.length]?.desc || ''
+              return (
               <div
-                key={title}
+                key={`${title}-${index}`}
                 className="rounded-2xl p-7 transition-all hover:-translate-y-0.5"
                 style={{ background: 'var(--est-surface)', border: '1px solid var(--est-border)' }}
               >
@@ -236,10 +249,14 @@ export default async function HomePage() {
                 <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--est-text)' }}>{title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--est-muted)' }}>{desc}</p>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
+
+      {/* ── Booking CTA ───────────────────────────────────────────────────── */}
+      <BookingCTASection />
 
       {/* ── Social row ───────────────────────────────────────────────────── */}
       <section

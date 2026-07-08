@@ -174,7 +174,9 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
       const { data, error } = await supabase
         .from('mlianglistings')
         .select('*')
+        .ilike('Status', 'active')
         .order('Property ID', { ascending: false })
+        .limit(200)
       if (!error) {
         setRealProperties(data || [])
         setPropertiesLoaded(true)

@@ -5,9 +5,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Palette, Check } from 'lucide-react'
-
-const STORAGE_KEY = 'siteAccentColor'
-const DEFAULT_COLOR = '#703BF7'
+import {
+  BRAND_COLOR_STORAGE_KEY,
+  DEFAULT_BRAND_COLOR,
+  applyBrandColor,
+  persistBrandColor,
+  readStoredBrandColor,
+} from '@/lib/theme/brandColor'
 
 // Curated preset palette
 const PRESETS: { name: string; value: string }[] = [
@@ -25,52 +29,38 @@ const PRESETS: { name: string; value: string }[] = [
   { name: 'Indigo',          value: '#4F46E5' },
 ]
 
-/** Apply color live — sets the CSS custom property on <html> */
-function applyColor(hex: string) {
-  if (typeof document !== 'undefined') {
-    document.documentElement.style.setProperty('--est-purple', hex)
-  }
-}
-
-/** Persist and apply */
-function saveColor(hex: string) {
-  applyColor(hex)
-  try { localStorage.setItem(STORAGE_KEY, hex) } catch {}
-}
-
 export default function ColorPaletteCard() {
-  const [active, setActive] = useState(DEFAULT_COLOR)
-  const [custom, setCustom] = useState(DEFAULT_COLOR)
+  const [active, setActive] = useState(DEFAULT_BRAND_COLOR)
+  const [custom, setCustom] = useState(DEFAULT_BRAND_COLOR)
   const colorInputRef = useRef<HTMLInputElement>(null)
 
   // Sync from localStorage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored && /^#[0-9a-fA-F]{6}$/.test(stored)) {
-        setActive(stored)
-        setCustom(stored)
-      }
-    } catch {}
+    const stored = readStoredBrandColor()
+    if (stored) {
+      setActive(stored)
+      setCustom(stored)
+      applyBrandColor(stored)
+    }
   }, [])
 
-  function handlePreset(hex: string) {
+  async function handlePreset(hex: string) {
     setActive(hex)
     setCustom(hex)
-    saveColor(hex)
+    await persistBrandColor(hex)
   }
 
-  function handleCustomChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleCustomChange(e: React.ChangeEvent<HTMLInputElement>) {
     const hex = e.target.value
     setCustom(hex)
     setActive(hex)
-    saveColor(hex)
+    await persistBrandColor(hex)
   }
 
-  function handleReset() {
-    setActive(DEFAULT_COLOR)
-    setCustom(DEFAULT_COLOR)
-    saveColor(DEFAULT_COLOR)
+  async function handleReset() {
+    setActive(DEFAULT_BRAND_COLOR)
+    setCustom(DEFAULT_BRAND_COLOR)
+    await persistBrandColor(DEFAULT_BRAND_COLOR)
   }
 
   const isCustom = !PRESETS.some(p => p.value.toLowerCase() === active.toLowerCase())

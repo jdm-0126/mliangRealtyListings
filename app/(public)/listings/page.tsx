@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import { supabase } from '@/app/lib/supabaseClient'
 import { PublicListing } from '@/lib/types/public'
 import ListingsClientWrapper from '@/app/(public)/components/ListingsClientWrapper'
+import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
 
 export const metadata: Metadata = {
   title: 'Properties for Sale & Rent – M. Liang Realty',
@@ -42,6 +43,7 @@ function mapToPublicListing(row: Record<string, unknown>): PublicListing {
     bedrooms: parseArea(row['Bedroom']), bathrooms: parseArea(row['Bathroom']),
     previewPhoto: typeof row['Preview Photo'] === 'string' && row['Preview Photo'].trim() ? row['Preview Photo'].trim() : null,
     photos, notes: String(row['Notes'] ?? ''), status: String(row['Status'] ?? ''),
+    mapUrl: typeof row['Map URL'] === 'string' && row['Map URL'].trim() ? row['Map URL'].trim() : null,
     updatedAt: typeof row['updated_at'] === 'string' ? row['updated_at'] : undefined,
   }
 }
@@ -64,6 +66,7 @@ export default async function ListingsPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <MaintenanceBanner />
       {/* Page header */}
       <div className="mb-10">
         <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--est-purple)' }}>

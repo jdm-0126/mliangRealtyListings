@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Upload, Settings, BarChart3, Users, Menu, X, KeyRound } from 'lucide-react'
+import { Home, Upload, Settings, BarChart3, Users, Menu, X, KeyRound, Database } from 'lucide-react'
 import { Button } from './ui/button'
 
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
@@ -13,10 +13,12 @@ const navigation = [
   { name: 'Broker Dashboard', href: '/admin/broker-dashboard', icon: BarChart3, roles: ['superadmin', 'broker'] },
   { name: 'Properties',       href: '/admin/properties',    icon: BarChart3, roles: ['superadmin', 'broker', 'agent'] },
   { name: 'Rentals',          href: '/admin/rentals',       icon: KeyRound,  roles: ['superadmin', 'broker', 'agent'] },
+  { name: 'Gallery',          href: '/admin/gallery',       icon: Upload,    roles: ['superadmin', 'broker'] },
   { name: 'Brokers',          href: '/admin/brokers',       icon: Users,     roles: ['superadmin'] },
   { name: 'Agents',           href: '/admin/agents',        icon: Users,     roles: ['superadmin', 'broker'] },
   { name: 'My Profile',       href: '/admin/agent-profile', icon: Settings,  roles: ['agent'] },
   { name: 'Settings',         href: '/admin/settings',      icon: Settings,  roles: ['superadmin', 'broker'] },
+  { name: 'Tenant Management', href: '/admin/tenant-management', icon: Database,  roles: ['superadmin'] },
 ]
 
 // ── CSS variable shorthand styles ─────────────────────────────────────────────
@@ -106,6 +108,7 @@ export default function Navigation() {
     const savedBusinessName = localStorage.getItem('businessName')
     const auth = sessionStorage.getItem('brokerAdminAuth')
     const userEmail = sessionStorage.getItem('userEmail')
+    const storedRole = sessionStorage.getItem('userRole')
 
     let role: 'superadmin' | 'broker' | 'agent' | null = null
     let viewRole: 'superadmin' | 'broker' | 'agent' = 'superadmin'
@@ -114,6 +117,8 @@ export default function Navigation() {
       role = 'superadmin'
       const savedView = sessionStorage.getItem('viewAsRole') || 'superadmin'
       viewRole = savedView === 'superadmin' || savedView === 'broker' || savedView === 'agent' ? savedView : 'superadmin'
+    } else if (auth === 'authenticated' && storedRole === 'tenant_admin') {
+      role = 'broker'; viewRole = 'broker'
     } else if (auth === 'authenticated' && userEmail) {
       role = 'broker'; viewRole = 'broker'
     } else if (userEmail) {
@@ -132,6 +137,7 @@ export default function Navigation() {
   }
 
   const isSuperAdmin = userRole === 'superadmin'
+  const isTenantAdmin = hasMounted && sessionStorage.getItem('userRole') === 'tenant_admin'
   const filteredNavigation = navigation.filter(item =>
     isSuperAdmin || (viewAsRole && item.roles.includes(viewAsRole))
   )
@@ -145,9 +151,16 @@ export default function Navigation() {
             style={{ background: 'hsl(var(--primary))' }}>
             <Home className="w-5 h-5 text-white" />
           </div>
-          <span className="text-lg font-bold" style={brandTextStyle}>
-            {hasMounted ? businessName : 'M. Liang Realty'}
-          </span>
+          <div>
+            <span className="text-lg font-bold block" style={brandTextStyle}>
+              {hasMounted ? businessName : 'M. Liang Realty'}
+            </span>
+            {isTenantAdmin && (
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: 'hsl(var(--primary) / 0.12)', color: 'hsl(var(--primary))' }}>
+                Tenant Admin
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -182,6 +195,42 @@ export default function Navigation() {
               href={item.href}
               style={isActive ? navLinkActive : navLinkBase}
               onClick={() => setMobileMenuOpen(false)}
+              onMouseEnter={e => {
+                if (!isActive) Object.assign((e.currentTarget as HTMLElement).style, {
+                  background: 'hsl(var(--primary) / 0.08)',
+                  color: 'hsl(var(--foreground))',
+                })
+              }}
+              onMouseLeave={e => {
+                if (!isActive) Object.assign((e.currentTarget as HTMLElement).style, {
+                  background: navLinkBase.background,
+                  color: navLinkBase.color,
+                })
+              }}
+              onPointerDown={e => {
+                Object.assign((e.currentTarget as HTMLElement).style, {
+                  background: 'hsl(var(--primary) / 0.2)',
+                  color: 'hsl(var(--primary))',
+                  transform: 'scale(0.98)',
+                })
+              }}
+              onPointerUp={e => {
+                const el = e.currentTarget as HTMLElement
+                el.style.transform = 'scale(1)'
+                setTimeout(() => {
+                  if (!isActive) Object.assign(el.style, {
+                    background: navLinkBase.background,
+                    color: navLinkBase.color,
+                  })
+                }, 150)
+              }}
+              onPointerCancel={e => {
+                if (!isActive) Object.assign((e.currentTarget as HTMLElement).style, {
+                  background: navLinkBase.background,
+                  color: navLinkBase.color,
+                  transform: 'scale(1)',
+                })
+              }}
             >
               <item.icon className="w-5 h-5 mr-3" />
               {item.name}

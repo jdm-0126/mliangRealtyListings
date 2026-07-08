@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import PropertyCard from '@/components/PropertyCard'
 import PropertyDialog from '@/components/PropertyDialog'
+import QuickAddProperty from '@/components/QuickAddProperty'
 import { Pagination } from '@/components/ui/Pagination'
 import { Tooltip } from '@/components/ui/tooltip'
 import { 
@@ -19,6 +20,7 @@ import {
   Home,
   Settings2,
   MoreVertical,
+  Plus,
 } from 'lucide-react'
 
 export default function PropertiesContent() {
@@ -65,6 +67,7 @@ export default function PropertiesContent() {
   const [columns, setColumns] = useState<string[]>([])
   const [pageSize, setPageSize] = useState(24)
   const [currentPage, setCurrentPage] = useState(1)
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const optionsMenuRef = React.useRef<HTMLDivElement>(null)
 
@@ -121,6 +124,7 @@ export default function PropertiesContent() {
       .from('mlianglistings')
       .select('*')
       .order('Property ID', { ascending: false })
+      .limit(500)
     if (error) {
       setLoading(false)
       return
@@ -318,6 +322,17 @@ export default function PropertiesContent() {
               <p style={{ color: '#4b5563' }}>Browse all available properties</p>
             </div>
             <div className="flex gap-2">
+              <Tooltip content="Quick add property via paste">
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => setShowQuickAdd(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add
+                </Button>
+              </Tooltip>
+
               <Tooltip content={showFilters ? "Hide search filters" : "Show search filters"}>
                 <Button
                   variant={showFilters ? 'default' : 'outline'}
@@ -584,6 +599,13 @@ export default function PropertiesContent() {
           onClose={() => { setEditingProperty(null); fetchData() }}
           columns={columns}
         />
+
+        {showQuickAdd && (
+          <QuickAddProperty
+            onClose={() => setShowQuickAdd(false)}
+            onSuccess={() => { setShowQuickAdd(false); fetchData() }}
+          />
+        )}
       </div>
     </div>
   )

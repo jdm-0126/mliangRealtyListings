@@ -59,6 +59,27 @@ export default function AgentDialog({ agent, brokerId, isOpen, onClose }: AgentD
     }
   }, [agent, brokerId])
 
+  const resolveBrokerId = async (candidate?: number) => {
+    if (candidate == null || Number.isNaN(Number(candidate)) || Number(candidate) <= 0) {
+      return null
+    }
+
+    if (!supabase) return null
+
+    const numericId = Number(candidate)
+    const { data, error } = await supabase
+      .from('brokers')
+      .select('id')
+      .eq('id', numericId)
+      .maybeSingle()
+
+    if (error || !data) {
+      return null
+    }
+
+    return numericId
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!supabase) return
@@ -86,14 +107,25 @@ export default function AgentDialog({ agent, brokerId, isOpen, onClose }: AgentD
         if (error) throw error
         alert('Agent updated successfully!')
       } else {
-        // Create new agent
-        const { error } = await supabase
-          .from('agents')
-          .insert([{
-            ...formData,
-            broker_id: brokerId
-          }])
+        const resolvedBrokerId = await resolveBrokerId(brokerId)
 
+        // Create new agent — only include broker_id if a valid matching broker exists
+        const insertData: Record<string, unknown> = {
+          name:           formData.name,
+          email:          formData.email,
+          phone:          formData.phone || null,
+          status:         formData.status,
+          license_number: formData.license_number || null,
+          profile_photo:  formData.profile_photo || null,
+          bio:            formData.bio || null,
+          specialization: formData.specialization || null,
+        }
+
+        if (resolvedBrokerId != null) {
+          insertData.broker_id = resolvedBrokerId
+        }
+
+        const { error } = await supabase.from('agents').insert([insertData])
         if (error) throw error
         alert('Agent created successfully!')
       }

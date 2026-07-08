@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Urbanist } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
+import { BRAND_COLOR_STORAGE_KEY, DEFAULT_BRAND_COLOR, isValidBrandColor } from '@/lib/theme/brandColor'
+import BrandColorInitializer from '@/app/(admin)/components/BrandColorInitializer'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,13 +40,14 @@ export default function RootLayout({
         {/* Admin theme: inject before hydration to prevent flash */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('adminTheme');if(t==='dark')document.documentElement.setAttribute('data-admin-theme','dark');}catch(e){}try{var c=localStorage.getItem('siteAccentColor');if(c&&/^#[0-9a-f]{6}$/i.test(c))document.documentElement.style.setProperty('--est-purple',c);}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('adminTheme');if(t==='dark')document.documentElement.setAttribute('data-admin-theme','dark');}catch(e){}try{var c=localStorage.getItem('${BRAND_COLOR_STORAGE_KEY}');var d='${DEFAULT_BRAND_COLOR}';if(c&&${isValidBrandColor(DEFAULT_BRAND_COLOR).toString()}){if(/^#[0-9a-f]{3,6}$/i.test(c)){document.documentElement.style.setProperty('--est-purple',c);document.documentElement.style.setProperty('--est-purple-h',c);}}else{document.documentElement.style.setProperty('--est-purple',d);document.documentElement.style.setProperty('--est-purple-h',d);}}catch(e){}})();`,
           }}
         />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${urbanist.variable} antialiased`}
       >
+        <BrandColorInitializer />
         {children}
         <Analytics />
       </body>

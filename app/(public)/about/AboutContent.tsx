@@ -1,8 +1,11 @@
 'use client'
 // app/(public)/about/AboutContent.tsx — Estatein dark theme
 
+import { useEffect, useState } from 'react'
 import { useTenantSettings } from '@/lib/tenant'
 import SocialLinks from '@/app/(public)/components/SocialLinks'
+import { readWebsiteContentJson } from '@/lib/websiteContent'
+import { WEBSITE_SECTIONS } from '@/lib/websiteContentSections'
 import Link from 'next/link'
 import { MapPin, Phone, Mail, Award, ArrowRight } from 'lucide-react'
 
@@ -19,6 +22,25 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 
 export default function AboutContent() {
   const settings = useTenantSettings()
+  const [aboutHero, setAboutHero] = useState<{ title?: string; subtitle?: string } | null>(null)
+  const [aboutOverview, setAboutOverview] = useState<{ headline?: string; body?: string; body2?: string } | null>(null)
+
+  useEffect(() => {
+    const load = async () => {
+      const hero = await readWebsiteContentJson<{ title?: string; subtitle?: string }>(WEBSITE_SECTIONS.aboutHero, undefined)
+      const overview = await readWebsiteContentJson<{ headline?: string; body?: string; body2?: string }>(WEBSITE_SECTIONS.aboutOverview, undefined)
+      setAboutHero(hero ?? null)
+      setAboutOverview(overview ?? null)
+    }
+
+    void load()
+  }, [])
+
+  const heroTitle = aboutHero?.title || `${settings.businessName}`
+  const heroSubtitle = aboutHero?.subtitle || 'A licensed real estate brokerage based in San Fernando, Pampanga — specializing in residential and commercial property sales, rentals, and lot listings across the region.'
+  const overviewHeadline = aboutOverview?.headline || `About ${settings.businessName}`
+  const overviewBody = aboutOverview?.body || `${settings.businessName} is a licensed real estate brokerage based in San Fernando, Pampanga. We specialize in residential and commercial property sales, rentals, and lot listings across the Pampanga region.`
+  const overviewBody2 = aboutOverview?.body2 || `Our licensed broker, ${settings.brokerName} (${settings.brokerTitle}, PRC No. ${settings.prcNumber}), brings expertise and dedication to every property transaction — helping buyers and investors find the right property at the right price.`
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
@@ -28,10 +50,10 @@ export default function AboutContent() {
           About Us
         </p>
         <h1 className="text-3xl font-bold mb-3" style={{ color: 'var(--est-text)' }}>
-          {settings.businessName}
+          {heroTitle}
         </h1>
         <p className="text-sm max-w-xl" style={{ color: 'var(--est-muted)' }}>
-          A licensed real estate brokerage based in San Fernando, Pampanga — specializing in residential and commercial property sales, rentals, and lot listings across the region.
+          {heroSubtitle}
         </p>
       </div>
 
@@ -95,13 +117,13 @@ export default function AboutContent() {
           {/* About text */}
           <div className="rounded-2xl p-7" style={{ background: 'var(--est-surface)', border: '1px solid var(--est-border)' }}>
             <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--est-text)' }}>
-              About {settings.businessName}
+              {overviewHeadline}
             </h2>
             <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--est-muted)' }}>
-              {settings.businessName} is a licensed real estate brokerage based in San Fernando, Pampanga. We specialize in residential and commercial property sales, rentals, and lot listings across the Pampanga region.
+              {overviewBody}
             </p>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--est-muted)' }}>
-              Our licensed broker, {settings.brokerName} ({settings.brokerTitle}, PRC No. {settings.prcNumber}), brings expertise and dedication to every property transaction — helping buyers and investors find the right property at the right price.
+              {overviewBody2}
             </p>
           </div>
         </div>

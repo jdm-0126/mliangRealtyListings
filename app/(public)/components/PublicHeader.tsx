@@ -12,6 +12,7 @@ interface PublicHeaderProps {
 const NAV_LINKS = [
   { label: 'Home', href: '/' },
   { label: 'Listings', href: '/listings' },
+  { label: 'Gallery', href: '/gallery' },
   { label: 'About', href: '/about' },
   { label: 'Contact', href: '/contact' },
 ]
@@ -58,10 +59,16 @@ export default function PublicHeader({ businessName }: PublicHeaderProps) {
               <Link
                 key={href}
                 href={href}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 hover:opacity-100"
                 style={{
                   color: isActive(href) ? 'var(--est-text)' : 'var(--est-muted)',
                   background: isActive(href) ? 'var(--est-elevated)' : 'transparent',
+                }}
+                onMouseEnter={e => {
+                  if (!isActive(href)) (e.currentTarget as HTMLElement).style.background = 'var(--est-elevated)'
+                }}
+                onMouseLeave={e => {
+                  if (!isActive(href)) (e.currentTarget as HTMLElement).style.background = 'transparent'
                 }}
               >
                 {label}
@@ -105,10 +112,38 @@ export default function PublicHeader({ businessName }: PublicHeaderProps) {
               key={href}
               href={href}
               onClick={() => setMobileMenuOpen(false)}
-              className="px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 active:scale-[0.97] active:opacity-80"
               style={{
                 color: isActive(href) ? 'var(--est-text)' : 'var(--est-muted)',
                 background: isActive(href) ? 'var(--est-elevated)' : 'transparent',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+              onMouseEnter={e => {
+                if (!isActive(href)) (e.currentTarget as HTMLElement).style.background = 'var(--est-elevated)'
+              }}
+              onMouseLeave={e => {
+                if (!isActive(href)) (e.currentTarget as HTMLElement).style.background = 'transparent'
+              }}
+              onPointerDown={e => {
+                const el = e.currentTarget as HTMLElement
+                el.style.background = 'var(--est-purple)'
+                el.style.color = '#fff'
+              }}
+              onPointerUp={e => {
+                const el = e.currentTarget as HTMLElement
+                setTimeout(() => {
+                  if (!isActive(href)) {
+                    el.style.background = 'transparent'
+                    el.style.color = 'var(--est-muted)'
+                  }
+                }, 150)
+              }}
+              onPointerCancel={e => {
+                const el = e.currentTarget as HTMLElement
+                if (!isActive(href)) {
+                  el.style.background = 'transparent'
+                  el.style.color = 'var(--est-muted)'
+                }
               }}
             >
               {label}
@@ -117,8 +152,8 @@ export default function PublicHeader({ businessName }: PublicHeaderProps) {
           <Link
             href="/contact"
             onClick={() => setMobileMenuOpen(false)}
-            className="mt-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-center transition-all"
-            style={{ background: 'var(--est-purple)', color: '#fff' }}
+            className="mt-2 px-5 py-3 rounded-lg text-sm font-semibold text-center transition-all active:scale-[0.97] active:opacity-80"
+            style={{ background: 'var(--est-purple)', color: '#fff', WebkitTapHighlightColor: 'transparent' }}
           >
             Contact Us
           </Link>

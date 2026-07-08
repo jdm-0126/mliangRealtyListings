@@ -15,6 +15,7 @@ export interface PublicListing {
   photos: string[]
   notes: string
   status: string
+  mapUrl?: string | null
   updatedAt?: string
 }
 

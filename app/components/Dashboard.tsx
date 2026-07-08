@@ -46,7 +46,7 @@ export default function Dashboard() {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.from('mlianglistings').select('*');
+    const { data, error } = await supabase.from('mlianglistings').select('*').order('Property ID', { ascending: false }).limit(500);
     if (error) console.error('Error:', error);
     else setData(data || []);
     setLoading(false);
