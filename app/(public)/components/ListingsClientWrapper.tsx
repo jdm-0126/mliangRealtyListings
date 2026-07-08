@@ -11,8 +11,18 @@ interface ListingsClientWrapperProps {
 
 const PAGE_SIZE = 12
 
-const TYPE_OPTIONS = ['All', 'House & Lot', 'Lot Only', 'Commercial'] as const
+const TYPE_OPTIONS = ['All', 'House and Lot', 'Lot only', 'Commercial'] as const
 const PRICE_RANGE_OPTIONS = ['All', 'Under ₱2M', '₱2M–₱5M', '₱5M–₱10M', 'Above ₱10M'] as const
+
+function normalizeListingType(type?: string | null): string {
+  const value = (type ?? '').trim().toLowerCase()
+  if (!value) return ''
+  if (value.includes('commercial')) return 'Commercial'
+  if (value.includes('house') || value.includes('residential')) return 'House and Lot'
+  if (value.includes('lot only') || value === 'lot') return 'Lot only'
+  if (value.includes('lot')) return 'Lot only'
+  return type?.trim() || ''
+}
 
 type TypeFilter = (typeof TYPE_OPTIONS)[number]
 type PriceRange = (typeof PRICE_RANGE_OPTIONS)[number]
@@ -58,7 +68,8 @@ export default function ListingsClientWrapper({ allListings }: ListingsClientWra
 
   const filteredListings = useMemo(() => {
     return allListings.filter(listing => {
-      if (typeFilter !== 'All' && listing.type !== typeFilter) return false
+      const normalizedType = normalizeListingType(listing.type)
+      if (typeFilter !== 'All' && normalizedType !== typeFilter) return false
       if (locationQuery.trim() && !listing.location.toLowerCase().includes(locationQuery.toLowerCase())) return false
       const price = listing.price ?? 0
       if (priceRange === 'Under ₱2M' && price >= 2_000_000) return false
@@ -195,8 +206,8 @@ export default function ListingsClientWrapper({ allListings }: ListingsClientWra
       {/* Grid */}
       {filteredListings.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          {paginatedListings.map(listing => (
-            <ListingCard key={listing.id} listing={listing} />
+          {paginatedListings.map((listing, idx) => (
+            <ListingCard key={listing.id} listing={listing} priority={idx === 0} />
           ))}
         </div>
       )}

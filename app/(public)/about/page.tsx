@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { TENANT_DEFAULTS } from '@/lib/types/public'
 import AboutContent from './AboutContent'
 
+export const revalidate = 3600 // rebuild at most once per hour
+
 // Static metadata (uses TENANT_DEFAULTS for SSR since localStorage is client-only)
 export const metadata: Metadata = {
   title: `About ${TENANT_DEFAULTS.businessName} – Licensed Real Estate Broker PRC No. ${TENANT_DEFAULTS.prcNumber}`,

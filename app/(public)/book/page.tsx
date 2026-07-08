@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { getTenantSettingsServer } from '@/lib/tenantServer'
 import BookingForm from './BookingForm'
 
+export const revalidate = 3600 // rebuild at most once per hour
+
 export const metadata: Metadata = {
   title: 'Book a Viewing – M. Liang Realty',
   description: 'Schedule a property viewing or project site visit with M. Liang Realty. Pick your preferred date, time, and property.',

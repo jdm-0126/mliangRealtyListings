@@ -1,24 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Urbanist } from "next/font/google";
+import { Urbanist } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 import { BRAND_COLOR_STORAGE_KEY, DEFAULT_BRAND_COLOR, isValidBrandColor } from '@/lib/theme/brandColor'
 import BrandColorInitializer from '@/app/(admin)/components/BrandColorInitializer'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+// Only load Urbanist — the single font actually used across the UI.
+// Removing Geist/Geist_Mono eliminates two extra font file round-trips.
 const urbanist = Urbanist({
   variable: "--font-urbanist",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",      // show system font immediately, swap when ready
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -45,7 +39,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${urbanist.variable} antialiased`}
+        className={`${urbanist.variable} antialiased`}
       >
         <BrandColorInitializer />
         {children}

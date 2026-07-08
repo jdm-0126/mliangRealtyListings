@@ -1,0 +1,3 @@
+BEGIN;
+ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS "TikTok Video URL" TEXT;
+COMMIT;

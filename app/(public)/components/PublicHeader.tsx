@@ -10,10 +10,9 @@ interface PublicHeaderProps {
 }
 
 const NAV_LINKS = [
-  { label: 'Home', href: '/' },
   { label: 'Listings', href: '/listings' },
-  { label: 'Gallery', href: '/gallery' },
   { label: 'About', href: '/about' },
+  { label: 'Gallery', href: '/gallery' },
   { label: 'Contact', href: '/contact' },
 ]
 
@@ -22,7 +21,7 @@ export default function PublicHeader({ businessName }: PublicHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   function isActive(href: string) {
-    if (href === '/') return pathname === '/'
+    if (href === '/listings') return pathname === '/' || pathname === '/listings' || pathname.startsWith('/listings')
     return pathname.startsWith(href)
   }
 
@@ -38,7 +37,7 @@ export default function PublicHeader({ businessName }: PublicHeaderProps) {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/listings" className="flex items-center gap-2 group">
             <span
               className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold"
               style={{ background: 'var(--est-purple)' }}
@@ -79,11 +78,11 @@ export default function PublicHeader({ businessName }: PublicHeaderProps) {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <Link
-              href="/contact"
+              href="/book"
               className="px-5 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
               style={{ background: 'var(--est-purple)', color: '#fff' }}
             >
-              Contact Us
+              Book a Viewing
             </Link>
           </div>
 
@@ -150,12 +149,12 @@ export default function PublicHeader({ businessName }: PublicHeaderProps) {
             </Link>
           ))}
           <Link
-            href="/contact"
+            href="/book"
             onClick={() => setMobileMenuOpen(false)}
             className="mt-2 px-5 py-3 rounded-lg text-sm font-semibold text-center transition-all active:scale-[0.97] active:opacity-80"
             style={{ background: 'var(--est-purple)', color: '#fff', WebkitTapHighlightColor: 'transparent' }}
           >
-            Contact Us
+            Book a Viewing
           </Link>
         </div>
       )}

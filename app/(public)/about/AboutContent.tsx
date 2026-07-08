@@ -1,5 +1,7 @@
 'use client'
 // app/(public)/about/AboutContent.tsx — Estatein dark theme
+// 'use client' kept only because it reads tenant settings from localStorage.
+// All text content renders immediately from defaults (no loading flash).
 
 import { useEffect, useState } from 'react'
 import { useTenantSettings } from '@/lib/tenant'

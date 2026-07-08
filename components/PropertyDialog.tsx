@@ -309,6 +309,51 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                     Link to the Facebook post or marketplace listing
                   </p>
                 </div>
+
+                <div className="border-t pt-4">
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    Video URL (Optional)
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData['Video URL'] || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'Video URL': e.target.value }))}
+                    placeholder="https://yourstorage.com/property-video.mp4"
+                  />
+                  <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
+                    Direct link to an MP4 video file (Supabase Storage, S3, etc.). Takes priority over Facebook video.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    Facebook Video URL (Optional)
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData['Facebook Video URL'] || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'Facebook Video URL': e.target.value }))}
+                    placeholder="https://www.facebook.com/reel/... or watch?v=..."
+                  />
+                  <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
+                    Facebook video, reel, or short — shown as an embedded player on the property page.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    TikTok Video URL (Optional)
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData['TikTok Video URL'] || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'TikTok Video URL': e.target.value }))}
+                    placeholder="https://www.tiktok.com/@user/video/..."
+                  />
+                  <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
+                    TikTok video or short — shown as an embedded player. Takes priority over Facebook video.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -344,7 +389,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
               {columns
                 .filter(key => {
                   // Filter out photo-related columns (they have their own section above)
-                  const photoColumns = ['Photos', 'FB Link', 'Google Photos Link', 'Preview Photo', 'Featured Preview Photo']
+                  const photoColumns = ['Photos', 'FB Link', 'Google Photos Link', 'Preview Photo', 'Featured Preview Photo', 'Video URL', 'Facebook Video URL', 'TikTok Video URL']
                   return !photoColumns.some(col => col.toLowerCase() === key.toLowerCase())
                 })
                 .filter(key => {

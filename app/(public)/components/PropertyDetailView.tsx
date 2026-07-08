@@ -21,6 +21,16 @@ export function formatPrice(price: number): string {
   }).format(price)
 }
 
+function formatListingType(type?: string | null): string {
+  const value = (type ?? '').trim().toLowerCase()
+  if (!value) return ''
+  if (value.includes('commercial')) return 'Commercial'
+  if (value.includes('house') || value.includes('residential')) return 'House and Lot'
+  if (value.includes('lot only') || value === 'lot') return 'Lot only'
+  if (value.includes('lot')) return 'Lot only'
+  return type?.trim() || ''
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -33,6 +43,7 @@ export default function PropertyDetailView({ listing }: PropertyDetailViewProps)
   const addressParts = [listing.village, listing.location].filter(Boolean)
   const address = addressParts.join(', ') || listing.location
   const contactHref = `/contact?property=${encodeURIComponent(address)}`
+  const displayType = formatListingType(listing.type)
 
   return (
     <main data-testid="property-detail-view">
@@ -51,8 +62,8 @@ export default function PropertyDetailView({ listing }: PropertyDetailViewProps)
         {/* ── Right: property details ── */}
         <div>
           {/* Type badge */}
-          {listing.type && listing.type.trim() !== '' && (
-            <span data-testid="property-type">{listing.type}</span>
+          {displayType && (
+            <span data-testid="property-type">{displayType}</span>
           )}
 
           {/* Property number */}

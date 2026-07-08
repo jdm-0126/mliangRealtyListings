@@ -4,6 +4,8 @@ import { getTenantSettingsServer } from '@/lib/tenantServer'
 import InquiryForm from '../components/InquiryForm'
 import { MapPin, Phone, Mail, Award } from 'lucide-react'
 
+export const revalidate = 3600 // rebuild at most once per hour
+
 export const metadata: Metadata = {
   title: 'Contact M. Liang Realty – Get in Touch',
   description:

@@ -121,7 +121,7 @@ export default function PublicFooter({ settings }: PublicFooterProps) {
         >
           <p>© {year} {settings.businessName}. All rights reserved.</p>
           <Link
-            href="/admin"
+            href="/admin/login"
             className="transition-colors hover:opacity-70"
             style={{ color: 'var(--est-elevated)' }}
           >

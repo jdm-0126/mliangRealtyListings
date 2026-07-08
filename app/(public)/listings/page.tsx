@@ -1,11 +1,15 @@
 // app/(public)/listings/page.tsx — Estatein dark theme
-export const dynamic = 'force-dynamic'
-
 import type { Metadata } from 'next'
-import { supabase } from '@/app/lib/supabaseClient'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { PublicListing } from '@/lib/types/public'
 import ListingsClientWrapper from '@/app/(public)/components/ListingsClientWrapper'
+import ListingCard from '@/app/(public)/components/ListingCard'
 import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
+import { getCachedPublicListings } from '@/lib/listings/publicListings'
+
+export const dynamic = 'force-static'
+export const revalidate = 60 // rebuild cached page at most once per minute
 
 export const metadata: Metadata = {
   title: 'Properties for Sale & Rent – M. Liang Realty',
@@ -15,54 +19,18 @@ export const metadata: Metadata = {
     'surrounding areas in Pampanga.',
 }
 
-function parsePrice(raw: unknown): number | null {
-  if (raw === null || raw === undefined || raw === '') return null
-  const n = typeof raw === 'number' ? raw : Number(String(raw).replace(/[^\d.]/g, ''))
-  return isNaN(n) || n <= 0 ? null : n
-}
-function parseArea(raw: unknown): number | null {
-  if (raw === null || raw === undefined || raw === '') return null
-  const n = typeof raw === 'number' ? raw : Number(String(raw).replace(/[^\d.]/g, ''))
-  return isNaN(n) || n <= 0 ? null : n
-}
-
-function mapToPublicListing(row: Record<string, unknown>): PublicListing {
-  const id = Number(row['Property ID'])
-  const photos: string[] = []
-  for (let i = 1; i <= 20; i++) {
-    const photo = row[`Photo ${i}`]
-    if (typeof photo === 'string' && photo.trim()) photos.push(photo.trim())
-  }
-  return {
-    id, displayId: id > 2 ? id - 1 : id,
-    type: String(row['Type'] ?? ''), location: String(row['Location'] ?? ''),
-    village: typeof row['Village'] === 'string' ? row['Village'] : undefined,
-    price: parsePrice(row['Listing Price'] ?? row['ListingPrice'] ?? row['Price']),
-    lotArea: parseArea(row['Lot Area'] ?? row['Lot Area sqm'] ?? row['LA']),
-    floorArea: parseArea(row['Floor Area'] ?? row['Floor Area sqm']),
-    bedrooms: parseArea(row['Bedroom']), bathrooms: parseArea(row['Bathroom']),
-    previewPhoto: typeof row['Preview Photo'] === 'string' && row['Preview Photo'].trim() ? row['Preview Photo'].trim() : null,
-    photos, notes: String(row['Notes'] ?? ''), status: String(row['Status'] ?? ''),
-    mapUrl: typeof row['Map URL'] === 'string' && row['Map URL'].trim() ? row['Map URL'].trim() : null,
-    updatedAt: typeof row['updated_at'] === 'string' ? row['updated_at'] : undefined,
-  }
-}
-
 export default async function ListingsPage() {
   let listings: PublicListing[] = []
+  let featuredListings: PublicListing[] = []
   let fetchError = false
 
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('mlianglistings').select('*').ilike('Status', 'active')
-      .order('Property ID', { ascending: false })
-    if (error) { fetchError = true }
-    else {
-      listings = (data ?? [])
-        .map((row: Record<string, unknown>) => mapToPublicListing(row))
-        .filter((l: PublicListing) => l.price !== null || l.previewPhoto !== null)
-    }
-  } else { fetchError = true }
+  try {
+    const allListings = await getCachedPublicListings()
+    listings = allListings
+    featuredListings = allListings.filter((listing) => listing.price !== null || listing.previewPhoto !== null).slice(0, 6)
+  } catch {
+    fetchError = true
+  }
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -90,7 +58,40 @@ export default async function ListingsPage() {
           </p>
         </div>
       ) : (
-        <ListingsClientWrapper allListings={listings} />
+        <>
+          <ListingsClientWrapper allListings={listings} />
+
+          <section className="mt-14 rounded-3xl p-6 sm:p-8" style={{ background: 'var(--est-surface)', border: '1px solid var(--est-border)' }}>
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--est-purple)' }}>
+                  Hand-Picked
+                </p>
+                <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--est-text)' }}>
+                  Featured Properties
+                </h2>
+                <p className="mt-2 text-sm" style={{ color: 'var(--est-muted)' }}>
+                  Highlighted homes and lots that stand out for their value, location, or presentation.
+                </p>
+              </div>
+              <Link href="/listings" className="inline-flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-80" style={{ color: 'var(--est-purple)' }}>
+                View all listings <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {featuredListings.length === 0 ? (
+              <p className="py-8 text-center text-sm" style={{ color: 'var(--est-muted)' }}>
+                Featured properties will appear here soon.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featuredListings.map((listing, idx) => (
+                  <ListingCard key={listing.id} listing={listing} priority={idx === 0} />
+                ))}
+              </div>
+            )}
+          </section>
+        </>
       )}
     </main>
   )

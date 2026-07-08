@@ -12,6 +12,7 @@ export async function POST(request: Request) {
     }
 
     revalidatePath('/')
+    revalidatePath('/listings')
     return NextResponse.json({ revalidated: true, timestamp: Date.now() })
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })

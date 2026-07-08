@@ -2,13 +2,14 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PublicListing } from '@/lib/types/public'
 import { MapPin, Maximize2, Home, X } from 'lucide-react'
 import MaintenanceEditBar from './MaintenanceEditBar'
 
 interface ListingCardProps {
   listing: PublicListing
+  priority?: boolean   // pass true for the first card to preload as LCP image
 }
 
 function formatPrice(price: number | null): string {
@@ -57,11 +58,52 @@ function MapModal({ url, onClose }: { url: string; onClose: () => void }) {
   )
 }
 
-export default function ListingCard({ listing: initialListing }: ListingCardProps) {
+export default function ListingCard({ listing: initialListing, priority = false }: ListingCardProps) {
   const [listing, setListing] = useState(initialListing)
   const [showMap, setShowMap] = useState(false)
+  // Always start as false so server and first client render agree (no mismatch).
+  // For priority cards the image loads eagerly anyway; the skeleton fades out
+  // once the image fires onLoad.
+  const [imageLoaded, setImageLoaded] = useState(false)
+  const [inView, setInView] = useState(false)
+  const imageRef = useRef<HTMLDivElement | null>(null)
   const locationText = [listing.village, listing.location].filter(Boolean).join(', ')
   const href = `/listings/${listing.displayId}`
+  const imageSrc = listing.previewPhoto || 'https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png'
+  const displayType = formatListingType(listing.type)
+
+  // Show image once it's either in-view (lazy) or priority
+  const showImage = priority || inView
+
+  function formatListingType(type?: string | null): string {
+    const value = (type ?? '').trim().toLowerCase()
+    if (!value) return ''
+    if (value.includes('commercial')) return 'Commercial'
+    if (value.includes('house') || value.includes('residential')) return 'House and Lot'
+    if (value.includes('lot only') || value === 'lot') return 'Lot only'
+    if (value.includes('lot')) return 'Lot only'
+    return type?.trim() || ''
+  }
+
+  useEffect(() => {
+    if (priority) {
+      setInView(true)
+      return
+    }
+    const node = imageRef.current
+    if (!node) return
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          setInView(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '200px 0px' }
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [priority])
 
   return (
     <div className="relative group">
@@ -75,32 +117,38 @@ export default function ListingCard({ listing: initialListing }: ListingCardProp
         style={{ background: 'var(--est-card)', border: '1px solid var(--est-border)' }}
       >
         {/* Photo */}
-        <div className="relative h-52 overflow-hidden" style={{ background: 'var(--est-elevated)' }}>
-          {listing.previewPhoto ? (
+        <div ref={imageRef} className="relative h-52 overflow-hidden" style={{ background: 'var(--est-elevated)' }}>
+          {/* Skeleton — visible until image loads, hidden via opacity */}
+          <div
+            className="absolute inset-0 animate-pulse"
+            style={{
+              background: 'linear-gradient(90deg, var(--est-elevated) 25%, rgba(255,255,255,0.08) 50%, var(--est-elevated) 75%)',
+              backgroundSize: '200% 100%',
+              opacity: imageLoaded ? 0 : 1,
+              transition: 'opacity 0.3s',
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Image — only mounted once in-view, fades in on load */}
+          {showImage && (
             <Image
-              src={listing.previewPhoto}
-              alt={`${listing.type} in ${listing.location}`}
+              src={imageSrc}
+              alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
               fill
               className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
-              loading="lazy"
+              loading={priority ? 'eager' : 'lazy'}
+              priority={priority}
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            />
-          ) : (
-            <Image
-              src="https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png"
-              alt="No photo available"
-              fill
-              className="object-cover opacity-60"
-              loading="lazy"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              onLoad={() => setImageLoaded(true)}
+              style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
             />
           )}
-          {listing.type && (
+          {displayType && (
             <span
               className="absolute top-3 left-3 text-xs font-semibold px-3 py-1 rounded-full"
               style={{ background: 'var(--est-purple)', color: '#fff' }}
             >
-              {listing.type}
+              {displayType.includes('Commercial') ? 'Commercial' : displayType.includes('Lot') ? 'Lot only' : displayType.includes('House') ? 'House and Lot' : displayType}
             </span>
           )}
         </div>

@@ -16,6 +16,9 @@ export interface PublicListing {
   notes: string
   status: string
   mapUrl?: string | null
+  videoUrl?: string | null
+  facebookVideoUrl?: string | null
+  tiktokVideoUrl?: string | null
   updatedAt?: string
 }
 

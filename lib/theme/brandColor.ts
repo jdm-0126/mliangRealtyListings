@@ -2,8 +2,8 @@ import { readWebsiteContentValue, writeWebsiteContent } from '@/lib/websiteConte
 
 export const BRAND_COLOR_STORAGE_KEY = 'siteAccentColor'
 export const BRAND_COLOR_SETTING_KEY = 'public_brand_color'
-export const DEFAULT_BRAND_COLOR = '#703BF7'
-export const DEFAULT_BRAND_COLOR_HOVER = '#5a2fd0'
+export const DEFAULT_BRAND_COLOR = '#fa2f40'
+export const DEFAULT_BRAND_COLOR_HOVER = '#fc4655'
 
 export function isValidBrandColor(value: string): boolean {
   return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value)

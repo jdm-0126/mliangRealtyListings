@@ -9,7 +9,7 @@ interface Props {
   onUpdated?: (updated: Partial<PublicListing>) => void
 }
 
-const TYPES = ['Residential', 'House & Lot', 'Lot', 'Lot Only', 'Commercial', 'Condo']
+const TYPES = ['Residential', 'House and Lot', 'Lot only', 'Commercial', 'Condo']
 
 export function useMaintenanceMode() {
   const [on, setOn] = useState(false)

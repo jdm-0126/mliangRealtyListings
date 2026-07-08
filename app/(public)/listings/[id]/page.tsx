@@ -21,6 +21,16 @@ function formatPrice(price: number): string {
   return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(price)
 }
 
+function formatListingType(type?: string | null): string {
+  const value = (type ?? '').trim().toLowerCase()
+  if (!value) return ''
+  if (value.includes('commercial')) return 'Commercial'
+  if (value.includes('house') || value.includes('residential')) return 'House and Lot'
+  if (value.includes('lot only') || value === 'lot') return 'Lot only'
+  if (value.includes('lot')) return 'Lot only'
+  return type?.trim() || ''
+}
+
 async function fetchListing(displayId: number): Promise<PublicListing | null> {
   if (!supabase) return null
   const internalId = displayId >= 2 ? displayId + 1 : displayId
@@ -47,6 +57,9 @@ async function fetchListing(displayId: number): Promise<PublicListing | null> {
     previewPhoto: photos[0] ?? null, photos, notes: String(row['Notes'] ?? ''),
     status: String(row['Status'] ?? ''),
     mapUrl: typeof row['Map URL'] === 'string' && row['Map URL'].trim() ? row['Map URL'].trim() : null,
+    videoUrl: typeof row['Video URL'] === 'string' && row['Video URL'].trim() ? row['Video URL'].trim() : null,
+    facebookVideoUrl: typeof row['Facebook Video URL'] === 'string' && row['Facebook Video URL'].trim() ? row['Facebook Video URL'].trim() : null,
+    tiktokVideoUrl: typeof row['TikTok Video URL'] === 'string' && row['TikTok Video URL'].trim() ? row['TikTok Video URL'].trim() : null,
     updatedAt: typeof row['updated_at'] === 'string' ? row['updated_at'] : undefined,
   }
 }
@@ -121,6 +134,7 @@ export default async function PropertyDetailPage({ params }: Props) {
   const addressParts = [listing.village, listing.location].filter(Boolean)
   const address = addressParts.join(', ') || listing.location
   const contactHref = `/contact?property=${encodeURIComponent(address)}`
+  const displayType = formatListingType(listing.type)
 
   return (
     <>
@@ -140,18 +154,61 @@ export default async function PropertyDetailPage({ params }: Props) {
           {/* Gallery */}
           <div>
             <ImageGallery photos={listing.photos} alt={`${listing.type} in ${listing.location}`} />
+
+            {/* Video */}
+            {(listing.videoUrl || listing.facebookVideoUrl || listing.tiktokVideoUrl) && (
+              <div className="mt-4">
+                <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--est-muted)' }}>
+                  Property Video
+                </h2>
+                {listing.videoUrl ? (
+                  <video
+                    controls
+                    className="w-full rounded-xl"
+                    style={{ border: '1px solid var(--est-border)' }}
+                  >
+                    <source src={listing.videoUrl} type="video/mp4" />
+                    Your browser does not support video playback.
+                  </video>
+                ) : listing.tiktokVideoUrl ? (
+                  <div className="flex justify-center">
+                    <blockquote
+                      className="tiktok-embed"
+                      cite={listing.tiktokVideoUrl}
+                      data-video-id={listing.tiktokVideoUrl.match(/video\/(\d+)/)?.[1] ?? ''}
+                      style={{ maxWidth: 605, minWidth: 325 }}
+                    >
+                      <section />
+                    </blockquote>
+                    {/* TikTok embed script — loaded once per page */}
+                    {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+                    <script async src="https://www.tiktok.com/embed.js" />
+                  </div>
+                ) : listing.facebookVideoUrl ? (
+                  <div className="relative w-full overflow-hidden rounded-xl" style={{ paddingBottom: '56.25%', border: '1px solid var(--est-border)' }}>
+                    <iframe
+                      src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(listing.facebookVideoUrl)}&show_text=false&autoplay=false`}
+                      className="absolute inset-0 w-full h-full"
+                      style={{ border: 'none' }}
+                      allowFullScreen
+                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
 
           {/* Details */}
           <div className="flex flex-col gap-5">
             {/* Type badge + id */}
             <div className="flex items-center gap-3 flex-wrap">
-              {listing.type && (
+              {displayType && (
                 <span
                   className="text-xs font-semibold px-3 py-1 rounded-full"
                   style={{ background: 'var(--est-purple)', color: '#fff' }}
                 >
-                  {listing.type}
+                  {displayType}
                 </span>
               )}
               <span className="text-xs" style={{ color: 'var(--est-muted)' }}>

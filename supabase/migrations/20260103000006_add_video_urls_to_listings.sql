@@ -1,0 +1,4 @@
+BEGIN;
+ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS "Video URL" TEXT;
+ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS "Facebook Video URL" TEXT;
+COMMIT;

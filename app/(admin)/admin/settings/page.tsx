@@ -7,10 +7,45 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp, Share2, ExternalLink, Wrench, CalendarCheck, Plus, Trash2 } from 'lucide-react'
+import { User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp, Share2, ExternalLink, Wrench, CalendarCheck, Plus, Trash2, ChevronDown } from 'lucide-react'
 import ThemeToggleButton from '@/app/(admin)/components/ThemeToggleButton'
 import ColorPaletteCard from '@/app/(admin)/components/ColorPaletteCard'
 import WebsiteContentEditor from '@/app/(admin)/components/WebsiteContentEditor'
+
+function CollapsibleSection({
+  title,
+  icon: Icon,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  icon: React.ComponentType<{ className?: string }>
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div className="flex items-center gap-2 text-slate-900">
+          <Icon className="h-5 w-5" />
+          <h2 className="text-lg font-semibold">{title}</h2>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+          aria-expanded={open}
+        >
+          <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+          {open ? 'Collapse' : 'Expand'}
+        </button>
+      </div>
+      {open ? <div className="space-y-6 px-4 pb-6">{children}</div> : null}
+    </section>
+  )
+}
 
 const SETTINGS_KEY = 'tenantSettings'
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
@@ -240,14 +275,15 @@ export default function SettingsPage() {
 
         <div className="space-y-6">
           {/* Login/Logout Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Shield className="w-5 h-5 mr-2" />
-                Account Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CollapsibleSection title="Account Status" icon={Shield}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Shield className="w-5 h-5 mr-2" />
+                  Account Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               {isLoggedIn ? (
                 <div>
                   <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg mb-4">
@@ -314,15 +350,17 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
+          </CollapsibleSection>
           {/* Profile Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <User className="w-5 h-5 mr-2" />
-                Profile Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CollapsibleSection title="Profile Settings" icon={User}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <User className="w-5 h-5 mr-2" />
+                  Profile Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
@@ -373,16 +411,18 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
           {/* Social Media Links */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Share2 className="w-5 h-5 mr-2" />
-                Social Media Links
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CollapsibleSection title="Social Media Links" icon={Share2}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Share2 className="w-5 h-5 mr-2" />
+                  Social Media Links
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               <p className="text-sm text-gray-500">
                 These links appear in the public website footer. Leave blank to hide a platform.
               </p>
@@ -529,16 +569,18 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
           {/* Agent of the Day */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <User className="w-5 h-5 mr-2" />
-                Agent of the Day
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CollapsibleSection title="Agent of the Day" icon={User}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <User className="w-5 h-5 mr-2" />
+                  Agent of the Day
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               <p className="text-sm text-gray-500">
                 Assign an agent from your team to each day of the week. Shown on the public "Book a Viewing" section.
               </p>
@@ -582,16 +624,18 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
           {/* Booking — Featured Listings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CalendarCheck className="w-5 h-5 mr-2" />
-                Booking — Featured Listings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CollapsibleSection title="Booking — Featured Listings" icon={CalendarCheck}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <CalendarCheck className="w-5 h-5 mr-2" />
+                  Booking — Featured Listings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               <p className="text-sm text-gray-500">
                 These property names appear as options in the public booking form dropdown.
                 Leave empty to let guests type their own property of interest.
@@ -627,16 +671,18 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
           {/* Maintenance Mode */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Wrench className="w-5 h-5 mr-2" />
-                Maintenance Mode
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CollapsibleSection title="Maintenance Mode" icon={Wrench}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Wrench className="w-5 h-5 mr-2" />
+                  Maintenance Mode
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               <p className="text-sm text-gray-600">
                 When enabled, an edit toolbar appears on the public <strong>/listings</strong> and <strong>home</strong> pages.
                 Allows quick inline editing of listing type, description, and preview photo without going to the admin panel.
@@ -669,15 +715,17 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
           {/* Database Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center">
-                  <Database className="w-5 h-5 mr-2" />
-                  Database Configuration
-                </span>
+          <CollapsibleSection title="Database Configuration" icon={Database}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <Database className="w-5 h-5 mr-2" />
+                    Database Configuration
+                  </span>
                 {userRole === 'Superadmin' && (
                   <a
                     href="/admin/tenant-management"
@@ -715,16 +763,18 @@ export default function SettingsPage() {
               <Button variant="outline">Test Connection</Button>
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
           {/* Notification Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Bell className="w-5 h-5 mr-2" />
-                Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CollapsibleSection title="Notifications" icon={Bell}>
+            <Card>
+              <CardContent className="space-y-4">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Bell className="w-5 h-5 mr-2" />
+                  Notifications
+                </CardTitle>
+              </CardHeader>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -750,16 +800,18 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
           {/* Security Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Shield className="w-5 h-5 mr-2" />
-                Security & Privacy
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CollapsibleSection title="Security & Privacy" icon={Shield}>
+            <Card>
+              <CardContent>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Shield className="w-5 h-5 mr-2" />
+                  Security & Privacy
+                </CardTitle>
+              </CardHeader>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -783,16 +835,18 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
           {/* Appearance Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Palette className="w-5 h-5 mr-2" />
-                Appearance
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CollapsibleSection title="Appearance" icon={Palette}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Palette className="w-5 h-5 mr-2" />
+                  Appearance
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div>
                   <h3 className="font-medium mb-1" style={{ color: 'hsl(var(--foreground))' }}>Admin Panel Theme</h3>
@@ -804,19 +858,21 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
           {/* Color Palette */}
           <ColorPaletteCard />
 
           {/* Website content */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Database className="w-5 h-5 mr-2" />
-                Website Content Manager
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CollapsibleSection title="Website Content Manager" icon={Database}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Database className="w-5 h-5 mr-2" />
+                  Website Content Manager
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               <p className="text-sm text-gray-600">
                 Manage reusable website sections from Supabase. These values are stored in the website_content table and can power the homepage, About page, broker profiles, developer profiles, advantages, stories, and captions.
               </p>
@@ -899,16 +955,18 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
           {/* SEO Tips */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2" />
-                SEO Tips for Real Estate Listings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <CollapsibleSection title="SEO Tips for Real Estate Listings" icon={TrendingUp}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  SEO Tips for Real Estate Listings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
 
               {/* Step 1 */}
               <div className="flex gap-4">
@@ -1007,6 +1065,7 @@ export default function SettingsPage() {
 
             </CardContent>
           </Card>
+          </CollapsibleSection>
 
         </div>
       </div>
