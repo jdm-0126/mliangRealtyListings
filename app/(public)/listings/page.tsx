@@ -62,7 +62,6 @@ export default async function ListingsPage() {
         <>
           {/* Search filter + featured cards */}
           <FeaturedSearchSection
-            allListings={allListings}
             featuredListings={featuredListings}
           />
 
