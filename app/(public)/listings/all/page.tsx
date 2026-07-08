@@ -1,33 +1,28 @@
-// app/(public)/listings/page.tsx
+// app/(public)/listings/all/page.tsx — Full paginated listings browser
 import type { Metadata } from 'next'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { PublicListing } from '@/lib/types/public'
+import ListingsClientWrapper from '@/app/(public)/components/ListingsClientWrapper'
 import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
-import FeaturedSearchSection from '@/app/(public)/components/FeaturedSearchSection'
-import FeaturedVideoSection from '@/app/(public)/components/FeaturedVideoSection'
-import BookingCTASection from '@/app/(public)/components/BookingCTASection'
 import { getCachedPublicListings } from '@/lib/listings/publicListings'
 
 export const dynamic = 'force-static'
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Properties for Sale & Rent – M. Liang Realty',
+  title: 'All Properties – M. Liang Realty',
   description:
-    'Browse house and lot, lot only, and commercial properties in Pampanga. ' +
-    'M. Liang Realty offers a wide selection of listings across San Fernando and ' +
-    'surrounding areas in Pampanga.',
+    'Browse the complete list of house and lot, lot only, and commercial properties ' +
+    'for sale and rent in Pampanga. Filter by type, location, and price.',
 }
 
-export default async function ListingsPage() {
-  let allListings: PublicListing[] = []
-  let featuredListings: PublicListing[] = []
+export default async function AllListingsPage() {
+  let listings: PublicListing[] = []
   let fetchError = false
 
   try {
-    allListings = await getCachedPublicListings()
-    featuredListings = allListings
-      .filter(l => l.price !== null || l.previewPhoto !== null)
-      .slice(0, 6)
+    listings = await getCachedPublicListings()
   } catch {
     fetchError = true
   }
@@ -36,13 +31,22 @@ export default async function ListingsPage() {
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <MaintenanceBanner />
 
+      {/* Back link */}
+      <Link
+        href="/listings"
+        className="inline-flex items-center gap-2 text-sm mb-8 transition-colors hover:opacity-70"
+        style={{ color: 'var(--est-muted)' }}
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to Featured
+      </Link>
+
       {/* Page header */}
       <div className="mb-10">
         <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--est-purple)' }}>
-          Browse
+          All Listings
         </p>
         <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--est-text)' }}>
-          Properties for Sale &amp; Rent
+          Browse All Properties
         </h1>
         <p className="text-sm" style={{ color: 'var(--est-muted)' }}>
           House and lot, lot only, and commercial properties across Pampanga.
@@ -59,19 +63,7 @@ export default async function ListingsPage() {
           </p>
         </div>
       ) : (
-        <>
-          {/* Search filter + featured cards */}
-          <FeaturedSearchSection
-            allListings={allListings}
-            featuredListings={featuredListings}
-          />
-
-          {/* Facebook video — shown when admin has configured a featured video URL */}
-          <FeaturedVideoSection />
-
-          {/* CTA — Book a viewing / Agent of the day / Messenger */}
-          <BookingCTASection />
-        </>
+        <ListingsClientWrapper allListings={listings} />
       )}
     </main>
   )

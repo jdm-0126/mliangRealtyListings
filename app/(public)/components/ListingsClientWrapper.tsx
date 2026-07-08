@@ -1,9 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { PublicListing } from '@/lib/types/public'
 import ListingCard from './ListingCard'
-import { SlidersHorizontal, X } from 'lucide-react'
+import { SlidersHorizontal, X, LayoutList, LayoutGrid } from 'lucide-react'
 
 interface ListingsClientWrapperProps {
   allListings: PublicListing[]
@@ -13,6 +13,9 @@ const PAGE_SIZE = 12
 
 const TYPE_OPTIONS = ['All', 'House and Lot', 'Lot only', 'Commercial'] as const
 const PRICE_RANGE_OPTIONS = ['All', 'Under ₱2M', '₱2M–₱5M', '₱5M–₱10M', 'Above ₱10M'] as const
+
+const SETTINGS_KEY = 'tenantSettings'
+const VIEW_MODE_KEY = 'publicListingsViewMode'
 
 function normalizeListingType(type?: string | null): string {
   const value = (type ?? '').trim().toLowerCase()
@@ -26,6 +29,7 @@ function normalizeListingType(type?: string | null): string {
 
 type TypeFilter = (typeof TYPE_OPTIONS)[number]
 type PriceRange = (typeof PRICE_RANGE_OPTIONS)[number]
+type ViewMode = 'list' | 'grid'
 
 const selectStyle: React.CSSProperties = {
   background: 'var(--est-elevated)',
@@ -65,6 +69,32 @@ export default function ListingsClientWrapper({ allListings }: ListingsClientWra
   const [locationQuery, setLocationQuery] = useState('')
   const [priceRange, setPriceRange] = useState<PriceRange>('All')
   const [currentPage, setCurrentPage] = useState(1)
+  // Default is 'list'; admin can override the default via localStorage setting
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+
+  // Read admin-configured default view mode after hydration
+  useEffect(() => {
+    try {
+      // 1. Check if user has a personal override saved
+      const personal = localStorage.getItem(VIEW_MODE_KEY) as ViewMode | null
+      if (personal === 'grid' || personal === 'list') {
+        setViewMode(personal)
+        return
+      }
+      // 2. Fall back to admin-configured default
+      const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')
+      if (settings.publicListingsViewMode === 'grid') setViewMode('grid')
+    } catch {
+      // keep default 'list'
+    }
+  }, [])
+
+  function toggleViewMode() {
+    const next: ViewMode = viewMode === 'list' ? 'grid' : 'list'
+    setViewMode(next)
+    // Persist the visitor's personal preference
+    try { localStorage.setItem(VIEW_MODE_KEY, next) } catch { /* ignore */ }
+  }
 
   const filteredListings = useMemo(() => {
     return allListings.filter(listing => {
@@ -108,26 +138,59 @@ export default function ListingsClientWrapper({ allListings }: ListingsClientWra
     <div>
       {/* Filter bar */}
       <div
-        className="rounded-2xl p-5 mb-8 flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end"
+        className="rounded-2xl p-5 mb-6 flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end"
         style={{ background: 'var(--est-surface)', border: '1px solid var(--est-border)' }}
       >
-        {/* Header row */}
-        <div className="flex items-center justify-between w-full sm:w-auto sm:flex-1">
+        {/* Header row — filter label + clear + view toggle */}
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--est-purple)' }} />
             <span className="text-sm font-semibold" style={{ color: 'var(--est-text)' }}>
               Filter Listings
             </span>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors hover:opacity-80 ml-2"
+                style={{ background: 'var(--est-elevated)', color: 'var(--est-muted)', border: '1px solid var(--est-border)' }}
+              >
+                <X className="w-3 h-3" /> Clear
+              </button>
+            )}
           </div>
-          {hasActiveFilters && (
+
+          {/* View mode toggle */}
+          <div
+            className="flex items-center rounded-lg overflow-hidden"
+            style={{ border: '1px solid var(--est-border)' }}
+            role="group"
+            aria-label="View mode"
+          >
             <button
-              onClick={clearFilters}
-              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors hover:opacity-80"
-              style={{ background: 'var(--est-elevated)', color: 'var(--est-muted)', border: '1px solid var(--est-border)' }}
+              onClick={() => { setViewMode('list'); try { localStorage.setItem(VIEW_MODE_KEY, 'list') } catch { /* */ } }}
+              aria-pressed={viewMode === 'list'}
+              title="List view"
+              className="flex items-center justify-center w-8 h-8 transition-all"
+              style={{
+                background: viewMode === 'list' ? 'var(--est-purple)' : 'var(--est-elevated)',
+                color: viewMode === 'list' ? '#fff' : 'var(--est-muted)',
+              }}
             >
-              <X className="w-3 h-3" /> Clear
+              <LayoutList className="w-4 h-4" />
             </button>
-          )}
+            <button
+              onClick={() => { setViewMode('grid'); try { localStorage.setItem(VIEW_MODE_KEY, 'grid') } catch { /* */ } }}
+              aria-pressed={viewMode === 'grid'}
+              title="Grid view"
+              className="flex items-center justify-center w-8 h-8 transition-all"
+              style={{
+                background: viewMode === 'grid' ? 'var(--est-purple)' : 'var(--est-elevated)',
+                color: viewMode === 'grid' ? '#fff' : 'var(--est-muted)',
+              }}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Property type */}
@@ -172,10 +235,12 @@ export default function ListingsClientWrapper({ allListings }: ListingsClientWra
 
       {/* Results count */}
       {filteredListings.length > 0 && (
-        <p className="text-sm mb-6" style={{ color: 'var(--est-muted)' }}>
-          Showing <span style={{ color: 'var(--est-text)', fontWeight: 600 }}>{paginatedListings.length}</span> of{' '}
-          <span style={{ color: 'var(--est-text)', fontWeight: 600 }}>{filteredListings.length}</span>{' '}
-          propert{filteredListings.length === 1 ? 'y' : 'ies'}
+        <p className="text-sm mb-5" style={{ color: 'var(--est-muted)' }}>
+          Showing{' '}
+          <span style={{ color: 'var(--est-text)', fontWeight: 600 }}>{paginatedListings.length}</span>
+          {' '}of{' '}
+          <span style={{ color: 'var(--est-text)', fontWeight: 600 }}>{filteredListings.length}</span>
+          {' '}propert{filteredListings.length === 1 ? 'y' : 'ies'}
         </p>
       )}
 
@@ -203,13 +268,21 @@ export default function ListingsClientWrapper({ allListings }: ListingsClientWra
         </div>
       )}
 
-      {/* Grid */}
+      {/* Listings — list or grid */}
       {filteredListings.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          {paginatedListings.map((listing, idx) => (
-            <ListingCard key={listing.id} listing={listing} priority={idx === 0} />
-          ))}
-        </div>
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            {paginatedListings.map((listing, idx) => (
+              <ListingCard key={listing.id} listing={listing} viewMode="grid" priority={idx === 0} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4 mb-10">
+            {paginatedListings.map((listing, idx) => (
+              <ListingCard key={listing.id} listing={listing} viewMode="list" priority={idx === 0} />
+            ))}
+          </div>
+        )
       )}
 
       {/* Pagination */}
@@ -224,7 +297,7 @@ export default function ListingsClientWrapper({ allListings }: ListingsClientWra
             ← Prev
           </button>
 
-          {getPaginationItems().map((item, idx) =>
+          {getPaginationItems().map((item) =>
             item === 'ellipsis-start' || item === 'ellipsis-end' ? (
               <span key={item} className="px-2 text-sm" style={{ color: 'var(--est-muted)' }}>…</span>
             ) : (

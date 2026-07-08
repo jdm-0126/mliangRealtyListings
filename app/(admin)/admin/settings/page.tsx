@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp, Share2, ExternalLink, Wrench, CalendarCheck, Plus, Trash2, ChevronDown } from 'lucide-react'
+import { User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp, Share2, ExternalLink, Wrench, CalendarCheck, Plus, Trash2, ChevronDown, LayoutList } from 'lucide-react'
 import ThemeToggleButton from '@/app/(admin)/components/ThemeToggleButton'
 import ColorPaletteCard from '@/app/(admin)/components/ColorPaletteCard'
 import WebsiteContentEditor from '@/app/(admin)/components/WebsiteContentEditor'
@@ -82,6 +82,10 @@ export default function SettingsPage() {
   const [socialMessenger, setSocialMessenger] = useState('')
   const [socialSaved, setSocialSaved] = useState(false)
 
+  // Featured Facebook video shown on the main public listings page
+  const [featuredVideoUrl, setFeaturedVideoUrl] = useState('')
+  const [featuredVideoSaved, setFeaturedVideoSaved] = useState(false)
+
   // Agent of the day
   type AgentEntry = { name: string; title: string; phone: string }
   const DEFAULT_AGENT: AgentEntry = { name: 'M. Liang', title: 'Licensed Broker', phone: '09393440944' }
@@ -97,6 +101,10 @@ export default function SettingsPage() {
   // Booking — featured listing names shown in the booking form dropdown
   const [bookingListings, setBookingListings] = useState<string[]>([])
   const [bookingListingsSaved, setBookingListingsSaved] = useState(false)
+
+  // Public listings default view mode (list or grid)
+  const [publicListingsViewMode, setPublicListingsViewMode] = useState<'list' | 'grid'>('list')
+  const [viewModeSaved, setViewModeSaved] = useState(false)
 
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null
@@ -120,10 +128,13 @@ export default function SettingsPage() {
         if (parsed.socialWhatsapp)  setSocialWhatsapp(parsed.socialWhatsapp)
         if (parsed.socialViber)     setSocialViber(parsed.socialViber)
         if (parsed.socialMessenger) setSocialMessenger(parsed.socialMessenger)
+        if (parsed.featuredVideoUrl) setFeaturedVideoUrl(parsed.featuredVideoUrl)
         if (Array.isArray(parsed.agentsOfTheDay) && parsed.agentsOfTheDay.length === 7)
           setAgentsOfTheDay(parsed.agentsOfTheDay)
         if (Array.isArray(parsed.featuredBookingListings))
           setBookingListings(parsed.featuredBookingListings.filter(Boolean))
+        if (parsed.publicListingsViewMode === 'grid' || parsed.publicListingsViewMode === 'list')
+          setPublicListingsViewMode(parsed.publicListingsViewMode)
       } catch {
         // ignore invalid stored settings
       }
@@ -245,6 +256,15 @@ export default function SettingsPage() {
     window.setTimeout(() => setSocialSaved(false), 2000)
   }
 
+  const saveFeaturedVideo = () => {
+    const existing = (() => {
+      try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') } catch { return {} }
+    })()
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...existing, featuredVideoUrl: featuredVideoUrl.trim() }))
+    setFeaturedVideoSaved(true)
+    window.setTimeout(() => setFeaturedVideoSaved(false), 2000)
+  }
+
   const saveAgents = () => {
     const existing = (() => {
       try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') } catch { return {} }
@@ -264,6 +284,17 @@ export default function SettingsPage() {
     setBookingListingsSaved(true)
     window.dispatchEvent(new StorageEvent('storage', { key: SETTINGS_KEY }))
     window.setTimeout(() => setBookingListingsSaved(false), 2000)
+  }
+
+  const saveViewMode = () => {
+    const existing = (() => {
+      try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') } catch { return {} }
+    })()
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...existing, publicListingsViewMode }))
+    // Also clear any personal visitor override so admin choice takes effect immediately
+    localStorage.removeItem('publicListingsViewMode')
+    setViewModeSaved(true)
+    window.setTimeout(() => setViewModeSaved(false), 2000)
   }
   return (
     <div className="min-h-screen" style={{ background: 'hsl(var(--background))', color: 'hsl(var(--foreground))' }}>
@@ -571,6 +602,46 @@ export default function SettingsPage() {
           </Card>
           </CollapsibleSection>
 
+          {/* Featured Video */}
+          <CollapsibleSection title="Featured Video (Main Page)" icon={TrendingUp}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  Featured Video
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Paste a Facebook video, reel, or short URL. It will appear on the main listings page after the featured properties section.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    Facebook Video / Reel URL
+                  </label>
+                  <Input
+                    type="url"
+                    value={featuredVideoUrl}
+                    onChange={e => setFeaturedVideoUrl(e.target.value)}
+                    placeholder="https://www.facebook.com/reel/... or /watch?v=..."
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Copy the URL from any Facebook video, reel, or short and paste it here. Leave blank to hide the section.
+                  </p>
+                </div>
+                {featuredVideoUrl && (
+                  <a href={featuredVideoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline block truncate">
+                    Preview: {featuredVideoUrl}
+                  </a>
+                )}
+                <div className="flex items-center gap-3 pt-1">
+                  <Button onClick={saveFeaturedVideo}>Save Video</Button>
+                  {featuredVideoSaved && <span className="text-sm text-green-600">Saved ✓</span>}
+                </div>
+              </CardContent>
+            </Card>
+          </CollapsibleSection>
+
           {/* Agent of the Day */}
           <CollapsibleSection title="Agent of the Day" icon={User}>
             <Card>
@@ -671,6 +742,65 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          </CollapsibleSection>
+
+          {/* Listings Display */}
+          <CollapsibleSection title="Listings Display" icon={LayoutList}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <LayoutList className="w-5 h-5 mr-2" />
+                  Listings Display
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Choose the default view mode for the public listings page. Visitors can still switch modes manually.
+                </p>
+                <div className="flex gap-3">
+                  {(['list', 'grid'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setPublicListingsViewMode(mode)}
+                      className="flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border transition-all"
+                      style={{
+                        borderColor: publicListingsViewMode === mode ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                        background: publicListingsViewMode === mode ? 'hsl(var(--primary) / 0.08)' : 'white',
+                      }}
+                    >
+                      {mode === 'list' ? (
+                        <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                          <rect x="3" y="5" width="4" height="4" rx="1" />
+                          <line x1="9" y1="7" x2="21" y2="7" />
+                          <rect x="3" y="11" width="4" height="4" rx="1" />
+                          <line x1="9" y1="13" x2="21" y2="13" />
+                          <rect x="3" y="17" width="4" height="4" rx="1" />
+                          <line x1="9" y1="19" x2="21" y2="19" />
+                        </svg>
+                      ) : (
+                        <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                          <rect x="3" y="3" width="8" height="8" rx="1" />
+                          <rect x="13" y="3" width="8" height="8" rx="1" />
+                          <rect x="3" y="13" width="8" height="8" rx="1" />
+                          <rect x="13" y="13" width="8" height="8" rx="1" />
+                        </svg>
+                      )}
+                      <span className="text-sm font-semibold capitalize" style={{ color: publicListingsViewMode === mode ? 'hsl(var(--primary))' : '#374151' }}>
+                        {mode} view
+                      </span>
+                      <span className="text-xs text-center" style={{ color: '#6b7280' }}>
+                        {mode === 'list' ? 'Horizontal rows — more info at a glance' : 'Photo-first cards in a grid'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 pt-1">
+                  <Button onClick={saveViewMode}>Save Default View</Button>
+                  {viewModeSaved && <span className="text-sm text-green-600">Saved ✓</span>}
+                </div>
+              </CardContent>
+            </Card>
           </CollapsibleSection>
 
           {/* Maintenance Mode */}
