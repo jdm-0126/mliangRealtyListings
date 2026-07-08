@@ -382,6 +382,47 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
           </CollapsibleSection>
+
+          {/* Featured Video — right after account, easy to find */}
+          <CollapsibleSection title="Featured Video (Main Page)" icon={TrendingUp} defaultOpen={true}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  Featured Video
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Paste a Facebook video, reel, or short URL. It will appear on the main listings page after the featured properties section.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
+                    Facebook Video / Reel URL
+                  </label>
+                  <Input
+                    type="url"
+                    value={featuredVideoUrl}
+                    onChange={e => setFeaturedVideoUrl(e.target.value)}
+                    placeholder="https://www.facebook.com/reel/... or /watch?v=..."
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Copy the URL from any Facebook video, reel, or short and paste it here. Leave blank to hide the section.
+                  </p>
+                </div>
+                {featuredVideoUrl && (
+                  <a href={featuredVideoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline block truncate">
+                    Preview: {featuredVideoUrl}
+                  </a>
+                )}
+                <div className="flex items-center gap-3 pt-1">
+                  <Button onClick={saveFeaturedVideo}>Save Video</Button>
+                  {featuredVideoSaved && <span className="text-sm text-green-600">Saved ✓</span>}
+                </div>
+              </CardContent>
+            </Card>
+          </CollapsibleSection>
+
           {/* Profile Settings */}
           <CollapsibleSection title="Profile Settings" icon={User}>
             <Card>
@@ -600,46 +641,6 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-          </CollapsibleSection>
-
-          {/* Featured Video */}
-          <CollapsibleSection title="Featured Video (Main Page)" icon={TrendingUp}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <TrendingUp className="w-5 h-5 mr-2" />
-                  Featured Video
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-500">
-                  Paste a Facebook video, reel, or short URL. It will appear on the main listings page after the featured properties section.
-                </p>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
-                    Facebook Video / Reel URL
-                  </label>
-                  <Input
-                    type="url"
-                    value={featuredVideoUrl}
-                    onChange={e => setFeaturedVideoUrl(e.target.value)}
-                    placeholder="https://www.facebook.com/reel/... or /watch?v=..."
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Copy the URL from any Facebook video, reel, or short and paste it here. Leave blank to hide the section.
-                  </p>
-                </div>
-                {featuredVideoUrl && (
-                  <a href={featuredVideoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline block truncate">
-                    Preview: {featuredVideoUrl}
-                  </a>
-                )}
-                <div className="flex items-center gap-3 pt-1">
-                  <Button onClick={saveFeaturedVideo}>Save Video</Button>
-                  {featuredVideoSaved && <span className="text-sm text-green-600">Saved ✓</span>}
-                </div>
-              </CardContent>
-            </Card>
           </CollapsibleSection>
 
           {/* Agent of the Day */}

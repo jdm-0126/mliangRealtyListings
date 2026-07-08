@@ -45,11 +45,21 @@ function mapToPublicListing(row: Record<string, unknown>): PublicListing {
 }
 
 export async function getCachedPublicListings(): Promise<PublicListing[]> {
+  return fetchListings(false)
+}
+
+/**
+ * Slim variant for the all-listings browse page.
+ * Omits notes, full photo array, and video URLs — only the card-level fields.
+ * Keeps the payload well under Vercel's 19 MB ISR limit even with 300+ listings.
+ */
+export async function getSlimPublicListings(): Promise<PublicListing[]> {
+  return fetchListings(true)
+}
+
+async function fetchListings(slim: boolean): Promise<PublicListing[]> {
   if (!supabase) return []
 
-  // select('*') is required because PostgREST cannot handle column names with
-  // spaces in the select string. To stay under Vercel's 19 MB ISR limit we
-  // strip every column we don't use right after the fetch, before mapping.
   const { data, error } = await supabase
     .from('mlianglistings')
     .select('*')
@@ -62,9 +72,7 @@ export async function getCachedPublicListings(): Promise<PublicListing[]> {
     return []
   }
 
-  // Columns kept for mapToPublicListing — everything else is dropped to
-  // reduce the JSON payload that Next.js serialises into the ISR page cache.
-  const KEEP = new Set([
+  const KEEP_FULL = new Set([
     'Property ID', 'Type', 'Location', 'Village',
     'Listing Price', 'ListingPrice', 'Price',
     'Lot Area', 'Lot Area sqm', 'LA',
@@ -75,10 +83,22 @@ export async function getCachedPublicListings(): Promise<PublicListing[]> {
     'Notes', 'Status', 'Map URL', 'Video URL', 'Facebook Video URL', 'TikTok Video URL', 'updated_at', 'featured',
   ])
 
+  // Slim: card-level fields only — no notes, no full photo array, no video URLs
+  const KEEP_SLIM = new Set([
+    'Property ID', 'Type', 'Location', 'Village',
+    'Listing Price', 'ListingPrice', 'Price',
+    'Lot Area', 'Lot Area sqm', 'LA',
+    'Floor Area', 'Floor Area sqm',
+    'Bedroom', 'Bathroom',
+    'Preview Photo',
+    'Status', 'Map URL', 'featured',
+  ])
+
+  const KEEP = slim ? KEEP_SLIM : KEEP_FULL
+
   const rows = Array.isArray(data) ? (data as unknown as Array<Record<string, unknown>>) : []
   return rows
     .map((rawRow) => {
-      // Keep only the columns we need
       const row: Record<string, unknown> = {}
       for (const key of KEEP) {
         if (key in rawRow) row[key] = rawRow[key]

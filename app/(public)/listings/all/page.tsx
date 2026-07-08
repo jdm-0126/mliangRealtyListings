@@ -5,10 +5,10 @@ import { ArrowLeft } from 'lucide-react'
 import { PublicListing } from '@/lib/types/public'
 import ListingsClientWrapper from '@/app/(public)/components/ListingsClientWrapper'
 import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
-import { getCachedPublicListings } from '@/lib/listings/publicListings'
+import { getSlimPublicListings } from '@/lib/listings/publicListings'
 
-export const dynamic = 'force-static'
 export const revalidate = 60
+// Uses slim listings (no notes/photos/video URLs) to stay under Vercel's 19 MB ISR limit.
 
 export const metadata: Metadata = {
   title: 'All Properties – M. Liang Realty',
@@ -22,7 +22,7 @@ export default async function AllListingsPage() {
   let fetchError = false
 
   try {
-    listings = await getCachedPublicListings()
+    listings = await getSlimPublicListings()
   } catch {
     fetchError = true
   }
