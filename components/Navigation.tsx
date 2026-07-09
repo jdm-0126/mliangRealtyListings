@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Upload, Settings, BarChart3, Users, Menu, X, KeyRound, Database } from 'lucide-react'
+import { Home, Upload, Settings, BarChart3, Users, Menu, X, KeyRound, Database, Video } from 'lucide-react'
 import { Button } from './ui/button'
 
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
@@ -14,6 +14,7 @@ const navigation = [
   { name: 'Properties',       href: '/admin/properties',    icon: BarChart3, roles: ['superadmin', 'broker', 'agent'] },
   { name: 'Rentals',          href: '/admin/rentals',       icon: KeyRound,  roles: ['superadmin', 'broker', 'agent'] },
   { name: 'Gallery',          href: '/admin/gallery',       icon: Upload,    roles: ['superadmin', 'broker'] },
+  { name: 'Featured Video',   href: '/admin/featured-video', icon: Video,     roles: ['superadmin', 'broker'] },
   { name: 'Brokers',          href: '/admin/brokers',       icon: Users,     roles: ['superadmin'] },
   { name: 'Agents',           href: '/admin/agents',        icon: Users,     roles: ['superadmin', 'broker'] },
   { name: 'My Profile',       href: '/admin/agent-profile', icon: Settings,  roles: ['agent'] },

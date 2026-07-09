@@ -1,11 +1,7 @@
 'use client'
 // app/(public)/components/FeaturedSearchSection.tsx
-// Search bar redirects to /listings/all with filters as query params.
-// Featured listings shown when no filter is active.
-// No full listings array passed — keeps the main page ISR payload small.
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight, SlidersHorizontal, Search } from 'lucide-react'
 import { PublicListing } from '@/lib/types/public'
@@ -55,33 +51,32 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function FeaturedSearchSection({ featuredListings }: FeaturedSearchSectionProps) {
-  const router = useRouter()
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('All')
   const [locationQuery, setLocationQuery] = useState('')
   const [priceRange, setPriceRange] = useState<PriceRange>('All')
 
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
+  // Build the search URL with only non-default params
+  function buildSearchUrl() {
     const params = new URLSearchParams()
     if (typeFilter !== 'All') params.set('type', typeFilter)
     if (locationQuery.trim()) params.set('location', locationQuery.trim())
     if (priceRange !== 'All') params.set('price', priceRange)
-    router.push(`/listings/all${params.toString() ? `?${params}` : ''}`)
+    const qs = params.toString()
+    return `/listings/all${qs ? `?${qs}` : ''}`
   }
 
   return (
     <>
-      {/* ── Search bar — submits to /listings/all ── */}
-      <form
-        onSubmit={handleSearch}
+      {/* ── Search bar — GET form navigates to /listings/all ── */}
+      <div
         className="rounded-2xl p-5 mb-10 flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end"
         style={{ background: 'var(--est-surface)', border: '1px solid var(--est-border)' }}
       >
         <div className="flex items-center gap-2 w-full">
           <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--est-purple)' }} />
-          <span className="text-sm font-semibold" style={{ color: 'var(--est-text)' }}>
+          <p className="text-sm font-semibold m-0" style={{ color: 'var(--est-text)' }}>
             Search Properties
-          </span>
+          </p>
         </div>
 
         {/* Property type */}
@@ -106,6 +101,7 @@ export default function FeaturedSearchSection({ featuredListings }: FeaturedSear
             placeholder="Search by location…"
             value={locationQuery}
             onChange={e => setLocationQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') window.location.href = buildSearchUrl() }}
             style={inputStyle}
           />
         </div>
@@ -125,15 +121,15 @@ export default function FeaturedSearchSection({ featuredListings }: FeaturedSear
 
         {/* Search button */}
         <div className="flex-shrink-0">
-          <button
-            type="submit"
-            className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 h-[38px]"
-            style={{ background: 'var(--est-purple)', color: '#fff' }}
+          <Link
+            href={buildSearchUrl()}
+            className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+            style={{ background: 'var(--est-purple)', color: '#fff', height: 38, display: 'inline-flex', alignItems: 'center' }}
           >
             <Search className="w-4 h-4" /> Search
-          </button>
+          </Link>
         </div>
-      </form>
+      </div>
 
       {/* ── Featured listings ── */}
       <section className="rounded-3xl p-6 sm:p-8" style={{ background: 'var(--est-surface)', border: '1px solid var(--est-border)' }}>
