@@ -57,7 +57,6 @@ export async function getCachedPublicListings(): Promise<PublicListing[]> {
  */
 export async function getFeaturedListings(): Promise<PublicListing[]> {
   if (!supabase) return []
-
   const KEEP = new Set([
     'Property ID', 'Type', 'Location', 'Village',
     'Listing Price', 'ListingPrice', 'Price',

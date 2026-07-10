@@ -50,7 +50,7 @@ const labelStyle: React.CSSProperties = {
   color: 'var(--est-muted)',
 }
 
-export default function FeaturedSearchSection({ featuredListings }: FeaturedSearchSectionProps) {
+export default function FeaturedSearchSection({ featuredListings = [] }: FeaturedSearchSectionProps) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('All')
   const [locationQuery, setLocationQuery] = useState('')
   const [priceRange, setPriceRange] = useState<PriceRange>('All')
@@ -154,13 +154,13 @@ export default function FeaturedSearchSection({ featuredListings }: FeaturedSear
           </Link>
         </div>
 
-        {featuredListings.length === 0 ? (
+        {(featuredListings?.length ?? 0) === 0 ? (
           <p className="py-8 text-center text-sm" style={{ color: 'var(--est-muted)' }}>
             Featured properties will appear here soon.
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredListings.map((listing, idx) => (
+            {(featuredListings ?? []).map((listing, idx) => (
               <ListingCard key={listing.id} listing={listing} viewMode="grid" priority={idx === 0} />
             ))}
           </div>
