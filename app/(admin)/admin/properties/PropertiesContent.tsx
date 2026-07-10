@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useDeferredValue } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/app/lib/supabaseClient.js'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,7 @@ export default function PropertiesContent() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState('')
+  const deferredSearch = useDeferredValue(searchText)
   const [filteredData, setFilteredData] = useState<any[]>([])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [statusFilter, setStatusFilter] = useState<string>('active')
@@ -155,10 +156,10 @@ export default function PropertiesContent() {
   useEffect(() => {
     let filtered = data
 
-    if (searchText) {
+    if (deferredSearch) {
       filtered = filtered.filter(row =>
         Object.values(row).some(value =>
-          String(value).toLowerCase().includes(searchText.toLowerCase())
+          String(value).toLowerCase().includes(deferredSearch.toLowerCase())
         )
       )
     }
@@ -256,7 +257,7 @@ export default function PropertiesContent() {
     
     setFilteredData(filtered)
     setCurrentPage(1)
-  }, [data, searchText, statusFilter, typeFilter, featuredFilter, locationFilter, priceFilter, sizeFilter, sortBy])
+  }, [data, deferredSearch, statusFilter, typeFilter, featuredFilter, locationFilter, priceFilter, sizeFilter, sortBy])
 
   const handleDelete = async (property: any) => {
     const id = property['Property ID']
