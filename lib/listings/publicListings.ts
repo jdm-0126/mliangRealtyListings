@@ -41,6 +41,7 @@ function mapToPublicListing(row: Record<string, unknown>): PublicListing {
     facebookVideoUrl: typeof row['Facebook Video URL'] === 'string' && row['Facebook Video URL'].trim() ? row['Facebook Video URL'].trim() : null,
     tiktokVideoUrl: typeof row['TikTok Video URL'] === 'string' && row['TikTok Video URL'].trim() ? row['TikTok Video URL'].trim() : null,
     featured: row['featured'] === true,
+    listingMode: typeof row['Listing Mode'] === 'string' ? row['Listing Mode'].trim() : undefined,
     updatedAt: typeof row['updated_at'] === 'string' ? row['updated_at'] : undefined,
   }
 }
@@ -155,7 +156,7 @@ async function fetchListings(slim: boolean): Promise<PublicListing[]> {
     'Floor Area', 'Floor Area sqm',
     'Bedroom', 'Bathroom',
     'Preview Photo',
-    'Status', 'Map URL', 'featured',
+    'Status', 'Map URL', 'featured', 'Listing Mode',
   ])
 
   const KEEP = slim ? KEEP_SLIM : KEEP_FULL

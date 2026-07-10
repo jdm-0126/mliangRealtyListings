@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useDeferredValue } from 'react'
 import { PublicListing } from '@/lib/types/public'
 import ListingCard from './ListingCard'
 import { SlidersHorizontal, X, LayoutList, LayoutGrid } from 'lucide-react'
@@ -72,42 +72,30 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
     TYPE_OPTIONS.includes(initialType as TypeFilter) ? (initialType as TypeFilter) : 'All'
   )
   const [locationQuery, setLocationQuery] = useState(initialLocation ?? '')
+  // Defer location filtering so every keystroke doesn't block the UI
+  const deferredLocation = useDeferredValue(locationQuery)
   const [priceRange, setPriceRange] = useState<PriceRange>(
     PRICE_RANGE_OPTIONS.includes(initialPrice as PriceRange) ? (initialPrice as PriceRange) : 'All'
   )
   const [currentPage, setCurrentPage] = useState(1)
-  // Default is 'list'; admin can override the default via localStorage setting
   const [viewMode, setViewMode] = useState<ViewMode>('list')
 
-  // Read admin-configured default view mode after hydration
+  // Read view mode preference after hydration (localStorage is client-only)
   useEffect(() => {
     try {
-      // 1. Check if user has a personal override saved
       const personal = localStorage.getItem(VIEW_MODE_KEY) as ViewMode | null
-      if (personal === 'grid' || personal === 'list') {
-        setViewMode(personal)
-        return
-      }
-      // 2. Fall back to admin-configured default
+      if (personal === 'grid' || personal === 'list') { setViewMode(personal); return }
       const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')
       if (settings.publicListingsViewMode === 'grid') setViewMode('grid')
-    } catch {
-      // keep default 'list'
-    }
+    } catch { /* keep default */ }
   }, [])
 
-  function toggleViewMode() {
-    const next: ViewMode = viewMode === 'list' ? 'grid' : 'list'
-    setViewMode(next)
-    // Persist the visitor's personal preference
-    try { localStorage.setItem(VIEW_MODE_KEY, next) } catch { /* ignore */ }
-  }
-
+  // useMemo with deferred location — heavy filter runs off the critical path
   const filteredListings = useMemo(() => {
     return allListings.filter(listing => {
       const normalizedType = normalizeListingType(listing.type)
       if (typeFilter !== 'All' && normalizedType !== typeFilter) return false
-      if (locationQuery.trim() && !listing.location.toLowerCase().includes(locationQuery.toLowerCase())) return false
+      if (deferredLocation.trim() && !listing.location.toLowerCase().includes(deferredLocation.toLowerCase())) return false
       const price = listing.price ?? 0
       if (priceRange === 'Under ₱2M' && price >= 2_000_000) return false
       if (priceRange === '₱2M–₱5M' && (price < 2_000_000 || price >= 5_000_000)) return false
@@ -115,7 +103,7 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
       if (priceRange === 'Above ₱10M' && price < 10_000_000) return false
       return true
     })
-  }, [allListings, typeFilter, locationQuery, priceRange])
+  }, [allListings, typeFilter, deferredLocation, priceRange])
 
   const paginatedListings = filteredListings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
   const totalPages = Math.ceil(filteredListings.length / PAGE_SIZE)

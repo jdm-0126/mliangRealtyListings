@@ -20,6 +20,7 @@ export interface PublicListing {
   facebookVideoUrl?: string | null
   tiktokVideoUrl?: string | null
   featured?: boolean
+  listingMode?: string  // 'For Sale' | 'For Rent'
   updatedAt?: string
 }
 
