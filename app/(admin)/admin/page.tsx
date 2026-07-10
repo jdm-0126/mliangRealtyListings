@@ -36,6 +36,8 @@ interface Stats {
   lotOnly: number
   commercial: number
   featured: number
+  inquiries: number
+  sellerLeads: number
 }
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
@@ -78,6 +80,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({
     total: 0, active: 0, draft: 0, sold: 0,
     houseAndLot: 0, lotOnly: 0, commercial: 0, featured: 0,
+    inquiries: 0, sellerLeads: 0,
   })
   const [recentListings, setRecentListings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,12 +91,18 @@ export default function AdminDashboard() {
 
   const fetchData = useCallback(async () => {
     if (!supabase) { setLoading(false); return }
-    const { data, error } = await supabase
-      .from('mlianglistings')
-      .select('*')
-      .order('Property ID', { ascending: false })
-      .limit(500)
-    if (error || !data) { setLoading(false); return }
+
+    // Fetch listings and leads in parallel
+    const [listingsRes, leadsRes] = await Promise.all([
+      supabase.from('mlianglistings').select('*').order('Property ID', { ascending: false }).limit(500),
+      supabase.from('leads').select('id, message').limit(1000),
+    ])
+
+    const data = listingsRes.data
+    if (listingsRes.error || !data) { setLoading(false); return }
+
+    const leads = (leadsRes.data ?? []) as { id: number; message: string }[]
+    const sellerCount = leads.filter(l => l.message?.startsWith('[SELLER INQUIRY]')).length
 
     setAllData(data)
 
@@ -106,6 +115,8 @@ export default function AdminDashboard() {
       lotOnly: data.filter((r: any) => String(r.Type || '').toLowerCase() === 'lot only' || String(r.Type || '').toLowerCase() === 'lot').length,
       commercial: data.filter((r: any) => String(r.Type || '').toLowerCase().includes('commercial')).length,
       featured: data.filter((r: any) => r.featured === true).length,
+      inquiries: leads.length - sellerCount,
+      sellerLeads: sellerCount,
     }
     setStats(s)
     setRecentListings(data.slice(0, 5))
@@ -171,6 +182,14 @@ export default function AdminDashboard() {
             color="bg-orange-50 text-orange-600" href="/admin/properties?type=lot" />
           <StatCard label="Commercial" value={stats.commercial} icon={BarChart3}
             color="bg-pink-50 text-pink-600" href="/admin/properties?type=commercial" />
+        </div>
+
+        {/* ── Inquiries ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+          <StatCard label="Buyer Inquiries" value={stats.inquiries} icon={MessageSquare}
+            color="bg-blue-50 text-blue-600" href="/admin/inquiries?filter=buyer" />
+          <StatCard label="Seller Leads" value={stats.sellerLeads} icon={Home}
+            color="bg-purple-50 text-purple-600" href="/admin/inquiries?filter=seller" />
         </div>
 
         {/* ── Quick nav ── */}

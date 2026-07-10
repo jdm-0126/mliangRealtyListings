@@ -18,6 +18,9 @@ const NAV_LINKS = [
   { label: 'Contact', href: '/contact' },
 ]
 
+// Shown only in the mobile drawer + desktop as a secondary text link beside the CTA
+const SELL_LINK = { label: 'List Your Property', href: '/contact?tab=sell' }
+
 export default function PublicHeader({ businessName }: PublicHeaderProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -79,6 +82,13 @@ export default function PublicHeader({ businessName }: PublicHeaderProps) {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
+            <Link
+              href={SELL_LINK.href}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
+              style={{ color: 'var(--est-muted)' }}
+            >
+              {SELL_LINK.label}
+            </Link>
             <Link
               href="/book"
               className="px-5 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
@@ -157,6 +167,14 @@ export default function PublicHeader({ businessName }: PublicHeaderProps) {
             style={{ background: 'var(--est-purple)', color: '#fff', WebkitTapHighlightColor: 'transparent' }}
           >
             Book a Viewing
+          </Link>
+          <Link
+            href={SELL_LINK.href}
+            onClick={() => setMobileMenuOpen(false)}
+            className="px-5 py-3 rounded-lg text-sm font-semibold text-center transition-all active:scale-[0.97] active:opacity-80"
+            style={{ background: 'var(--est-elevated)', color: 'var(--est-text)', border: '1px solid var(--est-border)', WebkitTapHighlightColor: 'transparent' }}
+          >
+            {SELL_LINK.label}
           </Link>
         </div>
       )}

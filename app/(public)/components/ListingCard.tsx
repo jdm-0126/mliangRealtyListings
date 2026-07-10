@@ -72,6 +72,9 @@ export default function ListingCard({ listing: initialListing, priority = false,
   const href = `/listings/${listing.displayId}`
   const imageSrc = listing.previewPhoto || 'https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png'
   const displayType = formatListingType(listing.type)
+  const listingMode = listing.listingMode?.toLowerCase().includes('rent') ? 'For Rent'
+    : listing.listingMode?.toLowerCase().includes('sale') ? 'For Sale'
+    : null
 
   // Show image once it's either in-view (lazy) or priority
   const showImage = priority || inView
@@ -155,6 +158,14 @@ export default function ListingCard({ listing: initialListing, priority = false,
                 style={{ background: 'var(--est-purple)', color: '#fff' }}
               >
                 {displayType}
+              </span>
+            )}
+            {listingMode && (
+              <span
+                className="absolute top-2 right-2 text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: listingMode === 'For Rent' ? '#0ea5e9' : '#16a34a', color: '#fff' }}
+              >
+                {listingMode}
               </span>
             )}
           </div>
@@ -251,6 +262,14 @@ export default function ListingCard({ listing: initialListing, priority = false,
                 style={{ background: 'var(--est-purple)', color: '#fff' }}
               >
                 {displayType}
+              </span>
+            )}
+            {listingMode && (
+              <span
+                className="absolute top-3 right-3 text-xs font-semibold px-3 py-1 rounded-full"
+                style={{ background: listingMode === 'For Rent' ? '#0ea5e9' : '#16a34a', color: '#fff' }}
+              >
+                {listingMode}
               </span>
             )}
           </div>
