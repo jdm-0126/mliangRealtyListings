@@ -54,14 +54,19 @@ function StatCard({
   href?: string
 }) {
   const inner = (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4 hover:shadow-md hover:border-blue-300 transition-all group cursor-pointer">
       <div className={`p-3 rounded-lg ${color}`}>
         <Icon className="w-6 h-6" />
       </div>
-      <div>
+      <div className="flex-1 min-w-0">
         <p className="text-sm text-gray-500 font-medium">{label}</p>
         <p className="text-2xl font-bold text-gray-900">{value}</p>
       </div>
+      {href && (
+        <svg className="w-4 h-4 text-gray-300 group-hover:text-blue-500 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      )}
     </div>
   )
   return href ? <Link href={href}>{inner}</Link> : <div>{inner}</div>
@@ -152,20 +157,20 @@ export default function AdminDashboard() {
           <StatCard label="Total Listings" value={stats.total} icon={Home}
             color="bg-blue-50 text-blue-600" href="/admin/properties" />
           <StatCard label="Active" value={stats.active} icon={TrendingUp}
-            color="bg-green-50 text-green-600" href="/admin/properties" />
+            color="bg-green-50 text-green-600" href="/admin/properties?status=active" />
           <StatCard label="Draft" value={stats.draft} icon={DollarSign}
-            color="bg-yellow-50 text-yellow-600" />
+            color="bg-yellow-50 text-yellow-600" href="/admin/properties?status=draft" />
           <StatCard label="Featured" value={stats.featured} icon={Star}
-            color="bg-purple-50 text-purple-600" />
+            color="bg-purple-50 text-purple-600" href="/admin/properties?featured=true" />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <StatCard label="House & Lot" value={stats.houseAndLot} icon={Building2}
-            color="bg-indigo-50 text-indigo-600" />
+            color="bg-indigo-50 text-indigo-600" href="/admin/properties?type=house" />
           <StatCard label="Lot Only" value={stats.lotOnly} icon={MapPin}
-            color="bg-orange-50 text-orange-600" />
+            color="bg-orange-50 text-orange-600" href="/admin/properties?type=lot" />
           <StatCard label="Commercial" value={stats.commercial} icon={BarChart3}
-            color="bg-pink-50 text-pink-600" />
+            color="bg-pink-50 text-pink-600" href="/admin/properties?type=commercial" />
         </div>
 
         {/* ── Quick nav ── */}

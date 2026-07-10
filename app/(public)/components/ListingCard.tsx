@@ -220,7 +220,7 @@ export default function ListingCard({ listing: initialListing, priority = false,
           className="block rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5"
           style={{ background: 'var(--est-card)', border: '1px solid var(--est-border)' }}
         >
-          {/* Photo */}
+          {/* Photo — shimmer only in image area, not over text */}
           <div ref={imageRef} className="relative h-52 overflow-hidden" style={{ background: 'var(--est-elevated)' }}>
             <div
               className="absolute inset-0 animate-pulse"
@@ -255,7 +255,7 @@ export default function ListingCard({ listing: initialListing, priority = false,
             )}
           </div>
 
-          {/* Card body */}
+          {/* Card body — text renders immediately, no skeleton */}
           <div className="p-5">
             <div className="flex items-center gap-1.5 mb-2">
               <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--est-purple)' }} />

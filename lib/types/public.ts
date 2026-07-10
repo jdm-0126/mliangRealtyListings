@@ -19,6 +19,7 @@ export interface PublicListing {
   videoUrl?: string | null
   facebookVideoUrl?: string | null
   tiktokVideoUrl?: string | null
+  featured?: boolean
   updatedAt?: string
 }
 

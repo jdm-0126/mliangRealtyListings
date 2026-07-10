@@ -5,7 +5,7 @@ import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
 import FeaturedSearchSection from '@/app/(public)/components/FeaturedSearchSection'
 import FeaturedVideoSection from '@/app/(public)/components/FeaturedVideoSection'
 import BookingCTASection from '@/app/(public)/components/BookingCTASection'
-import { getSlimPublicListings } from '@/lib/listings/publicListings'
+import { getFeaturedListings } from '@/lib/listings/publicListings'
 
 export const dynamic = 'force-static'
 export const revalidate = 60
@@ -23,10 +23,9 @@ export default async function ListingsPage() {
   let fetchError = false
 
   try {
-    const all = await getSlimPublicListings()
-    featuredListings = all
-      .filter(l => l.price !== null || l.previewPhoto !== null)
-      .slice(0, 6)
+    // Dedicated query — only fetches flagged featured rows (uses partial index)
+    // Falls back to newest 6 if none are flagged
+    featuredListings = await getFeaturedListings()
   } catch {
     fetchError = true
   }

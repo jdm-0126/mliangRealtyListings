@@ -32,6 +32,7 @@ export default function PropertiesContent() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [statusFilter, setStatusFilter] = useState<string>('active')
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [featuredFilter, setFeaturedFilter] = useState<boolean>(false)
   const [locationFilter, setLocationFilter] = useState<string>('')
   const [priceFilter, setPriceFilter] = useState<string>('')
   const [sizeFilter, setSizeFilter] = useState<string>('')
@@ -76,22 +77,33 @@ export default function PropertiesContent() {
     const location = searchParams.get('location')
     const price = searchParams.get('price')
     const size = searchParams.get('size')
-    
+    const status = searchParams.get('status')
+    const featured = searchParams.get('featured')
+
     if (type) {
       if (type.toLowerCase().includes('house')) setTypeFilter('residential')
       else if (type.toLowerCase().includes('lot')) setTypeFilter('lot')
       else if (type.toLowerCase().includes('commercial')) setTypeFilter('commercial')
     }
-    
+
+    if (status) {
+      setStatusFilter(status.toLowerCase())
+    }
+
+    if (featured === 'true') {
+      setFeaturedFilter(true)
+      setStatusFilter('all') // show all statuses when viewing featured
+    }
+
     if (location) {
       setLocationFilter(location)
       setSearchText(location)
     }
-    
+
     if (price) {
       setPriceFilter(price)
     }
-    
+
     if (size) {
       setSizeFilter(size)
     }
@@ -218,6 +230,10 @@ export default function PropertiesContent() {
         (row.Type || '').toLowerCase() === typeFilter.toLowerCase()
       )
     }
+
+    if (featuredFilter) {
+      filtered = filtered.filter(row => row.featured === true)
+    }
     
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -240,7 +256,7 @@ export default function PropertiesContent() {
     
     setFilteredData(filtered)
     setCurrentPage(1)
-  }, [data, searchText, statusFilter, typeFilter, locationFilter, priceFilter, sizeFilter, sortBy])
+  }, [data, searchText, statusFilter, typeFilter, featuredFilter, locationFilter, priceFilter, sizeFilter, sortBy])
 
   const handleDelete = async (property: any) => {
     const id = property['Property ID']
@@ -512,6 +528,7 @@ export default function PropertiesContent() {
                         onClick={() => {
                           setStatusFilter('active')
                           setTypeFilter('all')
+                          setFeaturedFilter(false)
                           setLocationFilter('')
                           setPriceFilter('')
                           setSizeFilter('')

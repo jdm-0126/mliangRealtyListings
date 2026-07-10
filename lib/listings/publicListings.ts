@@ -40,12 +40,76 @@ function mapToPublicListing(row: Record<string, unknown>): PublicListing {
     videoUrl: typeof row['Video URL'] === 'string' && row['Video URL'].trim() ? row['Video URL'].trim() : null,
     facebookVideoUrl: typeof row['Facebook Video URL'] === 'string' && row['Facebook Video URL'].trim() ? row['Facebook Video URL'].trim() : null,
     tiktokVideoUrl: typeof row['TikTok Video URL'] === 'string' && row['TikTok Video URL'].trim() ? row['TikTok Video URL'].trim() : null,
+    featured: row['featured'] === true,
     updatedAt: typeof row['updated_at'] === 'string' ? row['updated_at'] : undefined,
   }
 }
 
 export async function getCachedPublicListings(): Promise<PublicListing[]> {
   return fetchListings(false)
+}
+
+/**
+ * Fetches only listings where featured=true, ordered newest first.
+ * Uses the partial index idx_mlianglistings_featured — fast even with 300+ rows.
+ * Falls back to the 6 newest active listings if none are flagged featured.
+ */
+export async function getFeaturedListings(): Promise<PublicListing[]> {
+  if (!supabase) return []
+
+  const KEEP = new Set([
+    'Property ID', 'Type', 'Location', 'Village',
+    'Listing Price', 'ListingPrice', 'Price',
+    'Lot Area', 'Lot Area sqm', 'LA',
+    'Floor Area', 'Floor Area sqm',
+    'Bedroom', 'Bathroom',
+    'Preview Photo',
+    'Status', 'Map URL', 'featured',
+  ])
+
+  // Primary: explicitly flagged featured listings
+  const { data: featuredData } = await supabase
+    .from('mlianglistings')
+    .select('*')
+    .ilike('Status', 'active')
+    .eq('featured', true)
+    .order('"Property ID"', { ascending: false })
+    .limit(6)
+
+  const featured = Array.isArray(featuredData) && featuredData.length > 0
+    ? featuredData as Array<Record<string, unknown>>
+    : null
+
+  // Fallback: newest 6 active listings with a photo or price
+  if (!featured) {
+    const { data: fallbackData } = await supabase
+      .from('mlianglistings')
+      .select('*')
+      .ilike('Status', 'active')
+      .order('"Property ID"', { ascending: false })
+      .limit(12) // fetch 12, filter to 6 with photo/price
+
+    const rows = Array.isArray(fallbackData)
+      ? (fallbackData as Array<Record<string, unknown>>)
+      : []
+
+    return rows
+      .map(rawRow => {
+        const row: Record<string, unknown> = {}
+        for (const key of KEEP) { if (key in rawRow) row[key] = rawRow[key] }
+        return mapToPublicListing(row)
+      })
+      .filter(l => l.price !== null || l.previewPhoto !== null)
+      .slice(0, 6)
+  }
+
+  return featured
+    .map(rawRow => {
+      const row: Record<string, unknown> = {}
+      for (const key of KEEP) { if (key in rawRow) row[key] = rawRow[key] }
+      return mapToPublicListing(row)
+    })
+    .filter(l => l.price !== null || l.previewPhoto !== null)
 }
 
 /**
