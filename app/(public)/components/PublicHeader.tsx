@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Menu, X } from 'lucide-react'
 
 interface PublicHeaderProps {
@@ -24,8 +24,14 @@ const SELL_LINK = { label: 'List Your Property', href: '/contact?tab=sell' }
 export default function PublicHeader({ businessName }: PublicHeaderProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Active-state highlight deferred until after hydration.
+  // Server renders no active state → client matches → no mismatch.
+  useEffect(() => { setMounted(true) }, [])
 
   function isActive(href: string) {
+    if (!mounted) return false
     if (href === '/listings') return pathname === '/' || pathname === '/listings' || pathname.startsWith('/listings')
     return pathname.startsWith(href)
   }
