@@ -154,7 +154,7 @@ Work is organized in layers: shared foundation first (types, utilities, SEO help
     - _Requirements: 2.1, 2.7, 7.4_
 
   - [x] 8.2 Add Featured Listings section to homepage
-    - In `app/(public)/page.tsx`, call Supabase with `.ilike('Status', 'active').order('Property ID', { ascending: false }).limit(6)`
+    - In `app/(public)/page.tsx`, call Supabase with `.ilike('Status', 'active').order('property_id', { ascending: false }).limit(6)`
     - Pass results to `<ListingCard>` components in a grid
     - Render "No listings available at the moment" placeholder when data is empty
     - Render "Unable to load listings at this time" when the query returns an error
@@ -226,7 +226,7 @@ Work is organized in layers: shared foundation first (types, utilities, SEO help
   - [x] 11.1 Create the Property Detail page server component
     - Create `app/(public)/listings/[id]/page.tsx`
     - Reverse displayId to internalId: `internalId = displayId >= 2 ? displayId + 1 : displayId`
-    - Query Supabase by `Property ID`; render "Property not found" + link to `/listings` on null result
+    - Query Supabase by `property_id`; render "Property not found" + link to `/listings` on null result
     - Display all non-null fields: type, location, price, lot area, floor area, bedrooms, bathrooms, notes
     - Render `<ImageGallery>` with all photo URLs
     - Render "Contact About This Property" button linking to `/contact?property={encodedAddress}`

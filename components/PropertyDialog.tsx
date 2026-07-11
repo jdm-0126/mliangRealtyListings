@@ -27,9 +27,9 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
       setFormData({ ...property })
       setPreviewImage(property['Preview Photo'] || '')
     } else {
-      // Don't auto-generate Property ID - let user enter it manually or leave empty
+      // Don't auto-generate property_id - let user enter it manually or leave empty
       setFormData({
-          // 'Property ID' is optional - user can provide it
+          // 'property_id' is optional - user can provide it
           Status: 'Active',
           Type: 'Residential',
           CGT: 'Seller',
@@ -96,7 +96,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
     const parsed: any = {}
     
     columns.forEach((key, index) => {
-      if (values[index] && key !== 'Property ID') {
+      if (values[index] && key !== 'property_id') {
         parsed[key] = values[index].trim()
       }
     })
@@ -108,20 +108,20 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
   const handleCreate = async () => {
     setLoading(true)
     
-    // Prepare data for insertion - remove Property ID if empty
+    // Prepare data for insertion - remove property_id if empty
     const dataToInsert = { ...formData }
     
-    // If Property ID is not provided, empty, or invalid, remove it so database can auto-generate it
-    const propertyId = dataToInsert['Property ID']
+    // If property_id is not provided, empty, or invalid, remove it so database can auto-generate it
+    const propertyId = dataToInsert['property_id']
     if (!propertyId || 
         String(propertyId).trim() === '' || 
         propertyId === 0 || 
         propertyId === '0' ||
         isNaN(Number(propertyId))) {
-      delete dataToInsert['Property ID']
+      delete dataToInsert['property_id']
     } else {
       // Convert to number if it's a valid ID
-      dataToInsert['Property ID'] = Number(propertyId)
+      dataToInsert['property_id'] = Number(propertyId)
     }
 
     try {
@@ -149,7 +149,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
     const { error } = await supabase
       .from('mlianglistings')
       .update(formData)
-      .eq('Property ID', property['Property ID'])
+      .eq('property_id', property['property_id'])
     if (error) {
       alert(`Error: ${error.message}`)
     } else {
@@ -405,7 +405,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                 <div key={key} className={key === 'Notes' || key === 'Description' ? 'md:col-span-2' : ''}>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {key}
-                    {key === 'Property ID' && !property && (
+                    {key === 'property_id' && !property && (
                       <span className="text-gray-500 text-xs font-normal ml-1">(Optional)</span>
                     )}
                     {['Village', 'Location', 'Listing Agent'].includes(key) && (
@@ -431,7 +431,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                       <Eye className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-400 italic">Hidden — click Show to edit</span>
                     </div>
-                  ) : key === 'Property ID' ? (
+                  ) : key === 'property_id' ? (
                     <div>
                       <Input
                         type="number"
@@ -442,7 +442,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                       />
                       {!property && (
                         <p className="text-xs text-gray-500 mt-1">
-                          💡 Optional: Enter a specific Property ID or leave empty for database to assign one
+                          💡 Optional: Enter a specific property_id or leave empty for database to assign one
                         </p>
                       )}
                     </div>

@@ -17,7 +17,7 @@ jest.mock('@/app/lib/supabaseClient', () => ({
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface MockListing {
-  'Property ID': number
+  'property_id': number
   updated_at: string | null
   Status: string
 }
@@ -44,7 +44,7 @@ function mockSupabase(activeListings: MockListing[]) {
 
 // ─── Arbitrary generators ─────────────────────────────────────────────────────
 
-/** Generates a positive integer suitable for use as a Property ID (1–500). */
+/** Generates a positive integer suitable for use as a property_id (1–500). */
 const arbPropertyId = fc.integer({ min: 1, max: 500 })
 
 /** Generates an ISO date string or null for updated_at. */
@@ -66,23 +66,23 @@ const arbStatus = fc.oneof(
 
 /** Generates a single listing with a mixed status. */
 const arbListing: fc.Arbitrary<MockListing> = fc.record({
-  'Property ID': arbPropertyId,
+  'property_id': arbPropertyId,
   updated_at: arbUpdatedAt,
   Status: arbStatus,
 })
 
 /**
- * Generates an array of listings with unique Property IDs and mixed statuses.
+ * Generates an array of listings with unique property_ids and mixed statuses.
  * Array length: 0–30 listings.
  */
 const arbListings: fc.Arbitrary<MockListing[]> = fc
   .array(arbListing, { minLength: 0, maxLength: 30 })
   .map((listings) => {
-    // Deduplicate by Property ID to avoid ambiguous URL expectations
+    // Deduplicate by property_id to avoid ambiguous URL expectations
     const seen = new Set<number>()
     return listings.filter((l) => {
-      if (seen.has(l['Property ID'])) return false
-      seen.add(l['Property ID'])
+      if (seen.has(l['property_id'])) return false
+      seen.add(l['property_id'])
       return true
     })
   })
@@ -164,7 +164,7 @@ describe('Property 15 – Sitemap contains exactly 4 static URLs + one URL per a
         const urls = entries.map((e) => e.url)
 
         for (const listing of activeListings) {
-          const displayId = toDisplayId(listing['Property ID'])
+          const displayId = toDisplayId(listing['property_id'])
           const expectedUrl = `https://realtyprov1.com/listings/${displayId}`
           expect(urls).toContain(expectedUrl)
         }
@@ -218,13 +218,13 @@ describe('Property 15 – Sitemap contains exactly 4 static URLs + one URL per a
         const urls = entries.map((e) => e.url)
 
         for (const listing of inactiveListings) {
-          const displayId = toDisplayId(listing['Property ID'])
+          const displayId = toDisplayId(listing['property_id'])
           const inactiveUrl = `https://realtyprov1.com/listings/${displayId}`
           // Only assert absence if the inactive listing's displayId is not
           // also claimed by an active listing (avoids false failures when two
           // listings share the same computed displayId after the transform)
           const activeDisplayIds = new Set(
-            activeListings.map((l) => toDisplayId(l['Property ID'])),
+            activeListings.map((l) => toDisplayId(l['property_id'])),
           )
           if (!activeDisplayIds.has(displayId)) {
             expect(urls).not.toContain(inactiveUrl)

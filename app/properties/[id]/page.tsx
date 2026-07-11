@@ -171,7 +171,7 @@ ${tenantSettings.officeAddress}`
     const { error } = await supabase
       .from('mlianglistings')
       .update({ 'Preview Photo': newPhotoUrl })
-      .eq('Property ID', property['Property ID'])
+      .eq('property_id', property['property_id'])
 
     if (error) {
       alert('Error updating photo: ' + error.message)
@@ -193,7 +193,7 @@ ${tenantSettings.officeAddress}`
       const { data, error } = await supabase
         .from('mlianglistings')
         .select('*')
-        .eq('Property ID', dbId)
+        .eq('property_id', dbId)
         .single()
       
       if (!error) setProperty(data)
@@ -420,7 +420,7 @@ ${tenantSettings.officeAddress}`
   const copyMortgageComputation = () => {
     if (!calculateFinancing) return
     
-    const displayPropertyId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
+    const displayPropertyId = property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']
     const priceLabel = customPrice ? 'Contract Price' : 'Total Price'
     const fmtPHP = (v: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(v)
 
@@ -488,7 +488,7 @@ ${tenantSettings.officeAddress}`
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="p-8 text-center">
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Property Not Found</h2>
-          <Button onClick={() => router.push('/')}>
+          <Button onClick={() => router.push('/admin')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
@@ -500,7 +500,7 @@ ${tenantSettings.officeAddress}`
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button variant="outline" onClick={() => router.push('/')} className="mb-4">
+        <Button variant="outline" onClick={() => router.push('/admin')} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
@@ -508,7 +508,7 @@ ${tenantSettings.officeAddress}`
         <div className="mb-8">
           <div className="mb-4">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Property #{property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}
+              Property #{property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}
             </h1>
             <div className="flex items-center gap-3 flex-wrap">
               <Badge variant={property.Status === 'Active' ? 'success' : property.Status === 'Draft' ? 'warning' : 'secondary'}>
@@ -542,7 +542,7 @@ ${tenantSettings.officeAddress}`
                 size="sm"
                 onClick={() => {
                   copyToClipboard();
-                  const displayPropertyId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID'];
+                  const displayPropertyId = property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id'];
                   const text = encodeURIComponent(
                     `Property #${displayPropertyId} - ${property.Village}, ${property.Location}`
                   );
@@ -965,7 +965,7 @@ ${tenantSettings.officeAddress}`
                     <div className="relative w-full h-full">
                       <img 
                         src={property['Preview Photo']} 
-                        alt={`Property #${property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}`}
+                        alt={`Property #${property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}`}
                         className="w-full h-full object-cover cursor-pointer"
                         onClick={() => setIsFullscreen(true)}
                       />
@@ -974,7 +974,7 @@ ${tenantSettings.officeAddress}`
                         <div className="opacity-100 group-hover:opacity-90 transition-opacity flex gap-3">
                           <img 
                             src={property['Preview Photo']} 
-                            alt={`Property #${property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}`}
+                            alt={`Property #${property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}`}
                             className="w-full h-full object-cover cursor-pointer"
                             onClick={() => setIsFullscreen(true)}
                           />
@@ -1058,7 +1058,7 @@ ${tenantSettings.officeAddress}`
                       <div className="text-center p-8">
                         <Home className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-xl font-semibold text-gray-600">
-                          Property #{property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}
+                          Property #{property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}
                         </h3>
                         <p className="text-gray-500 mt-2">
                           {property.Village}, {property.Location}
@@ -1187,7 +1187,7 @@ ${tenantSettings.officeAddress}`
           </button>
           <img
             src={property['Preview Photo']}
-            alt={`Property #${property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}`}
+            alt={`Property #${property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}`}
             className="max-w-full max-h-full object-contain"
             onClick={(e) => e.stopPropagation()}
           />

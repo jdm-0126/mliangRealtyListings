@@ -128,7 +128,7 @@ export default function PropertyCard({
       const { error } = await supabase
         .from('mlianglistings')
         .update({ 'Preview Photo': newPhotoUrl })
-        .eq('Property ID', property['Property ID'])
+        .eq('property_id', property['property_id'])
 
       if (error) {
         alert('Error updating photo: ' + error.message)
@@ -171,7 +171,7 @@ export default function PropertyCard({
         <div className="relative w-full h-48 overflow-hidden rounded-t-lg group/photo">
           <img
             src={property['Preview Photo'] || 'https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png'}
-            alt={`Property #${property['Property ID']}`}
+            alt={`Property #${property['property_id']}`}
             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 cursor-pointer${!property['Preview Photo'] ? ' opacity-60' : ''}`}
             loading="lazy"
             decoding="async"
@@ -209,7 +209,7 @@ export default function PropertyCard({
           </button>
           <img
             src={property['Preview Photo']}
-            alt={`Property #${property['Property ID']}`}
+            alt={`Property #${property['property_id']}`}
             className="max-w-full max-h-full object-contain"
             loading="lazy"
             decoding="async"
@@ -385,7 +385,7 @@ export default function PropertyCard({
             )}
             
             {/* <h3 className="text-lg font-semibold mb-1" style={{ color: '#000000' }}>
-              Property #{property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']}
+              Property #{property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}
             </h3> */}
             
             <div className="flex items-center mb-2" style={{ color: '#4b5563' }}>
@@ -519,7 +519,7 @@ export default function PropertyCard({
                 </Tooltip>
 
                 <FeaturedToggle
-                  propertyId={property['Property ID']}
+                  propertyId={property['property_id']}
                   isFeatured={!!property.featured}
                   canToggle={canFeature}
                   onToggle={onFeaturedChange}
@@ -532,7 +532,7 @@ export default function PropertyCard({
                   variant="default"
                   size="sm"
                   onClick={() => {
-                    const displayId = property['Property ID'] > 2 ? property['Property ID'] - 1 : property['Property ID']
+                    const displayId = property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']
                     window.location.href = `/properties/${displayId}`
                   }}
                   className="w-full"

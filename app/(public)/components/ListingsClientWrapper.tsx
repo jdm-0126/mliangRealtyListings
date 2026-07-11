@@ -268,13 +268,18 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             {paginatedListings.map((listing, idx) => (
-              <ListingCard key={listing.id} listing={listing} viewMode="grid" priority={idx === 0} />
+              <ListingCard key={listing.property_id} listing={listing} viewMode="grid" priority={idx === 0} />
             ))}
           </div>
         ) : (
           <div className="flex flex-col gap-4 mb-10">
             {paginatedListings.map((listing, idx) => (
-              <ListingCard key={listing.id} listing={listing} viewMode="list" priority={idx === 0} />
+              <ListingCard
+                key={listing.property_id}
+                listing={listing}
+                viewMode="grid"
+                priority={idx === 0}
+              />
             ))}
           </div>
         )

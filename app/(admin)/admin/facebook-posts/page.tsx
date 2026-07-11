@@ -106,7 +106,7 @@ export default function FacebookPostsPage() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search by messenger name, location, price, or property ID..."
+                  placeholder="Search by messenger name, location, price, or property_id..."
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   className="pl-10"
@@ -116,7 +116,7 @@ export default function FacebookPostsPage() {
                 <Plus className="w-4 h-4 mr-2" />
                 Add Facebook Post
               </Button>
-              <Button variant="outline" onClick={() => window.location.href = '/'}>
+              <Button variant="outline" onClick={() => window.location.href = '/admin'}>
                 Back to Dashboard
               </Button>
             </div>

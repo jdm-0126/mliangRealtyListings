@@ -302,7 +302,7 @@ The existing table uses inconsistent column naming (spaces, mixed case). The pub
 
 | Column Name | Type | Notes |
 |---|---|---|
-| `Property ID` | number | Primary key; used for routing (displayId = id > 2 ? id-1 : id) |
+| `property_id` | number | Primary key; used for routing (displayId = id > 2 ? id-1 : id) |
 | `Status` | string | Filter: `=== 'active'` (case-insensitive) |
 | `Type` | string | Property type (residential, lot, commercial) |
 | `Location` | string | City/area |
@@ -411,7 +411,7 @@ export interface SocialConfig {
   └── supabase.from('mlianglistings')
         .select('*')
         .ilike('Status', 'active')       ← case-insensitive match
-        .order('Property ID', { ascending: false })
+        .order('property_id', { ascending: false })
         .limit(6)
       → listings[]  → <ListingCard> × min(6, listings.length)
 ```
@@ -424,7 +424,7 @@ export interface SocialConfig {
   └── supabase.from('mlianglistings')
         .select('*')
         .ilike('Status', 'active')
-        .order('Property ID', { ascending: false })
+        .order('property_id', { ascending: false })
       → allListings[]  → passed to ListingsClientWrapper
 
 ListingsClientWrapper  [Client Component]
@@ -447,7 +447,7 @@ ListingsClientWrapper  [Client Component]
   ├── internalId = displayId >= 2 ? displayId + 1 : displayId  (reverse of admin logic)
   └── supabase.from('mlianglistings')
         .select('*')
-        .eq('Property ID', internalId)
+        .eq('property_id', internalId)
         .single()
       → listing | null
       → null: render "Property not found" + link to /listings
@@ -532,7 +532,7 @@ import type { MetadataRoute } from 'next'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: listings } = await supabase
     .from('mlianglistings')
-    .select('Property ID, updated_at')
+    .select('property_id, updated_at')
     .ilike('Status', 'active')
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -543,7 +543,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   const listingRoutes = (listings ?? []).map(l => {
-    const displayId = l['Property ID'] > 2 ? l['Property ID'] - 1 : l['Property ID']
+    const displayId = l['property_id'] > 2 ? l['property_id'] - 1 : l['property_id']
     return {
       url: `https://realtyprov1.com/listings/${displayId}`,
       lastModified: l.updated_at ? new Date(l.updated_at) : new Date(),
@@ -709,7 +709,7 @@ export function useTenantSettings(): TenantSettings {
 
 ### Property 3: Featured listings obey the "up to 6, newest first" invariant
 
-*For any* dataset of N active listings, the homepage Featured Listings section SHALL display exactly `min(N, 6)` listing cards, and the displayed listings SHALL be the ones with the N highest `Property ID` values (i.e., the newest). If N = 0, the placeholder message SHALL be shown.
+*For any* dataset of N active listings, the homepage Featured Listings section SHALL display exactly `min(N, 6)` listing cards, and the displayed listings SHALL be the ones with the N highest `property_id` values (i.e., the newest). If N = 0, the placeholder message SHALL be shown.
 
 **Validates: Requirements 2.2, 2.3**
 

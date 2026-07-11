@@ -14,7 +14,7 @@ function parseArea(raw: unknown): number | null {
 }
 
 function mapToPublicListing(row: Record<string, unknown>): PublicListing {
-  const id = Number(row['Property ID'])
+  const id = Number(row['property_id'])
   const photos: string[] = []
   for (let i = 1; i <= 20; i++) {
     const photo = row[`Photo ${i}`]
@@ -22,7 +22,7 @@ function mapToPublicListing(row: Record<string, unknown>): PublicListing {
   }
 
   return {
-    id,
+    property_id: id,
     displayId: id > 2 ? id - 1 : id,
     type: String(row['Type'] ?? ''),
     location: String(row['Location'] ?? ''),
@@ -58,7 +58,7 @@ export async function getCachedPublicListings(): Promise<PublicListing[]> {
 export async function getFeaturedListings(): Promise<PublicListing[]> {
   if (!supabase) return []
   const KEEP = new Set([
-    'Property ID', 'Type', 'Location', 'Village',
+    'property_id', 'Type', 'Location', 'Village',
     'Listing Price', 'ListingPrice', 'Price',
     'Lot Area', 'Lot Area sqm', 'LA',
     'Floor Area', 'Floor Area sqm',
@@ -73,7 +73,7 @@ export async function getFeaturedListings(): Promise<PublicListing[]> {
     .select('*')
     .ilike('Status', 'active')
     .eq('featured', true)
-    .order('"Property ID"', { ascending: false })
+    .order('property_id', { ascending: false })
     .limit(6)
 
   const featured = Array.isArray(featuredData) && featuredData.length > 0
@@ -86,8 +86,8 @@ export async function getFeaturedListings(): Promise<PublicListing[]> {
       .from('mlianglistings')
       .select('*')
       .ilike('Status', 'active')
-      .order('"Property ID"', { ascending: false })
-      .limit(12) // fetch 12, filter to 6 with photo/price
+      .order('property_id', { ascending: false })
+      .limit(6) // fetch 6, filter to 6 with photo/price
 
     const rows = Array.isArray(fallbackData)
       ? (fallbackData as Array<Record<string, unknown>>)
@@ -126,9 +126,10 @@ async function fetchListings(slim: boolean): Promise<PublicListing[]> {
 
   const { data, error } = await supabase
     .from('mlianglistings')
-    .select('*')
+    .select(`property_id, location`)
     .ilike('Status', 'active')
-    .order('"Property ID"', { ascending: false })
+    .order('property_id', { ascending: false })
+    .range(0,23)
     .limit(300)
 
   if (error) {
@@ -137,7 +138,7 @@ async function fetchListings(slim: boolean): Promise<PublicListing[]> {
   }
 
   const KEEP_FULL = new Set([
-    'Property ID', 'Type', 'Location', 'Village',
+    'property_id', 'Type', 'Location', 'Village',
     'Listing Price', 'ListingPrice', 'Price',
     'Lot Area', 'Lot Area sqm', 'LA',
     'Floor Area', 'Floor Area sqm',
@@ -149,7 +150,7 @@ async function fetchListings(slim: boolean): Promise<PublicListing[]> {
 
   // Slim: card-level fields only — no notes, no full photo array, no video URLs
   const KEEP_SLIM = new Set([
-    'Property ID', 'Type', 'Location', 'Village',
+    'property_id', 'Type', 'Location', 'Village',
     'Listing Price', 'ListingPrice', 'Price',
     'Lot Area', 'Lot Area sqm', 'LA',
     'Floor Area', 'Floor Area sqm',

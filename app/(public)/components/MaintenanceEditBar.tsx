@@ -123,7 +123,7 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
       const { error } = await supabase
         .from(listingsTable)
         .update(payload)
-        .eq('Property ID', listing.id)
+        .eq('property_id', listing.property_id)
 
       if (error) { alert('Save failed: ' + error.message); return }
 

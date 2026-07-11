@@ -34,11 +34,17 @@ function formatListingType(type?: string | null): string {
 async function fetchListing(displayId: number): Promise<PublicListing | null> {
   if (!supabase) return null
   const internalId = displayId >= 2 ? displayId + 1 : displayId
-  const { data, error } = await supabase.from('mlianglistings').select('*').eq('Property ID', internalId).single()
-  if (error || !data) return null
-  const row = data as Record<string, unknown>
+  const { data, error } = await supabase
+  .from("mlianglistings")
+  .select("*")
+  .eq("property_id", internalId)
+  .maybeSingle();
+
+if (error || !data) return null;
+
+const row = data;
   if (String(row['Status'] ?? '').toLowerCase() !== 'active') return null
-  const id = Number(row['Property ID'])
+  const id = Number(row['property_id'])
   const photos: string[] = []
   const previewRaw = row['Preview Photo']
   if (typeof previewRaw === 'string' && previewRaw.trim()) photos.push(previewRaw.trim())
@@ -47,7 +53,7 @@ async function fetchListing(displayId: number): Promise<PublicListing | null> {
     if (typeof photoRaw === 'string' && photoRaw.trim() && !photos.includes(photoRaw.trim())) photos.push(photoRaw.trim())
   }
   return {
-    id, displayId,
+    property_id: id, displayId,
     type: String(row['Type'] ?? ''), location: String(row['Location'] ?? ''),
     village: typeof row['Village'] === 'string' && row['Village'].trim() ? row['Village'].trim() : undefined,
     price: parseNum(row['Listing Price'] ?? row['ListingPrice'] ?? row['Price']),

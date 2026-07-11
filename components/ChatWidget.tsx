@@ -175,7 +175,7 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
         .from('mlianglistings')
         .select('*')
         .ilike('Status', 'active')
-        .order('Property ID', { ascending: false })
+        .order('property_id', { ascending: false })
         .limit(200)
       if (!error) {
         setRealProperties(data || [])
@@ -361,7 +361,7 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
     if (results.length > 0) {
       response += `**Found ${results.length} matching propert${results.length === 1 ? 'y' : 'ies'}:**\n\n`
       results.forEach((prop, index) => {
-        const propertyId = prop['Property ID'] || prop.id
+        const propertyId = prop['property_id'] || prop.id
         const displayId = propertyId > 2 ? propertyId - 1 : propertyId
         const location = prop.Location || prop.Address || 'Location not specified'
         const price = formatPrice(prop['Listing Price'] || prop.ListingPrice || prop.Price)
@@ -377,7 +377,7 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
         const lotNum = lotRaw && !isNaN(parseFloat(lotRaw)) && parseFloat(lotRaw) > 0 ? lotRaw : ''
         const floorNum = floorRaw && !isNaN(parseFloat(floorRaw)) && parseFloat(floorRaw) > 0 ? floorRaw : ''
 
-        response += `${index + 1}. **Property ID: ${displayId}**\n`
+        response += `${index + 1}. **property_id: ${displayId}**\n`
         response += `   📍 ${location}\n`
         response += `   💰 ${price}\n`
         if (lotNum) response += `   📐 Lot area: ${lotNum} sqm\n`

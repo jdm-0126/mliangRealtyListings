@@ -49,7 +49,7 @@ export default function InquiriesPage() {
         .from('leads')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(500)
+        .limit(50)
       if (err) { setError(err.message); setLoading(false); return }
       setLeads((data ?? []) as Lead[])
       setLoading(false)

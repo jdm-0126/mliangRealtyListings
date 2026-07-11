@@ -145,13 +145,13 @@ export default function FeaturedSearchSection({ featuredListings = [] }: Feature
               Highlighted homes and lots that stand out for their value, location, or presentation.
             </p>
           </div>
-          <Link
+          {/* <Link
             href="/listings/all"
             className="inline-flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-80 whitespace-nowrap"
             style={{ color: 'var(--est-purple)' }}
           >
             Browse all listings <ArrowRight className="w-4 h-4" />
-          </Link>
+          </Link> */}
         </div>
 
         {(featuredListings?.length ?? 0) === 0 ? (
@@ -161,7 +161,7 @@ export default function FeaturedSearchSection({ featuredListings = [] }: Feature
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {(featuredListings ?? []).map((listing, idx) => (
-              <ListingCard key={listing.id} listing={listing} viewMode="grid" priority={idx === 0} />
+              <ListingCard key={listing.property_id} listing={listing} viewMode="grid" priority={idx === 0} />
             ))}
           </div>
         )}

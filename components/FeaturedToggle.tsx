@@ -63,7 +63,7 @@ export default function FeaturedToggle({ propertyId, isFeatured, canToggle, onTo
     const { error } = await supabase
       .from('mlianglistings')
       .update({ featured: newValue })
-      .eq('Property ID', propertyId)
+      .eq('property_id', propertyId)
 
     if (error) {
       console.error('[FeaturedToggle] Supabase update error:', error)
@@ -72,7 +72,7 @@ export default function FeaturedToggle({ propertyId, isFeatured, canToggle, onTo
       return
     }
 
-    console.log('[FeaturedToggle] Saved featured=%s for Property ID=%s', newValue, propertyId)
+    console.log('[FeaturedToggle] Saved featured=%s for property_id=%s', newValue, propertyId)
 
     // Optimistically update local state
     setFeatured(newValue)

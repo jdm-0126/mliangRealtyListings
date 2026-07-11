@@ -66,14 +66,14 @@ function ListingPickerModal({
         const { supabase, listingsTable } = await getTenantScopedClient()
         let q = supabase
           .from(listingsTable)
-          .select('"Property ID", "Location", "Title"')
-          .order('"Property ID"', { ascending: false })
-          .limit(50)
+          .select('property_id, "Location", "Title"')
+          .order('property_id', { ascending: false })
+          .limit(500)
         if (search.trim()) q = q.ilike('"Location"', `%${search.trim()}%`)
         const { data } = await q
         setListings(
           (data ?? []).map((r: any) => ({
-            id: r['Property ID'],
+            id: r['property_id'],
             location: r['Location'] ?? '',
             title: r['Title'] ?? '',
           }))
@@ -210,7 +210,7 @@ export default function GalleryPage() {
       if (error) { alert('Error saving: ' + error.message); return }
 
       if (uploadCategory === 'property' && uploadListing) {
-        await supabase.from(listingsTable).update({ 'Preview Photo': secureUrl }).eq('Property ID', uploadListing.id)
+        await supabase.from(listingsTable).update({ 'Preview Photo': secureUrl }).eq('property_id', uploadListing.id)
       }
 
       setUploadDone(true)
@@ -260,7 +260,7 @@ export default function GalleryPage() {
         await supabase
           .from(listingsTable)
           .update({ 'Preview Photo': results[0].secure_url })
-          .eq('Property ID', uploadListing.id)
+          .eq('property_id', uploadListing.id)
       }
 
       setUploadDone(true)
@@ -288,7 +288,7 @@ export default function GalleryPage() {
     const { error } = await supabase
       .from(listingsTable)
       .update({ 'Preview Photo': item.cloudinary_secure_url })
-      .eq('Property ID', listing.id)
+      .eq('property_id', listing.id)
 
     if (error) { alert('Error updating listing: ' + error.message); return }
 

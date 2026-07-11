@@ -183,13 +183,13 @@ CREATE INDEX IF NOT EXISTS idx_mlianglistings_tenant_id
   ON mlianglistings (tenant_id);
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_property_id
-  ON mlianglistings ("Property ID" DESC);
+  ON mlianglistings ("property_id" DESC);
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_tenant_property_id
-  ON mlianglistings (tenant_id, "Property ID" DESC);
+  ON mlianglistings (tenant_id, "property_id" DESC);
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_tenant_status_property_id
-  ON mlianglistings (tenant_id, "Status", "Property ID" DESC);
+  ON mlianglistings (tenant_id, "Status", "property_id" DESC);
 
 
 -- ============================================================================

@@ -40,12 +40,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch only the minimal columns needed — avoids the oversized photo arrays
   const { data: listings } = await supabase
     .from('mlianglistings')
-    .select('"Property ID", updated_at')
+    .select('"property_id", updated_at')
     .ilike('Status', 'active')
 
   const listingRoutes: MetadataRoute.Sitemap = (listings ?? []).map(
     (l: Record<string, unknown>) => {
-      const id = Number(l['Property ID'])
+      const id = Number(l['property_id'])
       // Apply the same displayId transform used across the public site
       const displayId = id > 2 ? id - 1 : id
       return {

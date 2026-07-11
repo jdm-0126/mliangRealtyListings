@@ -134,10 +134,11 @@ export default function PropertiesContent() {
     }
     setLoading(true)
     const { data, error } = await supabase
-      .from('mlianglistings')
-      .select('*')
-      .order('Property ID', { ascending: false })
-      .limit(500)
+    .from("mlianglistings")
+    .select("*")
+    .order("property_id", { ascending: false })
+    .range(0, 19)
+    .limit(500);
     if (error) {
       setLoading(false)
       return
@@ -239,9 +240,9 @@ export default function PropertiesContent() {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'newest':
-          return Number(b['Property ID']) - Number(a['Property ID'])
+          return Number(b['property_id']) - Number(a['property_id'])
         case 'oldest':
-          return Number(a['Property ID']) - Number(b['Property ID'])
+          return Number(a['property_id']) - Number(b['property_id'])
         case 'price-high':
           const priceA = parseFloat(String(a['Listing Price'] || a.ListingPrice || a.Price || '0').replace(/[^\d.]/g, '')) || 0
           const priceB = parseFloat(String(b['Listing Price'] || b.ListingPrice || b.Price || '0').replace(/[^\d.]/g, '')) || 0
@@ -260,13 +261,13 @@ export default function PropertiesContent() {
   }, [data, deferredSearch, statusFilter, typeFilter, featuredFilter, locationFilter, priceFilter, sizeFilter, sortBy])
 
   const handleDelete = async (property: any) => {
-    const id = property['Property ID']
+    const id = property['property_id']
     if (!confirm(`Delete Property #${id > 2 ? id - 1 : id}? This cannot be undone.`)) return
     if (!supabase) return
     const { error } = await supabase
       .from('mlianglistings')
       .delete()
-      .eq('Property ID', id)
+      .eq('property_id', id)
     if (error) {
       alert('Error deleting property: ' + error.message)
     } else {
@@ -312,7 +313,7 @@ export default function PropertiesContent() {
     const { error } = await supabase
       .from('mlianglistings')
       .update({ 'FB Link': fbLink })
-      .eq('Property ID', property['Property ID'])
+      .eq('property_id', property['property_id'])
     if (error) {
       alert('Error saving FB link: ' + error.message)
     } else {
@@ -585,7 +586,7 @@ export default function PropertiesContent() {
                 .slice((currentPage - 1) * pageSize, currentPage * pageSize)
                 .map((property) => (
                   <PropertyCard
-                    key={property['Property ID']}
+                    key={property['property_id']}
                     property={property}
                     viewMode={viewMode}
                     onEdit={showEditControls ? (p) => setEditingProperty(p) : undefined}

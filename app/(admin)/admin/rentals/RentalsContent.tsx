@@ -71,8 +71,8 @@ export default function RentalsContent() {
     const { data: rows, error } = await supabase
       .from('mlianglistings')
       .select('*')
-      .order('Property ID', { ascending: false })
-      .limit(500)
+      .order('property_id', { ascending: false })
+      .limit(100)
 
     if (error) { setLoading(false); return }
 
@@ -143,8 +143,8 @@ export default function RentalsContent() {
     }
 
     filtered.sort((a, b) => {
-      if (sortBy === 'newest') return Number(b['Property ID']) - Number(a['Property ID'])
-      if (sortBy === 'oldest') return Number(a['Property ID']) - Number(b['Property ID'])
+      if (sortBy === 'newest') return Number(b['property_id']) - Number(a['property_id'])
+      if (sortBy === 'oldest') return Number(a['property_id']) - Number(b['property_id'])
       const pa = parseFloat(String(a['Listing Price'] || '0').replace(/[^\d.]/g, '')) || 0
       const pb = parseFloat(String(b['Listing Price'] || '0').replace(/[^\d.]/g, '')) || 0
       if (sortBy === 'price-high') return pb - pa
@@ -157,13 +157,13 @@ export default function RentalsContent() {
   }, [data, deferredSearch, typeFilter, locationFilter, priceFilter, sizeFilter, sortBy])
 
   const handleDelete = async (property: any) => {
-    const id = property['Property ID']
+    const id = property['property_id']
     if (!confirm(`Delete Property #${id > 2 ? id - 1 : id}? This cannot be undone.`)) return
     if (!supabase) return
     const { error } = await supabase
       .from('mlianglistings')
       .delete()
-      .eq('Property ID', id)
+      .eq('property_id', id)
     if (error) alert('Error deleting property: ' + error.message)
     else fetchData()
   }
@@ -405,7 +405,7 @@ export default function RentalsContent() {
                 .slice((currentPage - 1) * pageSize, currentPage * pageSize)
                 .map(property => (
                   <PropertyCard
-                    key={property['Property ID']}
+                    key={property['property_id']}
                     property={property}
                     viewMode={viewMode}
                     onEdit={showEditControls ? p => setEditingProperty(p) : undefined}

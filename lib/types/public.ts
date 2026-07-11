@@ -1,7 +1,7 @@
 // lib/types/public.ts
 
 export interface PublicListing {
-  id: number
+  property_id: number
   displayId: number          // id > 2 ? id - 1 : id
   type: string
   location: string

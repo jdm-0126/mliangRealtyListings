@@ -94,8 +94,8 @@ export default function AdminDashboard() {
 
     // Fetch listings and leads in parallel
     const [listingsRes, leadsRes] = await Promise.all([
-      supabase.from('mlianglistings').select('*').order('Property ID', { ascending: false }).limit(500),
-      supabase.from('leads').select('id, message').limit(1000),
+      supabase.from('mlianglistings').select('*').order('property_id', { ascending: false }).limit(500),
+      supabase.from('leads').select('id, message').limit(25),
     ])
 
     const data = listingsRes.data
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {queryResults.map((p: any) => {
-                    const rawId = Number(p['Property ID'])
+                    const rawId = Number(p['property_id'])
                     const displayId = rawId > 2 ? rawId - 1 : rawId
                     return (
                       <Link key={rawId} href={`/properties/${displayId}`}
@@ -308,7 +308,7 @@ export default function AdminDashboard() {
               <p className="px-5 py-8 text-sm text-gray-400 text-center">No listings yet</p>
             ) : (
               recentListings.map((p: any) => {
-                const rawId = Number(p['Property ID'])
+                const rawId = Number(p['property_id'])
                 const displayId = rawId > 2 ? rawId - 1 : rawId
                 const status = String(p.Status || '').toLowerCase()
                 return (

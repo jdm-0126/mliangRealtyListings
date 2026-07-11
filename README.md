@@ -35,3 +35,54 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 # Realtyprov1 Listings
+
+Follow this structure
+
+app/
+├── (public)/
+│   ├── listings/
+│   │   ├── page.tsx                // SSR page
+│   │   ├── loading.tsx
+│   │   └── [id]/
+│   │       └── page.tsx
+│   ├── about/
+│   ├── contact/
+│   └── layout.tsx
+│
+├── admin/
+│   ├── dashboard/
+│   ├── listings/
+│   ├── agents/
+│   ├── website/
+│   └── settings/
+│
+├── api/
+│   ├── listings/
+│   ├── search/
+│   └── webhook/
+│
+components/
+├── listing/
+│   ├── ListingCard.tsx
+│   ├── ListingGrid.tsx
+│   ├── ListingFilters.tsx
+│   ├── ListingSearch.tsx
+│   └── ListingGallery.tsx
+│
+├── ui/
+│
+lib/
+├── supabase/
+│   ├── client.ts
+│   ├── server.ts
+│   ├── admin.ts
+│   └── tenant.ts
+│
+├── services/
+│   ├── listings.ts
+│   ├── agents.ts
+│   ├── settings.ts
+│   └── website.ts
+│
+├── types/
+│   └── listing.ts

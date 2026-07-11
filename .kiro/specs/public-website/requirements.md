@@ -49,7 +49,7 @@ This feature adds a **public-facing website** — a customer-accessible section 
 #### Acceptance Criteria
 
 1. THE Public_Site SHALL render a Hero section on the homepage (`/`) containing the brokerage name, a tagline, a primary call-to-action button linking to `/listings`, and a secondary call-to-action button linking to `/contact`.
-2. THE Public_Site SHALL render a Featured Listings section on the homepage displaying up to 6 Listings where the `status` field equals `"active"` (case-insensitive), fetched from the Supabase `mlianglistings` table and ordered by `Property ID` descending (newest first).
+2. THE Public_Site SHALL render a Featured Listings section on the homepage displaying up to 6 Listings where the `status` field equals `"active"` (case-insensitive), fetched from the Supabase `mlianglistings` table and ordered by `property_id` descending (newest first).
 3. IF the Supabase query for active Listings returns 0 records, THEN THE Public_Site SHALL display a "No listings available at the moment" placeholder in the Featured Listings section instead of an empty grid.
 4. IF the Supabase query for active Listings returns an error, THEN THE Public_Site SHALL display an "Unable to load listings at this time" message in the Featured Listings section and SHALL NOT render a broken or empty grid.
 5. THE Public_Site SHALL render a Services section on the homepage that includes at minimum three content blocks describing: (1) property sales (house and lot, commercial), (2) rental properties, and (3) lot sales — each with a heading and a short descriptive paragraph.

@@ -10,7 +10,7 @@ import { PublicListing } from '@/lib/types/public'
  * selectFeaturedListings
  *
  * Given an array of active listings, returns the `min(N, maxCount)` listings
- * with the highest Property IDs, ordered by ID descending (newest first).
+ * with the highest property_ids, ordered by ID descending (newest first).
  *
  * Rules:
  * - Empty input → empty output
@@ -28,6 +28,6 @@ export function selectFeaturedListings(
 
   // Sort by id descending, then take the first maxCount
   return [...listings]
-    .sort((a, b) => b.id - a.id)
+    .sort((a, b) => b.property_id - a.property_id)
     .slice(0, maxCount)
 }
