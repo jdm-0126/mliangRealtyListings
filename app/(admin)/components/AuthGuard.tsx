@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { account } from '@/lib/appwrite/client'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated'
 
@@ -13,21 +14,15 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const [authState, setAuthState] = useState<AuthState>('loading')
   const router = useRouter()
 
-  // Check sessionStorage on mount (client-only)
   useEffect(() => {
-    try {
-      const auth = sessionStorage.getItem('brokerAdminAuth')
-      setAuthState(auth === 'authenticated' ? 'authenticated' : 'unauthenticated')
-    } catch {
-      // sessionStorage unavailable (e.g. private browsing with blocked storage)
-      setAuthState('unauthenticated')
-    }
+    account.get()
+      .then(() => setAuthState('authenticated'))
+      .catch(() => setAuthState('unauthenticated'))
   }, [])
 
-  // Redirect unauthenticated users to the public homepage
   useEffect(() => {
     if (authState === 'unauthenticated') {
-      router.push('/')
+      router.push('/admin/login')
     }
   }, [authState, router])
 
@@ -39,10 +34,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     )
   }
 
-  if (authState === 'unauthenticated') {
-    // Redirect is in progress; render nothing to avoid flash of protected content
-    return null
-  }
+  if (authState === 'unauthenticated') return null
 
   return <>{children}</>
 }
