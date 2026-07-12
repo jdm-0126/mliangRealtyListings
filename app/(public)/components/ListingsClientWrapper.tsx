@@ -36,7 +36,10 @@ function getSearchableLocation(listing: PublicListing): string {
 
 type TypeFilter = (typeof TYPE_OPTIONS)[number]
 type PriceRange = (typeof PRICE_RANGE_OPTIONS)[number]
+type ModeFilter = 'All' | 'For Sale' | 'For Rent'
 type ViewMode = 'list' | 'grid'
+
+const MODE_OPTIONS: ModeFilter[] = ['All', 'For Sale', 'For Rent']
 
 const selectStyle: React.CSSProperties = {
   background: 'var(--est-elevated)',
@@ -76,11 +79,13 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
     TYPE_OPTIONS.includes(initialType as TypeFilter) ? (initialType as TypeFilter) : 'All'
   )
   const [locationQuery, setLocationQuery] = useState(initialLocation ?? '')
-  // Defer location filtering so every keystroke doesn't block the UI
+  // useDeferredValue defers UI-blocking filter work on each keystroke.
+  // We seed it with the initial value so URL query params apply immediately.
   const deferredLocation = useDeferredValue(locationQuery)
   const [priceRange, setPriceRange] = useState<PriceRange>(
     PRICE_RANGE_OPTIONS.includes(initialPrice as PriceRange) ? (initialPrice as PriceRange) : 'All'
   )
+  const [modeFilter, setModeFilter] = useState<ModeFilter>('All')
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
 
@@ -94,11 +99,14 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
     } catch { /* keep default */ }
   }, [])
 
-  // useMemo with deferred location — heavy filter runs off the critical path
+  // useMemo — filter runs when deferred value settles (decouples typing from filter)
+  // For initial URL params, use locationQuery directly so results show immediately.
   const filteredListings = useMemo(() => {
-    const normalizedQuery = deferredLocation.trim().toLowerCase()
+    // Use the non-deferred value for initial render (prop-driven), deferred for typing
+    const locationToFilter = deferredLocation || locationQuery
+    const normalizedQuery = locationToFilter.trim().toLowerCase()
 
-    return allListings.filter(listing => {
+    return (allListings ?? []).filter(listing => {
       const normalizedType = normalizeListingType(listing.type)
       if (typeFilter !== 'All' && normalizedType !== typeFilter) return false
       if (normalizedQuery && !getSearchableLocation(listing).includes(normalizedQuery)) return false
@@ -107,19 +115,22 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
       if (priceRange === '₱2M–₱5M' && (price < 2_000_000 || price >= 5_000_000)) return false
       if (priceRange === '₱5M–₱10M' && (price < 5_000_000 || price >= 10_000_000)) return false
       if (priceRange === 'Above ₱10M' && price < 10_000_000) return false
+      if (modeFilter === 'For Sale' && listing.listingMode?.toLowerCase().includes('rent')) return false
+      if (modeFilter === 'For Rent' && !listing.listingMode?.toLowerCase().includes('rent')) return false
       return true
     })
-  }, [allListings, typeFilter, deferredLocation, priceRange])
+  }, [allListings, typeFilter, deferredLocation, locationQuery, priceRange, modeFilter])
 
   const paginatedListings = filteredListings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
   const totalPages = Math.ceil(filteredListings.length / PAGE_SIZE)
   const showPagination = filteredListings.length > PAGE_SIZE
-  const hasActiveFilters = typeFilter !== 'All' || locationQuery.trim() !== '' || priceRange !== 'All'
+  const hasActiveFilters = typeFilter !== 'All' || locationQuery.trim() !== '' || priceRange !== 'All' || modeFilter !== 'All'
 
   function handleTypeFilter(v: TypeFilter) { setTypeFilter(v); setCurrentPage(1) }
   function handleLocationQuery(v: string) { setLocationQuery(v); setCurrentPage(1) }
   function handlePriceRange(v: PriceRange) { setPriceRange(v); setCurrentPage(1) }
-  function clearFilters() { setTypeFilter('All'); setLocationQuery(''); setPriceRange('All'); setCurrentPage(1) }
+  function handleModeFilter(v: ModeFilter) { setModeFilter(v); setCurrentPage(1) }
+  function clearFilters() { setTypeFilter('All'); setLocationQuery(''); setPriceRange('All'); setModeFilter('All'); setCurrentPage(1) }
 
   function getPaginationItems(): (number | 'ellipsis-start' | 'ellipsis-end')[] {
     if (totalPages <= 6) return Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -230,6 +241,19 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
             style={selectStyle}
           >
             {PRICE_RANGE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+        </div>
+
+        {/* For Sale / For Rent */}
+        <div className="min-w-[140px] flex-1">
+          <label htmlFor="mode-filter" style={labelStyle}>Listing</label>
+          <select
+            id="mode-filter"
+            value={modeFilter}
+            onChange={e => handleModeFilter(e.target.value as ModeFilter)}
+            style={selectStyle}
+          >
+            {MODE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
         </div>
       </div>
