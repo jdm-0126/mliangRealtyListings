@@ -17,10 +17,12 @@ function matchesType(listing: PublicListing, typeFilter: string): boolean {
 }
 
 function matchesLocation(listing: PublicListing, locationQuery: string): boolean {
-  return (
-    !locationQuery.trim() ||
-    listing.location.toLowerCase().includes(locationQuery.toLowerCase())
-  )
+  const searchable = [listing.location, listing.village]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  return !locationQuery.trim() || searchable.includes(locationQuery.toLowerCase())
 }
 
 function matchesPrice(listing: PublicListing, priceRange: string): boolean {
@@ -176,12 +178,37 @@ describe('Property 6: Listings page filter intersection is correct', () => {
         fc.stringMatching(/^[A-Za-z]{2,5}$/),
         (allListings, query) => {
           const result = applyFilters(allListings, 'All', query, 'All')
-          return result.every(l =>
-            l.location.toLowerCase().includes(query.toLowerCase())
-          )
+          return result.every(l => {
+            const searchable = [l.location, l.village]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase()
+            return searchable.includes(query.toLowerCase())
+          })
         }
       ),
       { numRuns: 300 }
     )
+  })
+
+  it('matches location searches when the address is stored in village instead of location', () => {
+    const listing = {
+      displayId: 1,
+      type: 'House & Lot',
+      location: '',
+      village: 'Mabalacat City',
+      price: 2500000,
+      lotArea: 200,
+      floorArea: 120,
+      bedrooms: 3,
+      bathrooms: 2,
+      previewPhoto: null,
+      photos: [],
+      notes: '',
+      status: 'active',
+    } as PublicListing
+
+    const result = applyFilters([listing], 'All', 'mabalacat', 'All')
+    expect(result).toHaveLength(1)
   })
 })

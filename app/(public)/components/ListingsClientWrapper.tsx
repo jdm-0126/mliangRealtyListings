@@ -30,6 +30,10 @@ function normalizeListingType(type?: string | null): string {
   return type?.trim() || ''
 }
 
+function getSearchableLocation(listing: PublicListing): string {
+  return [listing.location, listing.village].filter(Boolean).join(' ').trim().toLowerCase()
+}
+
 type TypeFilter = (typeof TYPE_OPTIONS)[number]
 type PriceRange = (typeof PRICE_RANGE_OPTIONS)[number]
 type ViewMode = 'list' | 'grid'
@@ -92,10 +96,12 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
 
   // useMemo with deferred location — heavy filter runs off the critical path
   const filteredListings = useMemo(() => {
+    const normalizedQuery = deferredLocation.trim().toLowerCase()
+
     return allListings.filter(listing => {
       const normalizedType = normalizeListingType(listing.type)
       if (typeFilter !== 'All' && normalizedType !== typeFilter) return false
-      if (deferredLocation.trim() && !listing.location.toLowerCase().includes(deferredLocation.toLowerCase())) return false
+      if (normalizedQuery && !getSearchableLocation(listing).includes(normalizedQuery)) return false
       const price = listing.price ?? 0
       if (priceRange === 'Under ₱2M' && price >= 2_000_000) return false
       if (priceRange === '₱2M–₱5M' && (price < 2_000_000 || price >= 5_000_000)) return false
