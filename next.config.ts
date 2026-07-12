@@ -27,6 +27,26 @@ const nextConfig: NextConfig = {
         destination: "/listings",
         permanent: true,
       },
+      // Forward search queries from /listings?location=X to /listings/all?location=X
+      // Handles the old production URL pattern before /listings/all existed.
+      {
+        source: "/listings",
+        has: [{ type: "query", key: "location" }],
+        destination: "/listings/all?location=:location",
+        permanent: false,
+      },
+      {
+        source: "/listings",
+        has: [{ type: "query", key: "type" }],
+        destination: "/listings/all?type=:type",
+        permanent: false,
+      },
+      {
+        source: "/listings",
+        has: [{ type: "query", key: "price" }],
+        destination: "/listings/all?price=:price",
+        permanent: false,
+      },
     ];
   },
 
