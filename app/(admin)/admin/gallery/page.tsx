@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { databases, DATABASE_ID } from '@/lib/appwrite/client'
 import { Query, ID } from 'appwrite'
 import { uploadManyToCloudinary } from '@/lib/cloudinary'
+import { matchesLocationSearch } from '@/lib/appwrite/clientSearch'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -69,15 +70,15 @@ function ListingPickerModal({
       setLoading(true)
       try {
         const queries = [Query.orderDesc('property_id'), Query.limit(500)]
-        if (search.trim()) queries.push(Query.search('Location', search.trim()))
         const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, queries)
-        setListings(
-          res.documents.map((d: any) => ({
+        const filtered = (res.documents as Record<string, unknown>[])
+          .filter((d: Record<string, unknown>) => matchesLocationSearch(d, search))
+          .map((d: Record<string, unknown>) => ({
             id: d['property_id'],
             location: d['Location'] ?? '',
             title: d['Title'] ?? '',
           }))
-        )
+        setListings(filtered)
       } finally {
         setLoading(false)
       }

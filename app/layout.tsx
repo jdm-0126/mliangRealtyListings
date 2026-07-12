@@ -15,6 +15,8 @@ const urbanist = Urbanist({
   preload: true,
 });
 
+const shouldLoadAnalytics = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_URL) || process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' || process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
+
 export const metadata: Metadata = {
   title: "realtyprov1- Property Management System",
   description: "Modern property listings management system for real estate professionals",
@@ -43,7 +45,7 @@ export default function RootLayout({
       >
         <BrandColorInitializer />
         {children}
-        <Analytics />
+        {shouldLoadAnalytics ? <Analytics /> : null}
       </body>
     </html>
   );

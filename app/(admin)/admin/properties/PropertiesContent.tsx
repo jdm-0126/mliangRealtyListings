@@ -15,6 +15,7 @@ import PropertyDialog from '@/components/PropertyDialog'
 import QuickAddProperty from '@/components/QuickAddProperty'
 import { Pagination } from '@/components/ui/Pagination'
 import { Tooltip } from '@/components/ui/tooltip'
+import { matchesLocationSearch } from '@/lib/appwrite/clientSearch'
 import {
   Search,
   Filter,
@@ -104,10 +105,10 @@ export default function PropertiesContent() {
       ]
       if (statusFilter !== 'all') queries.push(Query.equal('Status', statusFilter))
       if (featuredFilter) queries.push(Query.equal('featured', true))
-      if (deferredSearch.trim()) queries.push(Query.search('Location', deferredSearch.trim()))
 
       const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, queries)
-      const rows = res.documents as unknown as Record<string, unknown>[]
+      const rows = (res.documents as unknown as Record<string, unknown>[])
+        .filter(row => matchesLocationSearch(row, deferredSearch))
       setData(rows)
       setTotalCount(res.total)
       if (rows.length && !columns.length) setColumns(Object.keys(rows[0]))
