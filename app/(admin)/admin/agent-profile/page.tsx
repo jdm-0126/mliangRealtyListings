@@ -3,7 +3,10 @@
 import React, { useState, useEffect, Suspense } from 'react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/app/lib/supabaseClient.js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query } from 'appwrite'
+
+const COL_AGENTS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_AGENTS!
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,38 +61,31 @@ function AgentProfileContent() {
   }, [searchParams])
 
   const fetchAgentProfile = async (email?: string, id?: number | null) => {
-    if (!supabase) return
-
     setLoading(true)
-
-    let query = supabase.from('agents').select('*')
-
-    if (id) {
-      query = query.eq('id', id)
-    } else if (email) {
-      query = query.eq('email', email)
-    } else {
-      setLoading(false)
-      return
-    }
-
-    const { data, error } = await query.maybeSingle()
-
-    if (error) {
-      alert('Agent not found. Please contact your broker.')
-      console.error(error)
-    } else if (data) {
-      setAgentId(data.id)
-      setFormData({
-        name: data.name || '',
-        email: data.email || '',
-        phone: data.phone || '',
-        license_number: data.license_number || '',
-        profile_photo: data.profile_photo || '',
-        bio: data.bio || '',
-        specialization: data.specialization || '',
-        status: data.status || 'Active'
-      })
+    try {
+      const queries = id
+        ? [Query.equal('$id', String(id))]
+        : email ? [Query.equal('email', email)] : null
+      if (!queries) { setLoading(false); return }
+      const res = await databases.listDocuments(DATABASE_ID, COL_AGENTS, queries)
+      const data = res.documents[0]
+      if (data) {
+        setAgentId(data.$id as unknown as number)
+        setFormData({
+          name: data['name'] as string || '',
+          email: data['email'] as string || '',
+          phone: data['phone'] as string || '',
+          license_number: data['license_number'] as string || '',
+          profile_photo: data['profile_photo'] as string || '',
+          bio: data['bio'] as string || '',
+          specialization: data['specialization'] as string || '',
+          status: data['status'] as string || 'Active',
+        })
+      } else {
+        alert('Agent not found. Please contact your broker.')
+      }
+    } catch (e: any) {
+      alert('Error: ' + e.message)
     }
     setLoading(false)
   }
@@ -155,28 +151,20 @@ function AgentProfileContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!supabase || !agentId) return
-
+    if (!agentId) return
     setSaving(true)
     try {
-      const { error } = await supabase
-        .from('agents')
-        .update({
-          name: formData.name,
-          phone: formData.phone,
-          license_number: formData.license_number,
-          profile_photo: formData.profile_photo,
-          bio: formData.bio,
-          specialization: formData.specialization,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', agentId)
-
-      if (error) throw error
+      await databases.updateDocument(DATABASE_ID, COL_AGENTS, String(agentId), {
+        name: formData.name,
+        phone: formData.phone,
+        license_number: formData.license_number,
+        profile_photo: formData.profile_photo,
+        bio: formData.bio,
+        specialization: formData.specialization,
+      })
       alert('Profile updated successfully!')
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      alert('Error updating profile: ' + message)
+      alert('Error updating profile: ' + (error instanceof Error ? error.message : 'Unknown error'))
     } finally {
       setSaving(false)
     }

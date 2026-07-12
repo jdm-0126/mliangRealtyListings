@@ -2,8 +2,11 @@
 // app/(public)/book/BookingForm.tsx
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/app/lib/supabaseClient'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { ID, Query } from 'appwrite'
 import { validateContactNumber } from '@/lib/validation'
+
+const LEADS_COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 import { CalendarDays, Clock, Home, Building2 } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -93,14 +96,14 @@ export default function BookingForm({ contactNumber }: BookingFormProps) {
         }
       } catch { /* ignore */ }
 
-      // Active projects from DB
-      if (!supabase) return
-      const { data } = await supabase
-        .from('projects')
-        .select('id, name, developer, area')
-        .eq('status', 'Active')
-        .order('name')
-      if (data) setProjects(data as ProjectOption[])
+      // Active projects from DB — no projects collection yet, skip gracefully
+      try {
+        const res = await databases.listDocuments(DATABASE_ID, 'projects', [
+          Query.equal('status', 'Active'),
+          Query.orderAsc('name'),
+        ])
+        setProjects(res.documents as unknown as ProjectOption[])
+      } catch { /* projects collection optional */ }
     }
     load()
   }, [])
@@ -126,19 +129,18 @@ export default function BookingForm({ contactNumber }: BookingFormProps) {
     setStatus('loading'); setErrors({}); setErrorMsg('')
 
     try {
-      if (!supabase) throw new Error('Supabase not initialised.')
-      const { error } = await supabase.from('bookings').insert([{
+      await databases.createDocument(DATABASE_ID, LEADS_COL, ID.unique(), {
         full_name: fullName.trim(),
         contact_number: phone.trim(),
         email: email.trim(),
-        preferred_date: date,
-        preferred_time: timeSlot,
-        interest_type: interestType,
-        property_interest: interestType === 'listing' ? propertyInterest.trim() : null,
-        project_id: interestType === 'project' && projectId ? Number(projectId) : null,
-        message: message.trim() || null,
-      }])
-      if (error) throw error
+        property_of_interest: interestType === 'listing' ? propertyInterest.trim() : null,
+        message: [
+          `Booking: ${date} at ${timeSlot}`,
+          interestType === 'project' && projectId ? `Project ID: ${projectId}` : '',
+          message.trim() || '',
+        ].filter(Boolean).join('\n'),
+        status: 'new',
+      })
       setStatus('success')
     } catch {
       setStatus('error')

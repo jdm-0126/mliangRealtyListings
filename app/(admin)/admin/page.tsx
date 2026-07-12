@@ -2,7 +2,11 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { supabase } from '../../lib/supabaseClient.js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query } from 'appwrite'
+
+const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
+const COL_LEADS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 import {
   Home,
   BarChart3,
@@ -90,36 +94,30 @@ export default function AdminDashboard() {
   const [allData, setAllData] = useState<any[]>([])
 
   const fetchData = useCallback(async () => {
-    if (!supabase) { setLoading(false); return }
-
-    // Fetch listings and leads in parallel
-    const [listingsRes, leadsRes] = await Promise.all([
-      supabase.from('mlianglistings').select('*').order('property_id', { ascending: false }).limit(500),
-      supabase.from('leads').select('id, message').limit(25),
-    ])
-
-    const data = listingsRes.data
-    if (listingsRes.error || !data) { setLoading(false); return }
-
-    const leads = (leadsRes.data ?? []) as { id: number; message: string }[]
-    const sellerCount = leads.filter(l => l.message?.startsWith('[SELLER INQUIRY]')).length
-
-    setAllData(data)
-
-    const s: Stats = {
-      total: data.length,
-      active: data.filter((r: any) => String(r.Status || '').toLowerCase() === 'active').length,
-      draft: data.filter((r: any) => String(r.Status || '').toLowerCase() === 'draft').length,
-      sold: data.filter((r: any) => String(r.Status || '').toLowerCase() === 'sold').length,
-      houseAndLot: data.filter((r: any) => String(r.Type || '').toLowerCase().includes('house')).length,
-      lotOnly: data.filter((r: any) => String(r.Type || '').toLowerCase() === 'lot only' || String(r.Type || '').toLowerCase() === 'lot').length,
-      commercial: data.filter((r: any) => String(r.Type || '').toLowerCase().includes('commercial')).length,
-      featured: data.filter((r: any) => r.featured === true).length,
-      inquiries: leads.length - sellerCount,
-      sellerLeads: sellerCount,
-    }
-    setStats(s)
-    setRecentListings(data.slice(0, 5))
+    setLoading(true)
+    try {
+      const [listingsRes, leadsRes] = await Promise.all([
+        databases.listDocuments(DATABASE_ID, COL_LISTINGS, [Query.orderDesc('property_id'), Query.limit(500)]),
+        databases.listDocuments(DATABASE_ID, COL_LEADS, [Query.limit(25)]),
+      ])
+      const data = listingsRes.documents as unknown as Record<string, unknown>[]
+      const leads = leadsRes.documents as unknown as { $id: string; message: string }[]
+      const sellerCount = leads.filter(l => String(l.message || '').startsWith('[SELLER INQUIRY]')).length
+      setAllData(data)
+      setStats({
+        total: data.length,
+        active: data.filter(r => String(r['Status'] || '').toLowerCase() === 'active').length,
+        draft: data.filter(r => String(r['Status'] || '').toLowerCase() === 'draft').length,
+        sold: data.filter(r => String(r['Status'] || '').toLowerCase() === 'sold').length,
+        houseAndLot: data.filter(r => String(r['Type'] || '').toLowerCase().includes('house')).length,
+        lotOnly: data.filter(r => ['lot only', 'lot'].includes(String(r['Type'] || '').toLowerCase())).length,
+        commercial: data.filter(r => String(r['Type'] || '').toLowerCase().includes('commercial')).length,
+        featured: data.filter(r => r['featured'] === true).length,
+        inquiries: leads.length - sellerCount,
+        sellerLeads: sellerCount,
+      })
+      setRecentListings(data.slice(0, 5))
+    } catch (e) { console.error(e) }
     setLoading(false)
   }, [])
 
@@ -267,11 +265,11 @@ export default function AdminDashboard() {
                     const rawId = Number(p['property_id'])
                     const displayId = rawId > 2 ? rawId - 1 : rawId
                     return (
-                      <Link key={rawId} href={`/properties/${displayId}`}
+                      <Link key={p.$id} href={`/properties/${displayId}`}
                         className="flex items-start gap-3 border border-gray-100 rounded-lg p-3 hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                        {p['Preview Photo'] ? (
+                        {p['Preview_Photo'] ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p['Preview Photo']} alt="" className="w-14 h-14 object-cover rounded flex-shrink-0" loading="lazy" decoding="async" />
+                          <img src={p['Preview_Photo']} alt="" className="w-14 h-14 object-cover rounded flex-shrink-0" loading="lazy" decoding="async" />
                         ) : (
                           <div className="w-14 h-14 bg-gray-100 rounded flex-shrink-0 flex items-center justify-center">
                             <Home className="w-5 h-5 text-gray-300" />
@@ -283,7 +281,7 @@ export default function AdminDashboard() {
                           </p>
                           <p className="text-xs text-gray-500 truncate">{p.Location || '—'}</p>
                           <p className="text-xs font-medium text-blue-700 mt-0.5">
-                            {formatPrice(p['Listing Price'] ?? p.ListingPrice ?? p.Price)}
+                            {formatPrice(p['Listing_Price'])}
                           </p>
                         </div>
                       </Link>
@@ -312,11 +310,11 @@ export default function AdminDashboard() {
                 const displayId = rawId > 2 ? rawId - 1 : rawId
                 const status = String(p.Status || '').toLowerCase()
                 return (
-                  <Link key={rawId} href={`/properties/${displayId}`}
+                  <Link key={p.$id} href={`/properties/${displayId}`}
                     className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition-colors">
-                    {p['Preview Photo'] ? (
+                    {p['Preview_Photo'] ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p['Preview Photo']} alt="" className="w-12 h-12 object-cover rounded-lg flex-shrink-0" loading="lazy" decoding="async" />
+                      <img src={p['Preview_Photo']} alt="" className="w-12 h-12 object-cover rounded-lg flex-shrink-0" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
                         <Home className="w-5 h-5 text-gray-300" />
@@ -335,7 +333,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-medium text-gray-800">
-                        {formatPrice(p['Listing Price'] ?? p.ListingPrice ?? p.Price)}
+                        {formatPrice(p['Listing_Price'])}
                       </p>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                         status === 'active' ? 'bg-green-100 text-green-700' :

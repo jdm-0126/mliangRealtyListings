@@ -2,27 +2,24 @@
 
 import { useState, useEffect } from 'react'
 import { Star } from 'lucide-react'
-import { supabase } from '@/app/lib/supabaseClient'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query } from 'appwrite'
 
 const MAX_FEATURED = 6
+const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 
 interface FeaturedToggleProps {
   propertyId: number
-  /** Value from DB row — may be undefined if column doesn't exist yet */
   isFeatured: boolean | null | undefined
   canToggle: boolean
   onToggle?: (newValue: boolean) => void
 }
 
 export default function FeaturedToggle({ propertyId, isFeatured, canToggle, onToggle }: FeaturedToggleProps) {
-  // Normalise: treat null/undefined as false
   const [featured, setFeatured] = useState<boolean>(!!isFeatured)
   const [saving, setSaving] = useState(false)
 
-  // Keep in sync if parent re-renders with updated DB value
-  useEffect(() => {
-    setFeatured(!!isFeatured)
-  }, [isFeatured])
+  useEffect(() => { setFeatured(!!isFeatured) }, [isFeatured])
 
   if (!canToggle) {
     return featured ? (
@@ -37,47 +34,47 @@ export default function FeaturedToggle({ propertyId, isFeatured, canToggle, onTo
   }
 
   async function handleToggle() {
-    if (!supabase || saving) return
-
+    if (saving) return
     const newValue = !featured
 
-    // Enforce max 6 when turning ON
     if (newValue) {
-      const { count, error: countError } = await supabase
-        .from('mlianglistings')
-        .select('*', { count: 'exact', head: true })
-        .eq('featured', true)
-
-      if (countError) {
+      try {
+        const res = await databases.listDocuments(DATABASE_ID, COL, [
+          Query.equal('featured', true),
+          Query.limit(1),
+          Query.offset(MAX_FEATURED - 1),
+        ])
+        // If we can still get a doc at position MAX_FEATURED-1, count >= MAX_FEATURED
+        const countRes = await databases.listDocuments(DATABASE_ID, COL, [
+          Query.equal('featured', true),
+          Query.limit(100),
+        ])
+        if (countRes.total >= MAX_FEATURED) {
+          alert(`Maximum of ${MAX_FEATURED} featured listings allowed.\nPlease remove one before adding another.`)
+          return
+        }
+      } catch (e) {
         alert('Could not verify featured count. Please try again.')
-        return
-      }
-      if ((count ?? 0) >= MAX_FEATURED) {
-        alert(`Maximum of ${MAX_FEATURED} featured listings allowed.\nPlease remove one before adding another.`)
         return
       }
     }
 
     setSaving(true)
-
-    const { error } = await supabase
-      .from('mlianglistings')
-      .update({ featured: newValue })
-      .eq('property_id', propertyId)
-
-    if (error) {
-      console.error('[FeaturedToggle] Supabase update error:', error)
-      alert('Failed to save: ' + error.message + '\n\nCode: ' + error.code)
+    try {
+      // Find the document $id by property_id
+      const res = await databases.listDocuments(DATABASE_ID, COL, [
+        Query.equal('property_id', propertyId),
+        Query.limit(1),
+      ])
+      if (!res.documents.length) { alert('Property not found.'); return }
+      await databases.updateDocument(DATABASE_ID, COL, res.documents[0].$id, { featured: newValue })
+      setFeatured(newValue)
+      onToggle?.(newValue)
+    } catch (err: any) {
+      alert('Failed to save: ' + (err?.message ?? String(err)))
+    } finally {
       setSaving(false)
-      return
     }
-
-    console.log('[FeaturedToggle] Saved featured=%s for property_id=%s', newValue, propertyId)
-
-    // Optimistically update local state
-    setFeatured(newValue)
-    onToggle?.(newValue)
-    setSaving(false)
   }
 
   return (

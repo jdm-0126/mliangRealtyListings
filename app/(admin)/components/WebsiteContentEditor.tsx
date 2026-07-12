@@ -92,7 +92,7 @@ export default function WebsiteContentEditor({
           />
 
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-gray-500">Stored in Supabase via the website_content table.</p>
+            <p className="text-xs text-gray-500">Stored in Appwrite via the website_content collection.</p>
             <div className="flex items-center gap-2">
               {status ? (
                 <span

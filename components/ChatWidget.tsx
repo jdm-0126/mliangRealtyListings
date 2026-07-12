@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { MessageCircle, X, Send } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { supabase } from '@/app/lib/supabaseClient.js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query } from 'appwrite'
 import {
   RecentSearchEntry,
   loadRecentSearches,
@@ -169,18 +170,16 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
   }, [isOpen]);
 
   const fetchRealProperties = async () => {
-    if (!supabase) return
+    const col = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS
+    if (!col) return
     try {
-      const { data, error } = await supabase
-        .from('mlianglistings')
-        .select('*')
-        .ilike('Status', 'active')
-        .order('property_id', { ascending: false })
-        .limit(200)
-      if (!error) {
-        setRealProperties(data || [])
-        setPropertiesLoaded(true)
-      }
+      const res = await databases.listDocuments(DATABASE_ID, col, [
+        Query.equal('Status', 'active'),
+        Query.orderDesc('property_id'),
+        Query.limit(200),
+      ])
+      setRealProperties(res.documents as unknown as any[])
+      setPropertiesLoaded(true)
     } catch (err) {
       console.error('Error fetching properties:', err)
     }

@@ -5,7 +5,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { CalendarCheck, MessageCircle, UserCheck } from 'lucide-react'
 import { getSocialLinksFromStorage } from '@/lib/social'
-import { supabase } from '@/app/lib/supabaseClient'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query } from 'appwrite'
+
+const COL_AGENTS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_AGENTS!
 
 type AgentEntry = { name: string; title: string; phone: string }
 
@@ -20,20 +23,19 @@ async function fetchTodayAgent(): Promise<AgentEntry> {
     if (!Array.isArray(ids) || ids.length !== 7) return DEFAULT_AGENT
 
     const todayId = ids[new Date().getDay()]
-    if (!todayId || !supabase) return DEFAULT_AGENT
+    if (!todayId) return DEFAULT_AGENT
 
-    const { data } = await supabase
-      .from('agents')
-      .select('name, specialization, phone')
-      .eq('id', todayId)
-      .eq('status', 'Active')
-      .single()
-
-    if (!data) return DEFAULT_AGENT
+    const res = await databases.listDocuments(DATABASE_ID, COL_AGENTS, [
+      Query.equal('$id', String(todayId)),
+      Query.equal('status', 'Active'),
+      Query.limit(1),
+    ])
+    if (!res.documents.length) return DEFAULT_AGENT
+    const d = res.documents[0]
     return {
-      name: data.name,
-      title: data.specialization || 'Agent',
-      phone: data.phone || '',
+      name: d['name'] as string,
+      title: (d['specialization'] as string) || 'Agent',
+      phone: (d['phone'] as string) || '',
     }
   } catch {
     return DEFAULT_AGENT

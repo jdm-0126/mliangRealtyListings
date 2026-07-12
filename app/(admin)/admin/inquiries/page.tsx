@@ -4,7 +4,10 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { supabase } from '@/app/lib/supabaseClient'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query } from 'appwrite'
+
+const COL_LEADS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 import { MessageSquare, Home, Phone, Mail, Calendar, Search, X, Tag } from 'lucide-react'
 
 interface Lead {
@@ -44,14 +47,23 @@ export default function InquiriesPage() {
 
   useEffect(() => {
     async function load() {
-      if (!supabase) { setError('Supabase not initialised.'); setLoading(false); return }
-      const { data, error: err } = await supabase
-        .from('leads')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50)
-      if (err) { setError(err.message); setLoading(false); return }
-      setLeads((data ?? []) as Lead[])
+      try {
+        const res = await databases.listDocuments(DATABASE_ID, COL_LEADS, [
+          Query.orderDesc('$createdAt'),
+          Query.limit(50),
+        ])
+        setLeads(res.documents.map(d => ({
+          id: d.$id as unknown as number,
+          full_name: d['full_name'] as string,
+          contact_number: d['contact_number'] as string,
+          email: d['email'] as string,
+          property_of_interest: d['property_of_interest'] as string | null,
+          message: d['message'] as string,
+          created_at: d['$createdAt'] as string,
+        })))
+      } catch (e: any) {
+        setError(e.message)
+      }
       setLoading(false)
     }
     load()

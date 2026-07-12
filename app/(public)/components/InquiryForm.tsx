@@ -2,8 +2,11 @@
 // app/(public)/components/InquiryForm.tsx — Estatein dark theme
 
 import { useState } from 'react'
-import { supabase } from '@/app/lib/supabaseClient'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { ID } from 'appwrite'
 import { validateContactNumber } from '@/lib/validation'
+
+const LEADS_COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 
 interface InquiryFormProps {
   initialPropertyOfInterest?: string
@@ -85,13 +88,14 @@ export default function InquiryForm({ initialPropertyOfInterest = '', contactNum
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
     setStatus('loading'); setErrors({}); setErrorMsg('')
     try {
-      if (!supabase) throw new Error('Supabase client is not initialised.')
-      const { error } = await supabase.from('leads').insert([{
-        full_name: values.fullName.trim(), contact_number: values.contactNumber.trim(),
-        email: values.email.trim(), property_of_interest: values.propertyOfInterest.trim() || null,
-        message: values.message.trim(), created_at: new Date().toISOString(),
-      }])
-      if (error) throw error
+      await databases.createDocument(DATABASE_ID, LEADS_COL, ID.unique(), {
+        full_name: values.fullName.trim(),
+        contact_number: values.contactNumber.trim(),
+        email: values.email.trim(),
+        property_of_interest: values.propertyOfInterest.trim() || null,
+        message: values.message.trim(),
+        status: 'new',
+      })
       setStatus('success')
       setValues({ fullName: '', contactNumber: '', email: '', propertyOfInterest: '', message: '' })
     } catch {

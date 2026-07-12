@@ -2,7 +2,10 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Image from 'next/image'
-import { createClient } from '@supabase/supabase-js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query } from 'appwrite'
+
+const COL_GALLERY = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!
 import { X, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react'
 
 interface GalleryItem {
@@ -137,16 +140,19 @@ export default function GalleryPage() {
   useEffect(() => {
     const run = async () => {
       try {
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
-        const { data } = await supabase
-          .from('GalleryMliang')
-          .select('id, title, description, category, cloudinary_secure_url, is_featured, created_at')
-          .order('created_at', { ascending: false })
-          .limit(200)
-        setAllItems((data ?? []) as GalleryItem[])
+        const res = await databases.listDocuments(DATABASE_ID, COL_GALLERY, [
+          Query.orderDesc('$createdAt'),
+          Query.limit(200),
+        ])
+        setAllItems(res.documents.map(d => ({
+          id: d.$id,
+          title: d['title'] as string | null,
+          description: d['description'] as string | null,
+          category: d['category'] as 'property' | 'event' | 'general',
+          cloudinary_secure_url: d['cloudinary_secure_url'] as string,
+          is_featured: d['is_featured'] as boolean,
+          created_at: d['$createdAt'] as string,
+        })))
       } finally {
         setLoading(false)
       }

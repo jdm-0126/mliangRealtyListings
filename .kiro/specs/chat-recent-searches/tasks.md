@@ -50,7 +50,7 @@ Tasks to implement the Chat Recent Searches feature. All implementation is scope
 - [x] 5. Implement `handleReplay` handler in `ChatWidget.tsx`
   - [x] 5.1 Implement `handleReplay(entry: RecentSearchEntry)`: guard on `waitingForYesNo`; append user message; `setIsTyping(true)`; call `saveRecentSearch` + `persistRecentSearches` + `setRecentSearches`; after 1 000 ms setTimeout call `runPropertySearch(entry.query)`, append bot message, `setIsTyping(false)`; after another 1 000 ms setTimeout append follow-up prompt and `setWaitingForYesNo(true)`
 
-- [ ] 6. Write property tests for replay pipeline
+- [x] 6. Write property tests for replay pipeline
   - [x] 6.1 Write property test for Property 5 (Replay Pipeline Equivalence) — for any valid `RecentSearchEntry`, the bot message produced by `handleReplay` equals the string returned by `runPropertySearch(entry.query)` directly **Validates: Requirements 3.2**
   - [x] 6.2 Write property test for Property 6 (Post-Replay State) — for any valid entry replayed when `waitingForYesNo` is false, after replay the messages array ends with `'Would you like to search for more properties?'` and `waitingForYesNo` is true **Validates: Requirements 3.4**
 
@@ -60,13 +60,13 @@ Tasks to implement the Chat Recent Searches feature. All implementation is scope
   - [x] 7.3 Panel heading row: `"Recent Searches"` text + `"Clear"` button (hidden when `entries` is empty); empty state: `"No recent searches"` italic text; entry buttons: `w-full text-left` with `truncateQuery(entry.query, 80)` label; apply styling per design spec (`bg-gray-100 border border-gray-300 rounded-lg`)
   - [x] 7.4 Disable entry buttons and Clear control when `disabled` prop is true (prevent double-submission during active Yes/No prompt)
 
-- [ ] 8. Write property and unit tests for `RecentSearchesPanel` and clear behavior
-  - [ ] 8.1 Write property test for Property 10 (Panel Renders Entries in Store Order) — for any array of 1–5 valid entries, rendered button elements appear in same order as the array and each label equals `truncateQuery(entry.query, 80)` **Validates: Requirements 2.1, 2.3**
-  - [ ] 8.2 Write property test for Property 8 (Clear Empties the Store) — for any store with 1–5 valid entries, calling `clearRecentSearches()` results in `localStorage` key parsing to `[]` and in-memory `recentSearches` being `[]` **Validates: Requirements 5.1, 5.2**
-  - [ ] 8.3 Write unit test: empty store shows `"No recent searches"` text and no entry buttons **Validates: Requirement 2.4**
-  - [ ] 8.4 Write unit test: panel heading always contains fixed text `"Recent Searches"` **Validates: Requirement 2.6**
-  - [ ] 8.5 Write unit test: Clear button absent when store is empty; present and functional when store has entries **Validates: Requirement 5.1**
-  - [ ] 8.6 Write unit test: Clear with `localStorage` throwing — in-memory state still set to `[]` **Validates: Requirement 5.4**
+- [x] 8. Write property and unit tests for `RecentSearchesPanel` and clear behavior
+  - [x] 8.1 Write property test for Property 10 (Panel Renders Entries in Store Order) — for any array of 1–5 valid entries, rendered button elements appear in same order as the array and each label equals `truncateQuery(entry.query, 80)` **Validates: Requirements 2.1, 2.3**
+  - [x] 8.2 Write property test for Property 8 (Clear Empties the Store) — for any store with 1–5 valid entries, calling `clearRecentSearches()` results in `localStorage` key parsing to `[]` and in-memory `recentSearches` being `[]` **Validates: Requirements 5.1, 5.2**
+  - [x] 8.3 Write unit test: empty store shows `"No recent searches"` text and no entry buttons **Validates: Requirement 2.4**
+  - [x] 8.4 Write unit test: panel heading always contains fixed text `"Recent Searches"` **Validates: Requirement 2.6**
+  - [x] 8.5 Write unit test: Clear button absent when store is empty; present and functional when store has entries **Validates: Requirement 5.1**
+  - [x] 8.6 Write unit test: Clear with `localStorage` throwing — in-memory state still set to `[]` **Validates: Requirement 5.4**
 
 - [x] 9. Write property test for `resetChat` not touching the store
   - [x] 9.1 Write property test for Property 7 (resetChat Does Not Touch the Store) — for any store state written to `localStorage` before calling `resetChat()`, the `localStorage` value at `chat_recent_searches` is identical after the call **Validates: Requirements 5.3**
@@ -84,8 +84,8 @@ Tasks to implement the Chat Recent Searches feature. All implementation is scope
 - [x] 12. Write unit tests for auto-load behavior
   - [x] 12.1 Write unit test: auto-load does NOT fire when `ENABLE_AUTO_LOAD = false` **Validates: Requirement 4.6**
   - [x] 12.2 Write unit test: auto-load does NOT fire when the store is empty **Validates: Requirement 4.5**
-  - [ ] 12.3 Write unit test: auto-load system note contains the replayed query text **Validates: Requirement 4.3**
-  - [ ] 12.4 Write unit test: auto-load fires at most once per page load (second widget open does not re-trigger) **Validates: Requirement 4.1**
+  - [x] 12.3 Write unit test: auto-load system note contains the replayed query text **Validates: Requirement 4.3**
+  - [x] 12.4 Write unit test: auto-load fires at most once per page load (second widget open does not re-trigger) **Validates: Requirement 4.1**
 
 ## Notes
 

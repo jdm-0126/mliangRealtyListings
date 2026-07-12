@@ -40,6 +40,7 @@ jest.mock('@/lib/tenantServer', () => ({
 // ── Mock @/lib/social to avoid env-var dependency ────────────────────────────
 jest.mock('@/lib/social', () => ({
   getConfiguredSocialLinks: () => [],
+  getSocialLinksFromStorage: () => [],
 }))
 
 // ── Import the Public Layout after all mocks are in place ────────────────────

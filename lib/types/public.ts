@@ -1,7 +1,8 @@
 // lib/types/public.ts
 
 export interface PublicListing {
-  property_id: number
+  id?: number           // alias used by tests and some components
+  property_id?: number  // Appwrite document field
   displayId: number          // id > 2 ? id - 1 : id
   type: string
   location: string

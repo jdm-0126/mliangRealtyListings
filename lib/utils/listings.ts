@@ -28,6 +28,6 @@ export function selectFeaturedListings(
 
   // Sort by id descending, then take the first maxCount
   return [...listings]
-    .sort((a, b) => b.property_id - a.property_id)
+    .sort((a, b) => (b.id ?? b.property_id ?? 0) - (a.id ?? a.property_id ?? 0))
     .slice(0, maxCount)
 }

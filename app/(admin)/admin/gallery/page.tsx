@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { getTenantScopedClient } from '@/lib/supabase/browserTenantClient'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query, ID } from 'appwrite'
 import { uploadManyToCloudinary } from '@/lib/cloudinary'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +11,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import {
   Upload, Trash2, Star, StarOff, ImageIcon, X, CheckCircle2, Loader2, Link2,
 } from 'lucide-react'
+
+const COL_GALLERY  = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!
+const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
+const TENANT_ID    = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ?? '81b78be3-db0c-41f3-8f6f-e3989114eacf'
 
 type GalleryCategory = 'property' | 'event' | 'general'
 
@@ -63,19 +68,14 @@ function ListingPickerModal({
     const run = async () => {
       setLoading(true)
       try {
-        const { supabase, listingsTable } = await getTenantScopedClient()
-        let q = supabase
-          .from(listingsTable)
-          .select('property_id, "Location", "Title"')
-          .order('property_id', { ascending: false })
-          .limit(500)
-        if (search.trim()) q = q.ilike('"Location"', `%${search.trim()}%`)
-        const { data } = await q
+        const queries = [Query.orderDesc('property_id'), Query.limit(500)]
+        if (search.trim()) queries.push(Query.search('Location', search.trim()))
+        const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, queries)
         setListings(
-          (data ?? []).map((r: any) => ({
-            id: r['property_id'],
-            location: r['Location'] ?? '',
-            title: r['Title'] ?? '',
+          res.documents.map((d: any) => ({
+            id: d['property_id'],
+            location: d['Location'] ?? '',
+            title: d['Title'] ?? '',
           }))
         )
       } finally {
@@ -155,17 +155,24 @@ export default function GalleryPage() {
   const fetchItems = useCallback(async () => {
     setLoading(true)
     try {
-      const { supabase } = await getTenantScopedClient()
-      const query = supabase
-        .from('GalleryMliang')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (filterCategory !== 'all') query.eq('category', filterCategory)
-      if (filterFeatured) query.eq('is_featured', true)
-
-      const { data, error } = await query
-      if (!error) setItems((data ?? []) as GalleryItem[])
+      const queries: any[] = [Query.orderDesc('$createdAt')]
+      if (filterCategory !== 'all') queries.push(Query.equal('category', filterCategory))
+      if (filterFeatured) queries.push(Query.equal('is_featured', true))
+      const res = await databases.listDocuments(DATABASE_ID, COL_GALLERY, queries)
+      setItems(res.documents.map((d: any) => ({
+        id: d.$id,
+        title: d.title ?? null,
+        description: d.description ?? null,
+        category: d.category,
+        cloudinary_public_id: d.cloudinary_public_id,
+        cloudinary_secure_url: d.cloudinary_secure_url,
+        width: d.width ?? null,
+        height: d.height ?? null,
+        is_featured: d.is_featured ?? false,
+        display_order: d.display_order ?? 0,
+        listing_id: d.listing_id ?? null,
+        created_at: d.$createdAt,
+      })))
     } finally {
       setLoading(false)
     }
@@ -193,11 +200,10 @@ export default function GalleryPage() {
     if (!url || !url.startsWith('http')) { alert('Enter a valid Cloudinary URL'); return }
     setUploading(true)
     try {
-      const { supabase, tenantId, listingsTable } = await getTenantScopedClient()
       const secureUrl = url.replace('http://', 'https://')
       const publicId = extractPublicId(url)
       const row = {
-        tenant_id:             tenantId!,
+        tenant_id:             TENANT_ID,
         category:              uploadCategory,
         title:                 uploadTitle || null,
         cloudinary_public_id:  publicId,
@@ -206,11 +212,13 @@ export default function GalleryPage() {
         listing_id:            uploadCategory === 'property' ? (uploadListing?.id ?? null) : null,
         is_featured:           uploadCategory === 'event',
       }
-      const { error } = await supabase.from('GalleryMliang').insert([row])
-      if (error) { alert('Error saving: ' + error.message); return }
+      await databases.createDocument(DATABASE_ID, COL_GALLERY, ID.unique(), row)
 
       if (uploadCategory === 'property' && uploadListing) {
-        await supabase.from(listingsTable).update({ 'Preview Photo': secureUrl }).eq('property_id', uploadListing.id)
+        await databases.updateDocument(DATABASE_ID, COL_LISTINGS,
+          await getListingDocId(uploadListing.id),
+          { Preview_Photo: secureUrl }
+        )
       }
 
       setUploadDone(true)
@@ -237,30 +245,28 @@ export default function GalleryPage() {
         (done, total) => setUploadProgress(Math.round((done / total) * 100))
       )
 
-      const { supabase, tenantId, listingsTable } = await getTenantScopedClient()
-      const rows = results.map(r => ({
-        tenant_id:             tenantId!,
-        category:              uploadCategory,
-        title:                 uploadTitle || null,
-        cloudinary_public_id:  r.public_id,
-        cloudinary_url:        r.url,
-        cloudinary_secure_url: r.secure_url,
-        width:                 r.width,
-        height:                r.height,
-        format:                r.format,
-        bytes:                 r.bytes,
-        listing_id:            uploadCategory === 'property' ? (uploadListing?.id ?? null) : null,
-        is_featured:           uploadCategory === 'event',
-      }))
-
-      const { error } = await supabase.from('GalleryMliang').insert(rows)
-      if (error) { alert('Error saving to database: ' + error.message); return }
+      for (const r of results) {
+        await databases.createDocument(DATABASE_ID, COL_GALLERY, ID.unique(), {
+          tenant_id:             TENANT_ID,
+          category:              uploadCategory,
+          title:                 uploadTitle || null,
+          cloudinary_public_id:  r.public_id,
+          cloudinary_url:        r.url,
+          cloudinary_secure_url: r.secure_url,
+          width:                 r.width,
+          height:                r.height,
+          format:                r.format,
+          bytes:                 r.bytes,
+          listing_id:            uploadCategory === 'property' ? (uploadListing?.id ?? null) : null,
+          is_featured:           uploadCategory === 'event',
+        })
+      }
 
       if (uploadCategory === 'property' && uploadListing && results.length > 0) {
-        await supabase
-          .from(listingsTable)
-          .update({ 'Preview Photo': results[0].secure_url })
-          .eq('property_id', uploadListing.id)
+        await databases.updateDocument(DATABASE_ID, COL_LISTINGS,
+          await getListingDocId(uploadListing.id),
+          { Preview_Photo: results[0].secure_url }
+        )
       }
 
       setUploadDone(true)
@@ -276,46 +282,40 @@ export default function GalleryPage() {
     }
   }
 
+  // Helper: get Appwrite document $id from property_id
+  const getListingDocId = async (propertyId: number): Promise<string> => {
+    const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, [
+      Query.equal('property_id', propertyId),
+      Query.limit(1),
+    ])
+    if (!res.documents.length) throw new Error(`Listing #${propertyId} not found`)
+    return res.documents[0].$id
+  }
+
   // ── Assign existing gallery image to a listing ────────────────────────────
 
   const handleAssign = async (item: GalleryItem, listing: Listing) => {
-    const { supabase, listingsTable } = await getTenantScopedClient()
-
-    // Update gallery item with listing_id
-    await supabase.from('GalleryMliang').update({ listing_id: listing.id }).eq('id', item.id)
-
-    // Update the listing's Preview Photo
-    const { error } = await supabase
-      .from(listingsTable)
-      .update({ 'Preview Photo': item.cloudinary_secure_url })
-      .eq('property_id', listing.id)
-
-    if (error) { alert('Error updating listing: ' + error.message); return }
-
+    await databases.updateDocument(DATABASE_ID, COL_GALLERY, item.id, { listing_id: listing.id })
+    const docId = await getListingDocId(listing.id)
+    await databases.updateDocument(DATABASE_ID, COL_LISTINGS, docId, { Preview_Photo: item.cloudinary_secure_url })
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, listing_id: listing.id } : i))
     setAssigningItem(null)
     alert(`Photo assigned to Property #${listing.id} — ${listing.location}`)
   }
 
-  // ── Other actions ─────────────────────────────────────────────────────────
-
   const toggleFeatured = async (item: GalleryItem) => {
-    const { supabase } = await getTenantScopedClient()
-    await supabase.from('GalleryMliang').update({ is_featured: !item.is_featured }).eq('id', item.id)
+    await databases.updateDocument(DATABASE_ID, COL_GALLERY, item.id, { is_featured: !item.is_featured })
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_featured: !i.is_featured } : i))
   }
 
   const deleteItem = async (item: GalleryItem) => {
     if (!confirm(`Delete "${item.title ?? 'this image'}"? This cannot be undone.`)) return
-    const { supabase } = await getTenantScopedClient()
-    const { error } = await supabase.from('GalleryMliang').delete().eq('id', item.id)
-    if (error) { alert('Error: ' + error.message); return }
+    await databases.deleteDocument(DATABASE_ID, COL_GALLERY, item.id)
     setItems(prev => prev.filter(i => i.id !== item.id))
   }
 
   const saveEdit = async (id: string) => {
-    const { supabase } = await getTenantScopedClient()
-    await supabase.from('GalleryMliang').update({ title: editTitle || null, description: editDescription || null }).eq('id', id)
+    await databases.updateDocument(DATABASE_ID, COL_GALLERY, id, { title: editTitle || null, description: editDescription || null })
     setItems(prev => prev.map(i => i.id === id ? { ...i, title: editTitle || null, description: editDescription || null } : i))
     setEditingId(null)
   }

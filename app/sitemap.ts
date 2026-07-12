@@ -3,7 +3,10 @@
 // Requirements: 7.1
 
 import type { MetadataRoute } from 'next'
-import { supabase } from '@/app/lib/supabaseClient'
+import { getServerClient, DATABASE_ID } from '@/lib/appwrite/server'
+import { Query } from 'node-appwrite'
+
+const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -33,29 +36,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]
 
-  if (!supabase) {
-    return staticRoutes
-  }
-
-  // Fetch only the minimal columns needed — avoids the oversized photo arrays
-  const { data: listings } = await supabase
-    .from('mlianglistings')
-    .select('"property_id", updated_at')
-    .ilike('Status', 'active')
-
-  const listingRoutes: MetadataRoute.Sitemap = (listings ?? []).map(
-    (l: Record<string, unknown>) => {
+  const db = getServerClient()
+  let listingRoutes: MetadataRoute.Sitemap = []
+  try {
+    const res = await db.listDocuments(DATABASE_ID, COL, [
+      Query.equal('Status', 'active'),
+      Query.select(['property_id', '$updatedAt']),
+      Query.limit(500),
+    ])
+    listingRoutes = res.documents.map((l) => {
       const id = Number(l['property_id'])
-      // Apply the same displayId transform used across the public site
       const displayId = id > 2 ? id - 1 : id
       return {
         url: `https://realtyprov1.com/listings/${displayId}`,
-        lastModified: l.updated_at ? new Date(String(l.updated_at)) : new Date(),
+        lastModified: l.$updatedAt ? new Date(l.$updatedAt) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.8,
       }
-    }
-  )
+    })
+  } catch { /* return static only */ }
 
   return [...staticRoutes, ...listingRoutes]
 }

@@ -2,7 +2,10 @@
 
 import React, { useState, useCallback, useEffect, useDeferredValue } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { supabase } from '@/app/lib/supabaseClient.js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query } from 'appwrite'
+
+const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -66,23 +69,19 @@ export default function RentalsContent() {
   }, [showOptionsMenu])
 
   const fetchData = useCallback(async () => {
-    if (!supabase) { setLoading(false); return }
     setLoading(true)
-    const { data: rows, error } = await supabase
-      .from('mlianglistings')
-      .select('*')
-      .order('property_id', { ascending: false })
-      .limit(100)
-
-    if (error) { setLoading(false); return }
-
-    const rentals = (rows || []).filter((row: any) =>
-      row['Listing Mode'] === 'For Rent' ||
-      String(row.Notes || '').startsWith('[FOR RENT]')
-    )
-
-    setData(rentals)
-    if (rentals.length > 0) setColumns(Object.keys(rentals[0]))
+    try {
+      const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, [
+        Query.orderDesc('property_id'),
+        Query.limit(100),
+      ])
+      const rentals = (res.documents as unknown as Record<string, unknown>[]).filter((row) =>
+        row['Listing_Mode'] === 'For Rent' ||
+        String(row['Notes'] || '').startsWith('[FOR RENT]')
+      )
+      setData(rentals)
+      if (rentals.length > 0) setColumns(Object.keys(rentals[0]))
+    } catch (e) { console.error(e) }
     setLoading(false)
   }, [])
 
@@ -157,15 +156,12 @@ export default function RentalsContent() {
   }, [data, deferredSearch, typeFilter, locationFilter, priceFilter, sizeFilter, sortBy])
 
   const handleDelete = async (property: any) => {
-    const id = property['property_id']
-    if (!confirm(`Delete Property #${id > 2 ? id - 1 : id}? This cannot be undone.`)) return
-    if (!supabase) return
-    const { error } = await supabase
-      .from('mlianglistings')
-      .delete()
-      .eq('property_id', id)
-    if (error) alert('Error deleting property: ' + error.message)
-    else fetchData()
+    const docId = property['$id']
+    if (!confirm(`Delete Property #${property['property_id']}? This cannot be undone.`)) return
+    try {
+      await databases.deleteDocument(DATABASE_ID, COL_LISTINGS, docId)
+      fetchData()
+    } catch (e: any) { alert('Error deleting property: ' + e.message) }
   }
 
   if (loading) {
@@ -405,7 +401,8 @@ export default function RentalsContent() {
                 .slice((currentPage - 1) * pageSize, currentPage * pageSize)
                 .map(property => (
                   <PropertyCard
-                    key={property['property_id']}
+                    // key={property['property_id']}
+                    key={property.uuid}
                     property={property}
                     viewMode={viewMode}
                     onEdit={showEditControls ? p => setEditingProperty(p) : undefined}

@@ -268,14 +268,15 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             {paginatedListings.map((listing, idx) => (
-              <ListingCard key={listing.property_id} listing={listing} viewMode="grid" priority={idx === 0} />
+              <ListingCard key={`${listing.property_id}-${idx}`} listing={listing} viewMode="grid" priority={idx === 0} />
             ))}
           </div>
         ) : (
           <div className="flex flex-col gap-4 mb-10">
             {paginatedListings.map((listing, idx) => (
               <ListingCard
-                key={listing.property_id}
+                // key={listing.property_id ?? listing.displayId}
+                key={`${listing.property_id}-${idx}`}
                 listing={listing}
                 viewMode="grid"
                 priority={idx === 0}
@@ -291,6 +292,7 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
+            aria-label="Previous page"
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-30"
             style={{ background: 'var(--est-elevated)', color: 'var(--est-subtle)', border: '1px solid var(--est-border)' }}
           >
@@ -304,6 +306,7 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
               <button
                 key={`page-${item}`}
                 onClick={() => setCurrentPage(item)}
+                aria-label={`Page ${item}`}
                 aria-current={currentPage === item ? 'page' : undefined}
                 className="min-w-[38px] h-9 rounded-lg text-sm font-medium transition-all"
                 style={
@@ -320,6 +323,7 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
+            aria-label="Next page"
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-30"
             style={{ background: 'var(--est-elevated)', color: 'var(--est-subtle)', border: '1px solid var(--est-border)' }}
           >

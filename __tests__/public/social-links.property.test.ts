@@ -16,6 +16,7 @@ import { render } from '@testing-library/react'
 
 jest.mock('@/lib/social', () => ({
   getConfiguredSocialLinks: jest.fn(),
+  getSocialLinksFromStorage: jest.fn().mockReturnValue([]),
   getConfiguredSocialLinksFromEnv: jest.requireActual('@/lib/social').getConfiguredSocialLinksFromEnv,
 }))
 // eslint-disable-next-line import/first

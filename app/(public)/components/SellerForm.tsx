@@ -4,8 +4,11 @@
 // Submitted records go to the 'leads' table with a 'seller' message prefix.
 
 import { useState } from 'react'
-import { supabase } from '@/app/lib/supabaseClient'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { ID } from 'appwrite'
 import { validateContactNumber } from '@/lib/validation'
+
+const LEADS_COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 
 interface SellerFormProps {
   contactNumber: string
@@ -95,16 +98,14 @@ export default function SellerForm({ contactNumber }: SellerFormProps) {
     ].filter(Boolean).join('\n')
 
     try {
-      if (!supabase) throw new Error('Supabase not initialised.')
-      const { error } = await supabase.from('leads').insert([{
+      await databases.createDocument(DATABASE_ID, LEADS_COL, ID.unique(), {
         full_name: values.fullName.trim(),
         contact_number: values.contactNumber.trim(),
         email: values.email.trim(),
         property_of_interest: values.propertyAddress.trim(),
         message,
-        created_at: new Date().toISOString(),
-      }])
-      if (error) throw error
+        status: 'new',
+      })
       setStatus('success')
       setValues({ fullName: '', contactNumber: '', email: '', propertyAddress: '', propertyType: 'House and Lot', listingIntent: 'For Sale', askingPrice: '', details: '' })
     } catch {

@@ -1,4 +1,7 @@
-import { supabase } from '@/app/lib/supabaseClient.js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { ID, Query } from 'appwrite'
+
+const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_WEBSITE_CONTENT!
 
 export type WebsiteContentType = 'text' | 'html' | 'json'
 
@@ -12,64 +15,50 @@ export interface WebsiteContentEntry {
 }
 
 export async function readWebsiteContent(sectionKey: string): Promise<WebsiteContentEntry | null> {
-  if (typeof window === 'undefined' || !supabase) return null
-
   try {
-    const { data, error } = await supabase
-      .from('website_content')
-      .select('*')
-      .eq('section_key', sectionKey)
-      .eq('is_active', true)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Failed to load website content:', error)
-      return null
+    const res = await databases.listDocuments(DATABASE_ID, COL, [
+      Query.equal('section_key', sectionKey),
+      Query.equal('is_active', true),
+      Query.limit(1),
+    ])
+    if (!res.documents.length) return null
+    const doc = res.documents[0]
+    return {
+      id: doc.$id,
+      section_key: doc['section_key'] as string,
+      content_type: doc['content_type'] as WebsiteContentType,
+      content_value: doc['content_value'] as string,
+      is_active: doc['is_active'] as boolean,
+      display_order: doc['display_order'] as number,
     }
-    if (!data) {
-      return null
-    }
-    return data as WebsiteContentEntry
-  } catch (error) {
-    console.error('Failed to load website content:', error)
+  } catch (e) {
+    console.error('[readWebsiteContent]', e)
     return null
   }
 }
 
-export async function writeWebsiteContent(sectionKey: string, value: string | Record<string, unknown> | Array<unknown>, contentType: WebsiteContentType = 'json') {
-  if (typeof window === 'undefined' || !supabase) {
-    throw new Error('Supabase client is not initialized in the browser.')
-  }
+export async function writeWebsiteContent(
+  sectionKey: string,
+  value: string | Record<string, unknown> | Array<unknown>,
+  contentType: WebsiteContentType = 'json'
+) {
+  const content_value = typeof value === 'string' ? value : JSON.stringify(value)
+  const payload = { section_key: sectionKey, content_type: contentType, content_value, is_active: true, display_order: 0 }
 
-  const contentValue = typeof value === 'string' ? value : JSON.stringify(value)
-  const payload = {
-    section_key: sectionKey,
-    content_type: contentType,
-    content_value: contentValue,
-    is_active: true,
-    display_order: 0,
+  // check if exists
+  const existing = await readWebsiteContent(sectionKey)
+  if (existing?.id) {
+    return databases.updateDocument(DATABASE_ID, COL, existing.id, payload)
   }
-
-  const { data, error } = await supabase.from('website_content').upsert(payload, { onConflict: 'section_key' })
-  if (error) {
-    console.error('Failed to save website content:', error)
-    throw new Error(error.message || 'Unable to save website content.')
-  }
-  return data
+  return databases.createDocument(DATABASE_ID, COL, ID.unique(), payload)
 }
 
 export async function readWebsiteContentValue<T = unknown>(sectionKey: string, fallback?: T): Promise<T | undefined> {
   const entry = await readWebsiteContent(sectionKey)
   if (!entry) return fallback
-
   if (entry.content_type === 'json') {
-    try {
-      return JSON.parse(entry.content_value) as T
-    } catch {
-      return fallback
-    }
+    try { return JSON.parse(entry.content_value) as T } catch { return fallback }
   }
-
   return entry.content_value as T
 }
 

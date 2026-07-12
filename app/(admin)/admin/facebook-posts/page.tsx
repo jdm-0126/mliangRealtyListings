@@ -1,7 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { supabase } from '@/app/lib/supabaseClient.js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query } from 'appwrite'
+
+const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_FACEBOOK_POSTS!
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,45 +35,22 @@ export default function FacebookPostsPage() {
   }, [searchText, posts])
 
   const fetchPosts = async () => {
-    if (!supabase) return
-    
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('facebook_posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setPosts(data || [])
-    } catch (error) {
-      console.error('Error fetching Facebook posts:', error)
-    } finally {
-      setLoading(false)
-    }
+      const res = await databases.listDocuments(DATABASE_ID, COL, [Query.orderDesc('$createdAt')])
+      setPosts(res.documents)
+    } catch (e) { console.error(e) }
+    setLoading(false)
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this Facebook post?')) return
-
-    if (!supabase) {
-      alert('Database connection not available')
-      return
-    }
-
     try {
-      const { error } = await supabase
-        .from('facebook_posts')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
-      
+      await databases.deleteDocument(DATABASE_ID, COL, id)
       alert('Facebook post deleted successfully!')
       fetchPosts()
-    } catch (error) {
-      console.error('Error deleting Facebook post:', error)
-      alert('Failed to delete Facebook post')
+    } catch (e: any) {
+      alert('Failed to delete: ' + e.message)
     }
   }
 
@@ -218,7 +198,7 @@ export default function FacebookPostsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(post.id)}
+                      onClick={() => handleDelete(post.$id as string)}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="w-4 h-4" />

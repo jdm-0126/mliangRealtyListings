@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { supabase } from '@/app/lib/supabaseClient.js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { ID } from 'appwrite'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -22,10 +23,12 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showListingAgent, setShowListingAgent] = useState(false)
 
+  const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
+
   useEffect(() => {
     if (property) {
       setFormData({ ...property })
-      setPreviewImage(property['Preview Photo'] || '')
+      setPreviewImage(property['Preview_Photo'] || '')
     } else {
       // Don't auto-generate property_id - let user enter it manually or leave empty
       setFormData({
@@ -40,8 +43,8 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
           Location: 'City of San Fernando',
           'Listing Price': '',
           Negotiable: 'Yes',
-          'Preview Photo': '',
-          'Financing options': 'Bank Financing'
+          Preview_Photo: '',
+          Financing_options: 'Bank Financing'
         })
       setPreviewImage('')
     }
@@ -71,7 +74,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
       reader.onloadend = () => {
         const base64String = reader.result as string
         setPreviewImage(base64String)
-        setFormData((prev: any) => ({ ...prev, 'Preview Photo': base64String }))
+        setFormData((prev: any) => ({ ...prev, Preview_Photo: base64String }))
         setUploadingImage(false)
       }
       reader.onerror = () => {
@@ -87,7 +90,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
 
   const removePreviewImage = () => {
     setPreviewImage('')
-    setFormData((prev: any) => ({ ...prev, 'Preview Photo': '' }))
+    setFormData((prev: any) => ({ ...prev, Preview_Photo: '' }))
   }
 
   const parseExcelData = () => {
@@ -107,36 +110,18 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
 
   const handleCreate = async () => {
     setLoading(true)
-    
-    // Prepare data for insertion - remove property_id if empty
-    const dataToInsert = { ...formData }
-    
-    // If property_id is not provided, empty, or invalid, remove it so database can auto-generate it
-    const propertyId = dataToInsert['property_id']
-    if (!propertyId || 
-        String(propertyId).trim() === '' || 
-        propertyId === 0 || 
-        propertyId === '0' ||
-        isNaN(Number(propertyId))) {
-      delete dataToInsert['property_id']
+    // Strip Appwrite system fields before insert
+    const { $id, $collectionId, $databaseId, $createdAt, $updatedAt, $permissions, ...clean } = formData
+    const pid = clean['property_id']
+    if (!pid || String(pid).trim() === '' || pid === 0 || pid === '0' || isNaN(Number(pid))) {
+      delete clean['property_id']
     } else {
-      // Convert to number if it's a valid ID
-      dataToInsert['property_id'] = Number(propertyId)
+      clean['property_id'] = Number(pid)
     }
-
     try {
-      const { getTenantScopedClient } = await import('@/lib/supabase/browserTenantClient')
-      const { supabase: tenantSupabase, tenantId, listingsTable } = await getTenantScopedClient()
-
-      dataToInsert.tenant_id = tenantId
-
-      const { error } = await tenantSupabase.from(listingsTable).insert(dataToInsert)
-      if (error) {
-        alert('Record not added. Error: ' + error.message)
-      } else {
-        alert('Record successfully added!')
-        onClose()
-      }
+      await databases.createDocument(DATABASE_ID, COL, ID.unique(), clean)
+      alert('Record successfully added!')
+      onClose()
     } catch (err: any) {
       alert('Error: ' + (err?.message ?? String(err)))
     }
@@ -144,17 +129,14 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
   }
 
   const handleUpdate = async () => {
-    if (!supabase) return
     setLoading(true)
-    const { error } = await supabase
-      .from('mlianglistings')
-      .update(formData)
-      .eq('property_id', property['property_id'])
-    if (error) {
-      alert(`Error: ${error.message}`)
-    } else {
+    const { $id, $collectionId, $databaseId, $createdAt, $updatedAt, $permissions, ...clean } = formData
+    try {
+      await databases.updateDocument(DATABASE_ID, COL, property['$id'], clean)
       alert('Record successfully updated!')
       onClose()
+    } catch (err: any) {
+      alert(`Error: ${err?.message ?? String(err)}`)
     }
     setLoading(false)
   }
@@ -266,10 +248,10 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                         </label>
                         <input
                           type="text"
-                          value={previewImage}
+                          value={formData['Preview_Photo'] || ''}
                           onChange={(e) => {
                             setPreviewImage(e.target.value)
-                            setFormData((prev: any) => ({ ...prev, 'Preview Photo': e.target.value }))
+                            setFormData((prev: any) => ({ ...prev, Preview_Photo: e.target.value }))
                           }}
                           placeholder="https://example.com/image.jpg"
                           className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
@@ -287,7 +269,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                   <Input
                     type="text"
                     value={formData['Photos'] || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'Photos': e.target.value }))}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, Photos: e.target.value }))}
                     placeholder="Paste Google Photos album link here..."
                   />
                   <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
@@ -301,8 +283,8 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                   </label>
                   <Input
                     type="text"
-                    value={formData['FB Link'] || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'FB Link': e.target.value }))}
+                    value={formData['FB_Link'] || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, FB_Link: e.target.value }))}
                     placeholder="Paste Facebook post or marketplace link here..."
                   />
                   <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
@@ -316,8 +298,8 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                   </label>
                   <Input
                     type="text"
-                    value={formData['Video URL'] || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'Video URL': e.target.value }))}
+                    value={formData['Video_URL'] || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, Video_URL: e.target.value }))}
                     placeholder="https://yourstorage.com/property-video.mp4"
                   />
                   <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
@@ -331,8 +313,8 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                   </label>
                   <Input
                     type="text"
-                    value={formData['Facebook Video URL'] || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'Facebook Video URL': e.target.value }))}
+                    value={formData['Facebook_Video_URL'] || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, Facebook_Video_URL: e.target.value }))}
                     placeholder="https://www.facebook.com/reel/... or watch?v=..."
                   />
                   <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
@@ -346,8 +328,8 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                   </label>
                   <Input
                     type="text"
-                    value={formData['TikTok Video URL'] || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, 'TikTok Video URL': e.target.value }))}
+                    value={formData['Tiktok_Video_URL'] || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, Tiktok_Video_URL: e.target.value }))}
                     placeholder="https://www.tiktok.com/@user/video/..."
                   />
                   <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
@@ -388,17 +370,15 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {columns
                 .filter(key => {
-                  // Filter out photo-related columns (they have their own section above)
-                  const photoColumns = ['Photos', 'FB Link', 'Google Photos Link', 'Preview Photo', 'Featured Preview Photo', 'Video URL', 'Facebook Video URL', 'TikTok Video URL']
+                  const photoColumns = ['Photos', 'FB_Link', 'Preview_Photo', 'Video_URL', 'Facebook_Video_URL', 'Tiktok_Video_URL']
                   return !photoColumns.some(col => col.toLowerCase() === key.toLowerCase())
                 })
                 .filter(key => {
-                  // Hide house-specific fields when Type is "Lot"
                   const isLotOnly = formData['Type'] === 'Lot'
-                  const houseOnlyFields = ['Floor Area sqm', 'Bedroom', 'T&B', 'Garage', 'Formal Kitchen', 'Informal kitchen']
-                  if (isLotOnly && houseOnlyFields.includes(key)) {
-                    return false
-                  }
+                  const houseOnlyFields = ['Floor_Area_sqm', 'Bedroom', 'T&B', 'Garage']
+                  if (isLotOnly && houseOnlyFields.includes(key)) return false
+                  // Skip Appwrite system fields
+                  if (key.startsWith('$')) return false
                   return true
                 })
                 .map(key => (

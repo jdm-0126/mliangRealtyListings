@@ -70,7 +70,14 @@ export default function ListingCard({ listing: initialListing, priority = false,
   const imageRef = useRef<HTMLDivElement | null>(null)
   const locationText = [listing.village, listing.location].filter(Boolean).join(', ')
   const href = `/listings/${listing.displayId}`
-  const imageSrc = listing.previewPhoto || 'https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png'
+  const FALLBACK_IMG = 'https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png'
+  const OPTIMIZABLE = /(supabase\.co|cloudinary\.com|fbcdn\.net|googleusercontent\.com|drive\.google\.com)$/
+  function isOptimizable(url: string): boolean {
+    if (url.startsWith('data:')) return false
+    try { return OPTIMIZABLE.test(new URL(url).hostname) } catch { return false }
+  }
+  const imageSrc = listing.previewPhoto || FALLBACK_IMG
+  const useNextImage = isOptimizable(imageSrc)
   const displayType = formatListingType(listing.type)
   const listingMode = listing.listingMode?.toLowerCase().includes('rent') ? 'For Rent'
     : listing.listingMode?.toLowerCase().includes('sale') ? 'For Sale'
@@ -96,6 +103,14 @@ export default function ListingCard({ listing: initialListing, priority = false,
     }
     const node = imageRef.current
     if (!node) return
+
+    // If already in viewport (e.g. above-the-fold featured cards), show immediately
+    const rect = node.getBoundingClientRect()
+    if (rect.top < window.innerHeight + 200) {
+      setInView(true)
+      return
+    }
+
     const observer = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting) {
@@ -140,17 +155,28 @@ export default function ListingCard({ listing: initialListing, priority = false,
               }}
             />
             {showImage && (
-              <Image
-                src={imageSrc}
-                alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
-                fill
-                className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                loading={priority ? 'eager' : 'lazy'}
-                priority={priority}
-                sizes="(max-width: 640px) 144px, 192px"
-                onLoad={() => setImageLoaded(true)}
-                style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
-              />
+              useNextImage ? (
+                <Image
+                  src={imageSrc}
+                  alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
+                  fill
+                  className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                  loading={priority ? 'eager' : 'lazy'}
+                  priority={priority}
+                  sizes="(max-width: 640px) 144px, 192px"
+                  onLoad={() => setImageLoaded(true)}
+                  style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+                />
+              ) : (
+                <img
+                  src={imageSrc}
+                  alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                  loading={priority ? 'eager' : 'lazy'}
+                  onLoad={() => setImageLoaded(true)}
+                  style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+                />
+              )
             )}
             {displayType && (
               <span
@@ -244,17 +270,28 @@ export default function ListingCard({ listing: initialListing, priority = false,
               }}
             />
             {showImage && (
-              <Image
-                src={imageSrc}
-                alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
-                fill
-                className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                loading={priority ? 'eager' : 'lazy'}
-                priority={priority}
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                onLoad={() => setImageLoaded(true)}
-                style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
-              />
+              useNextImage ? (
+                <Image
+                  src={imageSrc}
+                  alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
+                  fill
+                  className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                  loading={priority ? 'eager' : 'lazy'}
+                  priority={priority}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  onLoad={() => setImageLoaded(true)}
+                  style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+                />
+              ) : (
+                <img
+                  src={imageSrc}
+                  alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                  loading={priority ? 'eager' : 'lazy'}
+                  onLoad={() => setImageLoaded(true)}
+                  style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+                />
+              )
             )}
             {displayType && (
               <span

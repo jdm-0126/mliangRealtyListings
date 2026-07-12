@@ -1,7 +1,10 @@
 // app/(public)/listings/[id]/page.tsx — Estatein dark theme
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { supabase } from '@/app/lib/supabaseClient'
+import { getServerClient, DATABASE_ID } from '@/lib/appwrite/server'
+import { Query } from 'node-appwrite'
+
+const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 import type { PublicListing } from '@/lib/types/public'
 import { buildRealEstateListingJsonLd, generateDetailTitle, buildCanonicalUrl } from '@/lib/seo/jsonld'
 import ImageGallery from '@/app/(public)/components/ImageGallery'
@@ -32,42 +35,40 @@ function formatListingType(type?: string | null): string {
 }
 
 async function fetchListing(displayId: number): Promise<PublicListing | null> {
-  if (!supabase) return null
+  const db = getServerClient()
   const internalId = displayId >= 2 ? displayId + 1 : displayId
-  const { data, error } = await supabase
-  .from("mlianglistings")
-  .select("*")
-  .eq("property_id", internalId)
-  .maybeSingle();
-
-if (error || !data) return null;
-
-const row = data;
-  if (String(row['Status'] ?? '').toLowerCase() !== 'active') return null
-  const id = Number(row['property_id'])
-  const photos: string[] = []
-  const previewRaw = row['Preview Photo']
-  if (typeof previewRaw === 'string' && previewRaw.trim()) photos.push(previewRaw.trim())
-  for (let i = 1; i <= 20; i++) {
-    const photoRaw = row[`Photo ${i}`]
-    if (typeof photoRaw === 'string' && photoRaw.trim() && !photos.includes(photoRaw.trim())) photos.push(photoRaw.trim())
-  }
-  return {
-    property_id: id, displayId,
-    type: String(row['Type'] ?? ''), location: String(row['Location'] ?? ''),
-    village: typeof row['Village'] === 'string' && row['Village'].trim() ? row['Village'].trim() : undefined,
-    price: parseNum(row['Listing Price'] ?? row['ListingPrice'] ?? row['Price']),
-    lotArea: parseNum(row['Lot Area'] ?? row['Lot Area sqm'] ?? row['LA']),
-    floorArea: parseNum(row['Floor Area'] ?? row['Floor Area sqm']),
-    bedrooms: parseNum(row['Bedroom']), bathrooms: parseNum(row['Bathroom']),
-    previewPhoto: photos[0] ?? null, photos, notes: String(row['Notes'] ?? ''),
-    status: String(row['Status'] ?? ''),
-    mapUrl: typeof row['Map URL'] === 'string' && row['Map URL'].trim() ? row['Map URL'].trim() : null,
-    videoUrl: typeof row['Video URL'] === 'string' && row['Video URL'].trim() ? row['Video URL'].trim() : null,
-    facebookVideoUrl: typeof row['Facebook Video URL'] === 'string' && row['Facebook Video URL'].trim() ? row['Facebook Video URL'].trim() : null,
-    tiktokVideoUrl: typeof row['TikTok Video URL'] === 'string' && row['TikTok Video URL'].trim() ? row['TikTok Video URL'].trim() : null,
-    updatedAt: typeof row['updated_at'] === 'string' ? row['updated_at'] : undefined,
-  }
+  try {
+    const res = await db.listDocuments(DATABASE_ID, COL, [
+      Query.equal('property_id', internalId),
+      Query.limit(1),
+    ])
+    if (!res.documents.length) return null
+    const row = res.documents[0] as unknown as Record<string, unknown>
+    const statusRaw = String(row['Status'] ?? '').toLowerCase()
+    if (statusRaw !== 'active') return null
+    const id = Number(row['property_id'])
+    const photos: string[] = []
+    const previewRaw = row['Preview_Photo']
+    if (typeof previewRaw === 'string' && previewRaw.trim()) photos.push(previewRaw.trim())
+    const extraPhotos = Array.isArray(row['Photos']) ? row['Photos'] as string[] : []
+    for (const p of extraPhotos) { if (p && !photos.includes(p)) photos.push(p) }
+    return {
+      property_id: id, displayId,
+      type: String(row['Type'] ?? ''), location: String(row['Location'] ?? ''),
+      village: typeof row['Village'] === 'string' && row['Village'].trim() ? row['Village'].trim() : undefined,
+      price: parseNum(row['Listing_Price']),
+      lotArea: parseNum(row['Lot_Area_sqm']),
+      floorArea: parseNum(row['Floor_Area_sqm']),
+      bedrooms: parseNum(row['Bedroom']), bathrooms: parseNum(row['Bathroom']),
+      previewPhoto: photos[0] ?? null, photos, notes: String(row['Notes'] ?? ''),
+      status: String(row['Status'] ?? ''),
+      mapUrl: typeof row['Map_URL'] === 'string' && row['Map_URL'].trim() ? row['Map_URL'].trim() : null,
+      videoUrl: typeof row['Video_URL'] === 'string' && row['Video_URL'].trim() ? row['Video_URL'].trim() : null,
+      facebookVideoUrl: typeof row['Facebook_Video_URL'] === 'string' && row['Facebook_Video_URL'].trim() ? row['Facebook_Video_URL'].trim() : null,
+      tiktokVideoUrl: typeof row['Tiktok_Video_URL'] === 'string' && row['Tiktok_Video_URL'].trim() ? row['Tiktok_Video_URL'].trim() : null,
+      updatedAt: typeof row['$updatedAt'] === 'string' ? row['$updatedAt'] : undefined,
+    }
+  } catch { return null }
 }
 
 interface Props { params: Promise<{ id: string }> }

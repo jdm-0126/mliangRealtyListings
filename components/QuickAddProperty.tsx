@@ -1,57 +1,60 @@
 'use client'
 
 import React, { useState } from 'react'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { ID, Query } from 'appwrite'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { X } from 'lucide-react'
 
+const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
+
 interface ParsedProperty {
   title: string
   location: string
-  price?: string
-  lotArea?: string
-  floorArea?: string
-  bedrooms?: string
-  bathrooms?: string
+  village: string
+  price: string
+  lotArea: string
+  floorArea: string
+  bedrooms: string
+  bathrooms: string
   description: string
   type: string
   listingMode: 'For Sale' | 'For Rent'
-  photoUrl?: string
-  facebookUrl?: string
-  mop?: string
+  photoUrl: string
+  facebookUrl: string
+  mop: string
 }
 
 function parsePropertyText(text: string): ParsedProperty | null {
   try {
     text = text.replace(/&amp;/g, '&').replace(/&quot;/g, '"')
-    let title = ''
     const titleMatch = text.match(/FOR\s*(?:SALE|RENT)[‼️!]*\s*[✨]*\s*(.+?)(?:\n|📍)/i)
-    if (titleMatch) title = titleMatch[1].trim()
-    else title = text.split('\n').filter(l => l.trim())[0]?.trim() || ''
+    const title = titleMatch ? titleMatch[1].trim() : text.split('\n').filter(l => l.trim())[0]?.trim() || ''
     const locationMatch = text.match(/📍\s*(.+?)(?:\n|👉)/i)
     const location = locationMatch ? locationMatch[1].trim() : ''
+    const villageMatch = text.match(/Village[:\s]+(.+?)(?:\n|,)/i)
+    const village = villageMatch ? villageMatch[1].trim() : ''
     const priceMatch = text.match(/₱([\d.,]+[MmKk]?)/i)
     const price = priceMatch ? priceMatch[1].trim() : ''
-    let lotArea = ''
     const totalLotMatch = text.match(/Total Lot Area[:\s]*([\d,]+)\s*sqm/i)
-    if (totalLotMatch) lotArea = totalLotMatch[1].replace(/,/g, '')
-    else { const m = text.match(/Lot Area[:\s]*([\d,]+)\s*sqm/i); lotArea = m ? m[1].replace(/,/g, '') : '' }
-    let floorArea = ''
+    const lotAreaMatch = text.match(/Lot Area[:\s]*([\d,]+)\s*sqm/i)
+    const lotArea = (totalLotMatch || lotAreaMatch)?.[1]?.replace(/,/g, '') || ''
     const houseLotMatch = text.match(/House Lot Area[:\s]*(?:approx\.?\s*)?([\d,]+)\s*sqm/i)
-    if (houseLotMatch) floorArea = houseLotMatch[1].replace(/,/g, '')
-    else { const m = text.match(/Floor Area[:\s]*([\d,]+)\s*sqm/i); floorArea = m ? m[1].replace(/,/g, '') : '' }
+    const floorAreaMatch = text.match(/Floor Area[:\s]*([\d,]+)\s*sqm/i)
+    const floorArea = (houseLotMatch || floorAreaMatch)?.[1]?.replace(/,/g, '') || ''
     const bedroomMatch = text.match(/(\d+)\s*Bedroom/i)
     const bathroomMatch = text.match(/(\d+)\s*Toilet\s*&\s*Bath/i)
     const fbMatch = text.match(/(https?:\/\/(?:www\.|m\.)?facebook\.com\/(?:share\/p\/|[^\s]+)|https?:\/\/fb\.com\/[^\s]+)/i)
     const photoMatch = text.match(/(https?:\/\/[^\s]+(?:photos\.google\.com|photos\.app\.goo\.gl|drive\.google\.com|\.jpg|\.jpeg|\.png|\.gif|\.webp)[^\s]*)/i)
-    let photoUrl = photoMatch ? photoMatch[1].trim() : ''
-    if (photoUrl?.includes('facebook.com')) photoUrl = ''
+    let photoUrl = photoMatch?.[1]?.trim() || ''
+    if (photoUrl.includes('facebook.com')) photoUrl = ''
     let type = 'Residential'
     if (/lot only/i.test(text)) type = 'Lot'
     else if (/commercial/i.test(text)) type = 'Commercial'
     const listingMode: 'For Sale' | 'For Rent' = /for\s*rent/i.test(text) ? 'For Rent' : 'For Sale'
     return {
-      title, location, price, lotArea, floorArea,
+      title, location, village, price, lotArea, floorArea,
       bedrooms: bedroomMatch?.[1] || '',
       bathrooms: bathroomMatch?.[1] || '',
       description: text.trim(), type, listingMode,
@@ -68,135 +71,175 @@ function toNumber(price: string): number {
   return parseFloat(s.replace(/[^\d.]/g, '')) || 0
 }
 
-function toDbRow(p: ParsedProperty, tenantId: string) {
-  const listingMode = p.listingMode === 'For Rent' ? 'For Rent' : 'For Sale'
+async function getNextPropertyId(): Promise<number> {
+  try {
+    const res = await databases.listDocuments(DATABASE_ID, COL, [
+      Query.orderDesc('property_id'),
+      Query.limit(1),
+      Query.select(['property_id']),
+    ])
+    const last = res.documents[0] as any
+    return (Number(last?.property_id) || 0) + 1
+  } catch { return Date.now() }
+}
+
+function toDbRow(p: ParsedProperty, propertyId: number) {
+  const isRent = p.listingMode === 'For Rent'
   return {
-    tenant_id: tenantId,
+    property_id: propertyId,
     Title: p.title || '',
     Location: p.location || '',
-    'Listing Price': toNumber(p.price || '0'),
-    'Lot Area sqm': p.lotArea || '',
-    'Floor Area sqm': p.floorArea || '',
-    Bedroom: p.bedrooms || '',
-    Photos: p.photoUrl || '',
-    'FB Link': p.facebookUrl || '',
-    'Listing Mode': listingMode,
-    'Financing options': p.mop || 'Bank Financing',
-    Notes: listingMode === 'For Rent' ? `[FOR RENT]\n${p.description}` : p.description,
+    Village: p.village || '',
+    Listing_Price: toNumber(p.price || '0'),
+    Lot_Area_sqm: p.lotArea ? Number(p.lotArea) : null,
+    Floor_Area_sqm: p.floorArea ? Number(p.floorArea) : null,
+    Bedroom: p.bedrooms ? Number(p.bedrooms) : null,
+    Bathroom: p.bathrooms ? Number(p.bathrooms) : null,
+    Preview_Photo: typeof p.photoUrl === "string" ? p.photoUrl : "",
+    Facebook_Video_URL: p.facebookUrl || null,
+    Listing_Mode: p.listingMode,
+    Financing_options: p.mop || 'Bank Financing',
+    Notes: isRent ? `[FOR RENT]\n${p.description}` : p.description,
     Type: p.type || 'Residential',
-    Status: 'Active',
-    ...(listingMode !== 'For Rent' && { CGT: 'Seller', 'Transfer Title': 'Buyer' }),
+    Status: 'active',
+    ...(!isRent && { CGT: 'Seller', Transfer_Title: 'Buyer' }),
   }
 }
 
+const FIELDS: [string, keyof ParsedProperty][] = [
+  ['Title', 'title'], ['Location', 'location'], ['Village', 'village'],
+  ['Price', 'price'], ['Lot Area (sqm)', 'lotArea'], ['Floor Area (sqm)', 'floorArea'],
+  ['Bedrooms', 'bedrooms'], ['Bathrooms', 'bathrooms'],
+]
+
 export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [pastedText, setPastedText] = useState('')
-  const [parsedData, setParsedData] = useState<ParsedProperty | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [parsed, setParsed] = useState<ParsedProperty | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleParse = () => {
+    const p = parsePropertyText(pastedText)
+    if (p) { setParsed(p); setError('') }
+    else setError('Could not parse. Check the format and try again.')
+  }
 
   const handleSave = async () => {
-    if (!parsedData) return
-    setLoading(true)
+    if (!parsed) return
+    setSaving(true)
+    setError('')
     try {
-      const { getTenantScopedClient } = await import('@/lib/supabase/browserTenantClient')
-      const { supabase, tenantId, listingsTable } = await getTenantScopedClient()
-      const { error } = await supabase.from(listingsTable).insert([toDbRow(parsedData, tenantId)])
-      if (error) { alert('Error: ' + error.message); return }
-      alert('Property added successfully!')
-      onSuccess(); onClose()
-    } finally { setLoading(false) }
+      const propertyId = await getNextPropertyId()
+      await databases.createDocument(DATABASE_ID, COL, ID.unique(), toDbRow(parsed, propertyId))
+      onSuccess()
+      onClose()
+    } catch (err: any) {
+      setError(err?.message ?? String(err))
+      setSaving(false)
+    }
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-4xl max-h-[92vh] flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between border-b shrink-0">
-          <CardTitle>Add Property</CardTitle>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-2xl max-h-[92vh] flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between border-b shrink-0 py-3 px-5">
+          <CardTitle className="text-base">Quick Add Property</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="w-4 h-4" /></Button>
         </CardHeader>
 
-        <CardContent className="flex-1 overflow-y-auto p-6">
-          <div className="space-y-6">
-            {!parsedData ? (
-              <>
+        <CardContent className="flex-1 overflow-y-auto p-5">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
+          )}
+
+          {!parsed ? (
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700">Paste property listing text:</label>
+              <textarea
+                value={pastedText}
+                onChange={e => setPastedText(e.target.value)}
+                placeholder="Paste the formatted property text here…"
+                className="w-full h-56 p-3 border border-gray-300 rounded-lg text-sm text-black resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+              <Button onClick={handleParse} disabled={!pastedText.trim()} className="w-full">
+                Parse Details →
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {FIELDS.map(([label, field]) => (
+                  <div key={field}>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                    <input
+                      type="text"
+                      value={(parsed as any)[field] || ''}
+                      onChange={e => setParsed({ ...parsed, [field]: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+
                 <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>Paste Property Details:</label>
-                  <textarea
-                    value={pastedText}
-                    onChange={e => setPastedText(e.target.value)}
-                    placeholder="Paste the formatted property text here..."
-                    className="w-full h-64 p-3 border border-gray-300 rounded-md"
-                    style={{ color: '#000000' }}
-                  />
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
+                  <select value={parsed.type} onChange={e => setParsed({ ...parsed, type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-black">
+                    <option>Residential</option><option>Lot</option><option>Commercial</option>
+                  </select>
                 </div>
-                <Button onClick={() => { const p = parsePropertyText(pastedText); p ? setParsedData(p) : alert('Could not parse. Check format.') }} className="w-full">
-                  Parse Details
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Mode of Payment</label>
+                  <select value={parsed.mop} onChange={e => setParsed({ ...parsed, mop: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-black">
+                    <option>Cash</option><option>Bank Financing</option><option>Pagibig</option><option>Inhouse</option><option>Others</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Listing mode toggle */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Listing Mode</label>
+                <div className="flex gap-2">
+                  {(['For Sale', 'For Rent'] as const).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setParsed({ ...parsed, listingMode: m })}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${parsed.listingMode === m ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-blue-50'}`}
+                    >
+                      {m === 'For Sale' ? '🏷️' : '🔑'} {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Photo / FB links */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Photo URL (optional)</label>
+                  <input type="text" value={parsed.photoUrl} onChange={e => setParsed({ ...parsed, photoUrl: e.target.value })} placeholder="https://…" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Facebook URL (optional)</label>
+                  <input type="text" value={parsed.facebookUrl} onChange={e => setParsed({ ...parsed, facebookUrl: e.target.value })} placeholder="https://facebook.com/…" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                <textarea value={parsed.description} onChange={e => setParsed({ ...parsed, description: e.target.value })} rows={4} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-black resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button onClick={handleSave} disabled={saving} className="flex-1 h-11">
+                  {saving ? 'Saving…' : '✓ Save Property'}
                 </Button>
-              </>
-            ) : (
-              <Card className="border-2 border-blue-200">
-                <CardHeader className="bg-blue-50 border-b border-blue-200">
-                  <h3 className="font-semibold text-lg" style={{ color: '#000000' }}>Parsed Property Details</h3>
-                  <p className="text-sm text-gray-600">Review and edit before saving</p>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="grid grid-cols-1 gap-4">
-                    {([
-                      ['Title', 'title'], ['Location', 'location'], ['Price', 'price'],
-                      ['Lot Area (sqm)', 'lotArea'], ['Floor Area (sqm)', 'floorArea'],
-                      ['Bedrooms', 'bedrooms'], ['Bathrooms', 'bathrooms'],
-                    ] as [string, keyof ParsedProperty][]).map(([label, field]) => (
-                      <div key={field}>
-                        <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>{label}:</label>
-                        <input type="text" value={(parsedData as any)[field] || ''} onChange={e => setParsedData({ ...parsedData, [field]: e.target.value })} className="w-full p-2 border border-gray-300 rounded" style={{ color: '#000000' }} />
-                      </div>
-                    ))}
-                    <div>
-                      <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Type:</label>
-                      <select value={parsedData.type} onChange={e => setParsedData({ ...parsedData, type: e.target.value })} className="w-full p-2 border border-gray-300 rounded" style={{ color: '#000000' }}>
-                        <option>Residential</option><option>Lot</option><option>Commercial</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Listing Mode:</label>
-                      <div className="flex gap-3">
-                        {(['For Sale', 'For Rent'] as const).map(m => (
-                          <label key={m} className={`flex-1 flex items-center justify-center gap-2 p-2 rounded border cursor-pointer ${parsedData.listingMode === m ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-blue-50'}`}>
-                            <input type="radio" name="listingMode" value={m} checked={parsedData.listingMode === m} onChange={() => setParsedData({ ...parsedData, listingMode: m })} className="hidden" />
-                            {m === 'For Sale' ? '🏷️' : '🔑'} {m}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Mode of Payment:</label>
-                      <select value={parsedData.mop || 'Bank Financing'} onChange={e => setParsedData({ ...parsedData, mop: e.target.value })} className="w-full p-2 border border-gray-300 rounded" style={{ color: '#000000' }}>
-                        <option>Cash</option><option>Bank Financing</option><option>Pagibig</option><option>Inhouse</option><option>Others</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="border-t pt-4">
-                    <label className="block text-sm font-medium mb-2" style={{ color: '#4b5563' }}>Description: <span className="text-red-500">*</span></label>
-                    <textarea value={parsedData.description} onChange={e => setParsedData({ ...parsedData, description: e.target.value })} className="w-full p-3 border border-gray-300 rounded h-32" style={{ color: '#000000' }} />
-                  </div>
-                  <div className="border-t pt-4 space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>Google Photos Link (Optional)</label>
-                      <input type="text" value={parsedData.photoUrl || ''} onChange={e => setParsedData({ ...parsedData, photoUrl: e.target.value })} className="w-full p-2 border border-gray-300 rounded" style={{ color: '#000000' }} placeholder="https://photos.google.com/..." />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1" style={{ color: '#4b5563' }}>FB Link (Optional)</label>
-                      <input type="text" value={parsedData.facebookUrl || ''} onChange={e => setParsedData({ ...parsedData, facebookUrl: e.target.value })} className="w-full p-2 border border-gray-300 rounded" style={{ color: '#000000' }} placeholder="https://facebook.com/..." />
-                    </div>
-                  </div>
-                </CardContent>
-                <div className="border-t bg-gray-50 p-6 flex gap-3">
-                  <Button onClick={handleSave} disabled={loading} className="flex-1 h-12 text-base">{loading ? 'Saving...' : '✓ Save Property'}</Button>
-                  <Button variant="outline" onClick={() => setParsedData(null)} className="flex-1 h-12 text-base">← Edit Text</Button>
-                </div>
-              </Card>
-            )}
-          </div>
+                <Button variant="outline" onClick={() => setParsed(null)} className="flex-1 h-11">
+                  ← Edit Text
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

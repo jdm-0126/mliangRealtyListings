@@ -1,7 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import { supabase } from '@/app/lib/supabaseClient.js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { ID } from 'appwrite'
+
+const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_FACEBOOK_POSTS!
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -109,34 +112,19 @@ export default function AddFacebookPostPage() {
     }
 
     setSaving(true)
-
     try {
-      const insertData: any = {
-        property_id: null,
-        messenger_name: messengerName,
-        created_at: new Date().toISOString()
-      }
+      const payload: Record<string, unknown> = { messenger_name: messengerName }
+      if (location) payload.location = location
+      if (price) payload.price = price
+      if (size) payload.size = size
+      if (facebookUrl) payload.facebook_url = facebookUrl
+      if (messengerUrl) payload.messenger_url = messengerUrl
 
-      if (location) insertData.location = location
-      if (price) insertData.price = price
-      if (size) insertData.size = size
-      if (facebookUrl) insertData.facebook_url = facebookUrl
-      if (messengerUrl) insertData.messenger_url = messengerUrl
-
-      const { error } = await supabase
-        .from('facebook_posts')
-        .insert([insertData])
-
-      if (error) {
-        console.error('Database error:', error)
-        throw error
-      }
-
+      await databases.createDocument(DATABASE_ID, COL, ID.unique(), payload)
       alert('Facebook post saved successfully!')
       window.location.href = '/facebook-posts'
     } catch (error: any) {
-      console.error('Error saving Facebook post:', error)
-      alert(`Failed to save Facebook post: ${error.message || 'Unknown error'}`)
+      alert(`Failed to save: ${error.message || 'Unknown error'}`)
     } finally {
       setSaving(false)
     }

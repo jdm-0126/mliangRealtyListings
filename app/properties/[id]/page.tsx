@@ -2,8 +2,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/app/lib/supabaseClient.js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query } from 'appwrite'
 import { Button } from '@/components/ui/button'
+
+const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -158,45 +161,28 @@ ${tenantSettings.officeAddress}`
   }
 
   const handlePhotoUpdate = async () => {
-    if (!newPhotoUrl.trim()) {
-      alert('Please enter a valid image URL or upload an image')
-      return
-    }
-
-    if (!supabase) {
-      alert('Database connection error')
-      return
-    }
-
-    const { error } = await supabase
-      .from('mlianglistings')
-      .update({ 'Preview Photo': newPhotoUrl })
-      .eq('property_id', property['property_id'])
-
-    if (error) {
-      alert('Error updating photo: ' + error.message)
-    } else {
+    if (!newPhotoUrl.trim()) { alert('Please enter a valid image URL or upload an image'); return }
+    try {
+      await databases.updateDocument(DATABASE_ID, COL_LISTINGS, property['$id'], { Preview_Photo: newPhotoUrl })
       alert('Photo updated successfully!')
       setIsUploadingPhoto(false)
       setNewPhotoUrl('')
-      setProperty({ ...property, 'Preview Photo': newPhotoUrl })
+      setProperty({ ...property, Preview_Photo: newPhotoUrl })
+    } catch (e: any) {
+      alert('Error updating photo: ' + e.message)
     }
   }
 
   useEffect(() => {
     const fetchProperty = async () => {
-      if (!supabase) return
-      
-      // Adjust the ID: if user requests ID > 2, fetch ID + 1 from database
       const dbId = Number(id) > 2 ? Number(id) + 1 : Number(id)
-      
-      const { data, error } = await supabase
-        .from('mlianglistings')
-        .select('*')
-        .eq('property_id', dbId)
-        .single()
-      
-      if (!error) setProperty(data)
+      try {
+        const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, [
+          Query.equal('property_id', dbId),
+          Query.limit(1),
+        ])
+        if (res.documents.length) setProperty(res.documents[0])
+      } catch (e) { console.error(e) }
       setLoading(false)
     }
     fetchProperty()
@@ -214,23 +200,17 @@ ${tenantSettings.officeAddress}`
     }
   }, [])
 
-  const { hasPhotos, hasVideo, mediaEntries } = useMemo(() => {
-    if (!property) return { hasPhotos: false, hasVideo: false, mediaEntries: [] }
-    
-    const entries = Object.entries(property)
-    const photos = entries.filter(([key, value]) => key.toLowerCase().includes('photo') && value)
-    const videos = entries.filter(([key, value]) => key.toLowerCase().includes('video') && value)
-    
+  const { hasPhotos, hasVideo } = useMemo(() => {
+    if (!property) return { hasPhotos: false, hasVideo: false }
     return {
-      hasPhotos: photos.length > 0,
-      hasVideo: videos.length > 0,
-      mediaEntries: [...photos, ...videos]
+      hasPhotos: !!(property['Preview_Photo'] || property['Photos']?.length),
+      hasVideo: !!(property['Video_URL'] || property['Facebook_Video_URL'] || property['Tiktok_Video_URL']),
     }
   }, [property])
 
   const calculateFinancing = useMemo(() => {
     if (!property) return null
-    const price = customPrice ? parseFloat(customPrice) : (property['Listing Price'] || property.ListingPrice || property.Price)
+    const price = customPrice ? parseFloat(customPrice) : property['Listing_Price']
     if (!price) return null
     const numPrice = typeof price === 'string' ? parseFloat(price.replace(/[^\d.]/g, '')) : price
     if (isNaN(numPrice)) return null
@@ -258,7 +238,7 @@ ${tenantSettings.officeAddress}`
   // Pag-IBIG: max loan ₱6M, terms up to 30 years, lower rates
   const calculatePagibig = useMemo(() => {
     if (!property) return null
-    const price = customPrice ? parseFloat(customPrice) : (property['Listing Price'] || property.ListingPrice || property.Price)
+    const price = customPrice ? parseFloat(customPrice) : property['Listing_Price']
     if (!price) return null
     const numPrice = typeof price === 'string' ? parseFloat(price.replace(/[^\d.]/g, '')) : price
     if (isNaN(numPrice)) return null
@@ -288,7 +268,7 @@ ${tenantSettings.officeAddress}`
 
   const formatPrice = useMemo(() => {
     if (!property) return 'Price on request'
-    const price = property['Listing Price'] || property.ListingPrice || property.Price
+    const price = property['Listing_Price']
     if (!price) return 'Price on request'
     const numPrice = typeof price === 'string' ? parseFloat(price.replace(/[^\d.]/g, '')) : price
     if (isNaN(numPrice)) return price
@@ -314,41 +294,24 @@ ${tenantSettings.officeAddress}`
     // Build property details conditionally
     let propertyDetails = ''
     
-    // Add Lot Area only if it has a value
-    if (property['Lot Area'] && property['Lot Area'] !== 'N/A') {
-      propertyDetails += '\nLot Area: ' + property['Lot Area']
-    }
-    
-    // Add Floor Area only if it has a value and not lot only
-    if (!isLotOnly && property['Floor Area'] && property['Floor Area'] !== 'N/A') {
-      propertyDetails += '\nFloor Area: ' + property['Floor Area']
-    }
-    
-    // Add other details for non-lot properties
+    if (property['Lot_Area_sqm']) propertyDetails += '\nLot Area: ' + property['Lot_Area_sqm'] + ' sqm'
+    if (!isLotOnly && property['Floor_Area_sqm']) propertyDetails += '\nFloor Area: ' + property['Floor_Area_sqm'] + ' sqm'
     if (!isLotOnly) {
-      if (property.Bedrooms) propertyDetails += '\n' + property.Bedrooms + ' Bedrooms'
-      if (property.Bathrooms) propertyDetails += '\n' + property.Bathrooms + ' Bathrooms'
-      if (property.Carports) propertyDetails += '\n' + property.Carports + ' Carports'
-      if (property.Features) propertyDetails += '\n' + property.Features
-      if (property.Condition) propertyDetails += '\n' + property.Condition
+      if (property['Bedroom']) propertyDetails += '\n' + property['Bedroom'] + ' Bedroom(s)'
+      if (property['Bathroom']) propertyDetails += '\n' + property['Bathroom'] + ' Bathroom(s)'
     }
     
     return [
       heading + readyText,
       (property.Village || '') + ' ' + (property.Location || ''),
-      '| ' + (property.Road || property.Street || 'Main Road'),
-      property.Distance || 'Minutes from city center',
-      'Near ' + (property.Landmarks || 'Major landmarks'),
-      '| ' + (property.Boundary || 'City boundary'),
       '',
       'Property Highlights:',
-      (property.Model || 'Property') + ' ' + (property.Description || '') + propertyDetails,
+      propertyDetails,
       '',
-      'Community Amenities:',
-      property.Amenities || ['Entrance Gate with Guard','Clubhouse & Events Place','Church','Swimming Pool','Basketball Court','Playground','Community Plaza'].join('\n'),
+      property.Notes || '',
       '',
-      "Price " + (property['Listing Price'] || property.ListingPrice || property.Price || 'On request'),
-      'MOP: ' + (property.MOP || 'Cash or BF'),
+      "Price " + (property['Listing_Price'] ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(property['Listing_Price']) : 'On request'),
+      'MOP: Cash or Bank Financing',
       '',
       tenantSettings.businessName,
       formatTenantFooter(),
@@ -368,44 +331,25 @@ ${tenantSettings.officeAddress}`
     const heading = isLotOnly ? 'LOT FOR SALE' : 'HOUSE AND LOT FOR SALE'
     const readyText = isLotOnly ? '' : '\n(ready for occupancy)'
     
-    // Build property details conditionally
     let propertyDetails = ''
-    
-    // Add Lot Area only if it has a value
-    if (property['Lot Area'] && property['Lot Area'] !== 'N/A') {
-      propertyDetails += '\nLot Area: ' + property['Lot Area']
-    }
-    
-    // Add Floor Area only if it has a value and not lot only
-    if (!isLotOnly && property['Floor Area'] && property['Floor Area'] !== 'N/A') {
-      propertyDetails += '\nFloor Area: ' + property['Floor Area']
-    }
-    
-    // Add other details for non-lot properties
+    if (property['Lot_Area_sqm']) propertyDetails += '\nLot Area: ' + property['Lot_Area_sqm'] + ' sqm'
+    if (!isLotOnly && property['Floor_Area_sqm']) propertyDetails += '\nFloor Area: ' + property['Floor_Area_sqm'] + ' sqm'
     if (!isLotOnly) {
-      if (property.Bedrooms) propertyDetails += '\n' + property.Bedrooms + ' Bedrooms'
-      if (property.Bathrooms) propertyDetails += '\n' + property.Bathrooms + ' Bathrooms'
-      if (property.Carports) propertyDetails += '\n' + property.Carports + ' Carports'
-      if (property.Features) propertyDetails += '\n' + property.Features
-      if (property.Condition) propertyDetails += '\n' + property.Condition
+      if (property['Bedroom']) propertyDetails += '\n' + property['Bedroom'] + ' Bedroom(s)'
+      if (property['Bathroom']) propertyDetails += '\n' + property['Bathroom'] + ' Bathroom(s)'
     }
     
     const text = [
       heading + readyText,
       (property.Village || '') + ' ' + (property.Location || ''),
-      '| ' + (property.Road || property.Street || 'Main Road'),
-      property.Distance || 'Minutes from city center',
-      'Near ' + (property.Landmarks || 'Major landmarks'),
-      '| ' + (property.Boundary || 'City boundary'),
       '',
       'Property Highlights:',
-      (property.Model || 'Property') + ' ' + (property.Description || '') + propertyDetails,
+      propertyDetails,
       '',
-      'Community Amenities:',
-      property.Amenities || ['Entrance Gate with Guard','Clubhouse & Events Place','Church','Swimming Pool','Basketball Court','Playground','Community Plaza'].join('\n'),
+      property.Notes || '',
       '',
-      "Price " + (property['Listing Price'] || property.ListingPrice || property.Price || 'On request'),
-      'MOP: ' + (property.MOP || 'Cash or BF'),
+      "Price " + (property['Listing_Price'] ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(property['Listing_Price']) : 'On request'),
+      'MOP: Cash or Bank Financing',
       '',
       tenantSettings.businessName,
       formatTenantFooter(),
@@ -960,11 +904,11 @@ ${tenantSettings.officeAddress}`
             <Card>
               <CardContent className="p-0">
                 <div className="relative w-full h-64 sm:h-80 bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg overflow-hidden group">
-                  {property['Preview Photo'] ? (
+                  {property['Preview_Photo'] ? (
                     // Show uploaded preview photo
                     <div className="relative w-full h-full">
                       <img 
-                        src={property['Preview Photo']} 
+                        src={property['Preview_Photo']} 
                         alt={`Property #${property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}`}
                         className="w-full h-full object-cover cursor-pointer"
                         onClick={() => setIsFullscreen(true)}
@@ -973,7 +917,7 @@ ${tenantSettings.officeAddress}`
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center">
                         <div className="opacity-100 group-hover:opacity-90 transition-opacity flex gap-3">
                           <img 
-                            src={property['Preview Photo']} 
+                            src={property['Preview_Photo']} 
                             alt={`Property #${property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}`}
                             className="w-full h-full object-cover cursor-pointer"
                             onClick={() => setIsFullscreen(true)}
@@ -998,10 +942,10 @@ ${tenantSettings.officeAddress}`
                           </Button>
                         </div>
                       </div>
-                      {property.Photos && (
+                      {property['Photos'] && (
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
                           <Button asChild variant="secondary" size="sm">
-                            <a href={property.Photos} target="_blank" rel="noopener noreferrer">
+                            <a href={Array.isArray(property['Photos']) ? property['Photos'][0] : property['Photos']} target="_blank" rel="noopener noreferrer">
                               <Camera className="w-4 h-4 mr-2" />
                               All Photos
                             </a>
@@ -1027,8 +971,8 @@ ${tenantSettings.officeAddress}`
                         </div>
                       )}
                     </div>
-                  ) : property.Photos ? (
-                    // No preview photo but has Google Photos link
+                  ) : property['Photos']?.length ? (
+                    // No preview photo but has photos array
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center p-8">
                         <Camera className="w-16 h-16 text-blue-600 mx-auto mb-4" />
@@ -1040,7 +984,7 @@ ${tenantSettings.officeAddress}`
                         </p>
                         <div className="flex gap-2 justify-center">
                           <Button asChild>
-                            <a href={property.Photos} target="_blank" rel="noopener noreferrer">
+                            <a href={property['Photos'][0]} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="w-4 h-4 mr-2" />
                               Open Photo Album
                             </a>
@@ -1086,16 +1030,16 @@ ${tenantSettings.officeAddress}`
                   <span>{property.Village && `${property.Village}, `}{property.Location}</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {property['Lot Area'] && (
+                  {property['Lot_Area_sqm'] && (
                     <div className="flex items-center">
                       <Maximize className="w-5 h-5 mr-2 text-gray-400" />
-                      <div><p className="text-sm text-gray-600">Lot Area</p><p className="font-medium">{property['Lot Area']} sqm</p></div>
+                      <div><p className="text-sm text-gray-600">Lot Area</p><p className="font-medium">{property['Lot_Area_sqm']} sqm</p></div>
                     </div>
                   )}
-                  {property['Floor Area'] && (
+                  {property['Floor_Area_sqm'] && (
                     <div className="flex items-center">
                       <Home className="w-5 h-5 mr-2 text-gray-400" />
-                      <div><p className="text-sm text-gray-600">Floor Area</p><p className="font-medium">{property['Floor Area']} sqm</p></div>
+                      <div><p className="text-sm text-gray-600">Floor Area</p><p className="font-medium">{property['Floor_Area_sqm']} sqm</p></div>
                     </div>
                   )}
                 </div>
@@ -1177,7 +1121,7 @@ ${tenantSettings.officeAddress}`
       </div>
       
       {/* Fullscreen Image Modal */}
-      {isFullscreen && property['Preview Photo'] && (
+      {isFullscreen && property['Preview_Photo'] && (
         <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setIsFullscreen(false)}>
           <button
             onClick={() => setIsFullscreen(false)}
@@ -1186,7 +1130,7 @@ ${tenantSettings.officeAddress}`
             <X className="w-8 h-8" />
           </button>
           <img
-            src={property['Preview Photo']}
+            src={property['Preview_Photo']}
             alt={`Property #${property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}`}
             className="max-w-full max-h-full object-contain"
             onClick={(e) => e.stopPropagation()}
@@ -1199,7 +1143,7 @@ ${tenantSettings.officeAddress}`
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
           <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4">
             <h4 className="text-lg font-medium text-center" style={{ color: '#000000' }}>
-              {property['Preview Photo'] ? 'Update Featured Preview Photo' : 'Add Featured Preview Photo'}
+              {property['Preview_Photo'] ? 'Update Featured Preview Photo' : 'Add Featured Preview Photo'}
             </h4>
             
             {/* Hidden file input */}

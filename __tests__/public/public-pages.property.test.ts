@@ -32,8 +32,9 @@ jest.mock('next/image', () => ({
     React.createElement('img', { src, alt }),
 }))
 
-jest.mock('@/app/lib/supabaseClient', () => ({
-  supabase: null,
+jest.mock('@/lib/appwrite/client', () => ({
+  databases: { createDocument: jest.fn().mockResolvedValue({}) },
+  DATABASE_ID: 'test-db',
 }))
 
 // ─── Import components after mocks are hoisted ───────────────────────────────
@@ -56,24 +57,24 @@ const authStateArb = fc.oneof(
 
 // ─── Helper: render component and assert sessionStorage.getItem never called ─
 //
-// We spy on Storage.prototype.getItem (not the sessionStorage instance) because
-// jsdom's sessionStorage instance properties are non-configurable. Spying on
-// the prototype is the standard approach — see auth-guard.property.test.ts.
+// jsdom's sessionStorage instance is non-configurable so we can't spy on it
+// directly. Instead we spy on Storage.prototype.getItem and check whether
+// the call was made on sessionStorage (this === window.sessionStorage).
 
 function assertNoSessionStorageRead(renderFn: () => void): boolean {
-  const spy = jest.spyOn(Storage.prototype, 'getItem').mockReturnValue(null)
+  let sessionStorageReadCount = 0
+  const original = Storage.prototype.getItem
+  Storage.prototype.getItem = function (key: string) {
+    if (this === window.sessionStorage) sessionStorageReadCount++
+    return original.call(this, key)
+  }
 
-  act(() => {
-    renderFn()
-  })
+  act(() => { renderFn() })
 
-  const wasCalled = spy.mock.calls.length > 0
-  spy.mockRestore()
-
-  // Clean up DOM between runs
+  Storage.prototype.getItem = original
   document.body.innerHTML = ''
 
-  return !wasCalled
+  return sessionStorageReadCount === 0
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -146,9 +147,7 @@ describe('Property 2: Public pages perform no authentication checks', () => {
   it('none of the three public components call sessionStorage.getItem across varied auth states', () => {
     fc.assert(
       fc.property(authStateArb, (_authState) => {
-        const spy = jest.spyOn(Storage.prototype, 'getItem').mockReturnValue(null)
-
-        act(() => {
+        return assertNoSessionStorageRead(() => {
           render(
             React.createElement(
               React.Fragment,
@@ -159,12 +158,6 @@ describe('Property 2: Public pages perform no authentication checks', () => {
             )
           )
         })
-
-        const wasCalled = spy.mock.calls.length > 0
-        spy.mockRestore()
-        document.body.innerHTML = ''
-
-        return !wasCalled
       }),
       { numRuns: 100 }
     )

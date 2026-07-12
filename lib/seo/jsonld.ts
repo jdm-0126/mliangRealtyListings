@@ -24,7 +24,7 @@ export function generateDetailTitle(type: string, location: string): string {
  */
 export function buildCanonicalUrl(host: string, path: string): string {
   const normalizedHost = host.replace(/\/+$/, '')
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const normalizedPath = '/' + path.replace(/^\/+/, '')
   return `${normalizedHost}${normalizedPath}`
 }
 

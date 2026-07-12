@@ -29,11 +29,11 @@ export const PLATFORM_LABELS: Record<SocialPlatform, string> = {
   facebook:  'Facebook',
   messenger: 'Messenger',
   instagram: 'Instagram',
-  tiktok:    'TikTok',
-  youtube:   'YouTube',
-  x:         'X (Twitter)',
-  linkedin:  'LinkedIn',
-  whatsapp:  'WhatsApp',
+  tiktok:    'Tiktok',
+  youtube:   'Youtube',
+  x:         'X',
+  linkedin:  'Linkedin',
+  whatsapp:  'Whatsapp',
   viber:     'Viber',
 }
 

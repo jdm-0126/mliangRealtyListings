@@ -5,7 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { supabase } from '@/app/lib/supabaseClient.js'
+import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { Query, ID } from 'appwrite'
+
+const COL_BROKERS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_BROKERS!
 import { Users, Plus, Edit, Trash2, Mail, Phone, Shield, X } from 'lucide-react'
 
 interface Broker {
@@ -62,19 +65,13 @@ export default function BrokersPage() {
   }
 
   const fetchBrokers = async () => {
-    if (!supabase) return
-    
     setLoading(true)
-    const { data, error } = await supabase
-      .from('brokers')
-      .select('*')
-      .order('created_at', { ascending: false })
-    
-    if (error) {
-      console.log('Error fetching brokers:', error)
-    } else {
-      setBrokers(data || [])
-    }
+    try {
+      const res = await databases.listDocuments(DATABASE_ID, COL_BROKERS, [
+        Query.orderDesc('$createdAt'),
+      ])
+      setBrokers(res.documents.map(d => ({ ...d, id: d.$id, created_at: d.$createdAt })) as unknown as Broker[])
+    } catch (e) { console.error(e) }
     setLoading(false)
   }
 
@@ -105,61 +102,32 @@ export default function BrokersPage() {
   }
 
   const handleSave = async () => {
-    if (!supabase) return
-    
-    if (!formData.name || !formData.email) {
-      alert('Name and Email are required')
-      return
-    }
-
+    if (!formData.name || !formData.email) { alert('Name and Email are required'); return }
     setLoading(true)
-
-    if (editingBroker) {
-      const { error } = await supabase
-        .from('brokers')
-        .update(formData)
-        .eq('id', editingBroker.id)
-      
-      if (error) {
-        alert('Error updating broker: ' + error.message)
-      } else {
+    try {
+      if (editingBroker) {
+        await databases.updateDocument(DATABASE_ID, COL_BROKERS, (editingBroker as any).$id ?? editingBroker.id, formData)
         alert('Broker updated successfully!')
-        setShowDialog(false)
-        fetchBrokers()
-      }
-    } else {
-      const { error } = await supabase
-        .from('brokers')
-        .insert([formData])
-      
-      if (error) {
-        alert('Error creating broker: ' + error.message)
       } else {
+        await databases.createDocument(DATABASE_ID, COL_BROKERS, ID.unique(), formData)
         alert('Broker created successfully!')
-        setShowDialog(false)
-        fetchBrokers()
       }
+      setShowDialog(false)
+      fetchBrokers()
+    } catch (e: any) {
+      alert('Error saving broker: ' + e.message)
     }
-    
     setLoading(false)
   }
 
   const handleDelete = async (broker: Broker) => {
-    if (!supabase) return
-    
-    const confirmDelete = confirm(`Delete ${broker.name}? This action cannot be undone.`)
-    if (!confirmDelete) return
-
-    const { error } = await supabase
-      .from('brokers')
-      .delete()
-      .eq('id', broker.id)
-    
-    if (error) {
-      alert('Error deleting broker: ' + error.message)
-    } else {
+    if (!confirm(`Delete ${broker.name}? This action cannot be undone.`)) return
+    try {
+      await databases.deleteDocument(DATABASE_ID, COL_BROKERS, (broker as any).$id ?? broker.id)
       alert('Broker deleted successfully!')
       fetchBrokers()
+    } catch (e: any) {
+      alert('Error deleting broker: ' + e.message)
     }
   }
 
