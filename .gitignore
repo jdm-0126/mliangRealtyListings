@@ -40,4 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# data exports — never commit these, they're too large
+*.csv
+*.xlsx
+
 .vercel
