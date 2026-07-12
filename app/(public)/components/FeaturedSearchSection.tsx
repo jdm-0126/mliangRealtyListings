@@ -54,13 +54,14 @@ export default function FeaturedSearchSection({ featuredListings = [] }: Feature
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('All')
   const [locationQuery, setLocationQuery] = useState('')
   const [priceRange, setPriceRange] = useState<PriceRange>('All')
+  const [modeFilter, setModeFilter] = useState<'All' | 'For Sale' | 'For Rent'>('All')
 
-  // Build the search URL with only non-default params
   function buildSearchUrl() {
     const params = new URLSearchParams()
     if (typeFilter !== 'All') params.set('type', typeFilter)
     if (locationQuery.trim()) params.set('location', locationQuery.trim())
     if (priceRange !== 'All') params.set('price', priceRange)
+    if (modeFilter !== 'All') params.set('mode', modeFilter)
     const qs = params.toString()
     return `/listings/all${qs ? `?${qs}` : ''}`
   }
@@ -81,9 +82,9 @@ export default function FeaturedSearchSection({ featuredListings = [] }: Feature
 
         {/* Property type */}
         <div className="min-w-[160px] flex-1">
-          <label htmlFor="type-filter" style={labelStyle}>Property Type</label>
+          <label htmlFor="fs-type-filter" style={labelStyle}>Property Type</label>
           <select
-            id="type-filter"
+            id="fs-type-filter"
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value as TypeFilter)}
             style={selectStyle}
@@ -94,9 +95,9 @@ export default function FeaturedSearchSection({ featuredListings = [] }: Feature
 
         {/* Location */}
         <div className="flex-[2] min-w-[200px]">
-          <label htmlFor="location-query" style={labelStyle}>Location</label>
+          <label htmlFor="fs-location-query" style={labelStyle}>Location</label>
           <input
-            id="location-query"
+            id="fs-location-query"
             type="text"
             placeholder="Search by location…"
             value={locationQuery}
@@ -108,14 +109,29 @@ export default function FeaturedSearchSection({ featuredListings = [] }: Feature
 
         {/* Price range */}
         <div className="min-w-[180px] flex-1">
-          <label htmlFor="price-range" style={labelStyle}>Price Range</label>
+          <label htmlFor="fs-price-range" style={labelStyle}>Price Range</label>
           <select
-            id="price-range"
+            id="fs-price-range"
             value={priceRange}
             onChange={e => setPriceRange(e.target.value as PriceRange)}
             style={selectStyle}
           >
             {PRICE_RANGE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+        </div>
+
+        {/* For Sale / For Rent */}
+        <div className="min-w-[140px] flex-1">
+          <label htmlFor="fs-mode-filter" style={labelStyle}>Listing</label>
+          <select
+            id="fs-mode-filter"
+            value={modeFilter}
+            onChange={e => setModeFilter(e.target.value as 'All' | 'For Sale' | 'For Rent')}
+            style={selectStyle}
+          >
+            <option value="All">All</option>
+            <option value="For Sale">For Sale</option>
+            <option value="For Rent">For Rent</option>
           </select>
         </div>
 

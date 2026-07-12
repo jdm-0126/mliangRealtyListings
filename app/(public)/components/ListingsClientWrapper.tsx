@@ -10,6 +10,7 @@ interface ListingsClientWrapperProps {
   initialType?: string
   initialLocation?: string
   initialPrice?: string
+  initialMode?: string
 }
 
 const PAGE_SIZE = 12
@@ -74,18 +75,18 @@ const labelStyle: React.CSSProperties = {
   color: 'var(--est-muted)',
 }
 
-export default function ListingsClientWrapper({ allListings, initialType, initialLocation, initialPrice }: ListingsClientWrapperProps) {
+export default function ListingsClientWrapper({ allListings, initialType, initialLocation, initialPrice, initialMode }: ListingsClientWrapperProps) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(
     TYPE_OPTIONS.includes(initialType as TypeFilter) ? (initialType as TypeFilter) : 'All'
   )
   const [locationQuery, setLocationQuery] = useState(initialLocation ?? '')
-  // useDeferredValue defers UI-blocking filter work on each keystroke.
-  // We seed it with the initial value so URL query params apply immediately.
   const deferredLocation = useDeferredValue(locationQuery)
   const [priceRange, setPriceRange] = useState<PriceRange>(
     PRICE_RANGE_OPTIONS.includes(initialPrice as PriceRange) ? (initialPrice as PriceRange) : 'All'
   )
-  const [modeFilter, setModeFilter] = useState<ModeFilter>('All')
+  const [modeFilter, setModeFilter] = useState<ModeFilter>(
+    MODE_OPTIONS.includes(initialMode as ModeFilter) ? (initialMode as ModeFilter) : 'All'
+  )
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
 
@@ -115,8 +116,8 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
       if (priceRange === '₱2M–₱5M' && (price < 2_000_000 || price >= 5_000_000)) return false
       if (priceRange === '₱5M–₱10M' && (price < 5_000_000 || price >= 10_000_000)) return false
       if (priceRange === 'Above ₱10M' && price < 10_000_000) return false
-      if (modeFilter === 'For Sale' && listing.listingMode?.toLowerCase().includes('rent')) return false
-      if (modeFilter === 'For Rent' && !listing.listingMode?.toLowerCase().includes('rent')) return false
+      if (modeFilter === 'For Sale' && (listing.listingMode ?? '').toLowerCase().includes('rent')) return false
+      if (modeFilter === 'For Rent' && !(listing.listingMode ?? '').toLowerCase().includes('rent')) return false
       return true
     })
   }, [allListings, typeFilter, deferredLocation, locationQuery, priceRange, modeFilter])
@@ -298,17 +299,16 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             {paginatedListings.map((listing, idx) => (
-              <ListingCard key={`${listing.property_id}-${idx}`} listing={listing} viewMode="grid" priority={idx === 0} />
+              <ListingCard key={`${listing.id}-${idx}`} listing={listing} viewMode="grid" priority={idx === 0} />
             ))}
           </div>
         ) : (
           <div className="flex flex-col gap-4 mb-10">
             {paginatedListings.map((listing, idx) => (
               <ListingCard
-                // key={listing.property_id ?? listing.displayId}
-                key={`${listing.property_id}-${idx}`}
+                key={`${listing.id}-${idx}`}
                 listing={listing}
-                viewMode="grid"
+                viewMode="list"
                 priority={idx === 0}
               />
             ))}

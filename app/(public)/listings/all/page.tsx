@@ -17,11 +17,11 @@ export const metadata: Metadata = {
 }
 
 interface Props {
-  searchParams: Promise<{ type?: string; location?: string; price?: string }>
+  searchParams: Promise<{ type?: string; location?: string; price?: string; mode?: string }>
 }
 
 export default async function AllListingsPage({ searchParams }: Props) {
-  const { type, location, price } = await searchParams
+  const { type, location, price, mode } = await searchParams
   let listings: PublicListing[] = []
   let fetchError = false
 
@@ -70,6 +70,7 @@ export default async function AllListingsPage({ searchParams }: Props) {
           initialType={type}
           initialLocation={location}
           initialPrice={price}
+          initialMode={mode}
         />
       )}
     </main>

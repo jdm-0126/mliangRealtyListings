@@ -68,6 +68,7 @@ export default async function ForRentPage({ searchParams }: Props) {
           initialType={type}
           initialLocation={location}
           initialPrice={price}
+          initialMode="For Rent"
         />
       )}
     </main>

@@ -68,6 +68,7 @@ export default async function ForSalePage({ searchParams }: Props) {
           initialType={type}
           initialLocation={location}
           initialPrice={price}
+          initialMode="For Sale"
         />
       )}
     </main>
