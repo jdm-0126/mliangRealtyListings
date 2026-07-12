@@ -64,78 +64,14 @@ export default function AgentDialog({ agent, brokerId, isOpen, onClose }: AgentD
       return null
     }
 
-    if (!supabase) return null
+
 
     const numericId = Number(candidate)
-    const { data, error } = await supabase
-      .from('brokers')
-      .select('id')
-      .eq('id', numericId)
-      .maybeSingle()
 
-    if (error || !data) {
-      return null
-    }
 
     return numericId
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!supabase) return
-
-    setLoading(true)
-
-    try {
-      if (agent?.id) {
-        // Update existing agent
-        const { error } = await supabase
-          .from('agents')
-          .update({
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            status: formData.status,
-            license_number: formData.license_number,
-            profile_photo: formData.profile_photo,
-            bio: formData.bio,
-            specialization: formData.specialization,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', agent.id)
-
-        if (error) throw error
-        alert('Agent updated successfully!')
-      } else {
-        const resolvedBrokerId = await resolveBrokerId(brokerId)
-
-        // Create new agent — only include broker_id if a valid matching broker exists
-        const insertData: Record<string, unknown> = {
-          name:           formData.name,
-          email:          formData.email,
-          phone:          formData.phone || null,
-          status:         formData.status,
-          license_number: formData.license_number || null,
-          profile_photo:  formData.profile_photo || null,
-          bio:            formData.bio || null,
-          specialization: formData.specialization || null,
-        }
-
-        if (resolvedBrokerId != null) {
-          insertData.broker_id = resolvedBrokerId
-        }
-
-        const { error } = await supabase.from('agents').insert([insertData])
-        if (error) throw error
-        alert('Agent created successfully!')
-      }
-      onClose()
-    } catch (error: any) {
-      alert('Error: ' + error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   if (!isOpen) return null
 
@@ -151,7 +87,7 @@ export default function AgentDialog({ agent, brokerId, isOpen, onClose }: AgentD
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: '#000000' }}>
                 Name *

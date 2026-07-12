@@ -45,3 +45,39 @@ export async function uploadManyToCloudinary(
 
   return results
 }
+
+export function buildPropertyUploadFolder(propertyId: number | string): string {
+  return `GalleryMliang/property/${propertyId}`
+}
+
+export function buildSharpenedCloudinaryUrl(url: string): string {
+  if (!url) return url
+  if (!url.includes('/image/upload/')) return url
+
+  const marker = '/image/upload/'
+  const parts = url.split(marker)
+  if (parts.length < 2) return url
+
+  return `${parts[0]}${marker}e_sharpen:100,q_auto,f_auto/${parts[1]}`
+}
+
+export function buildPropertyGalleryRecord(args: {
+  tenantId: string
+  propertyId: number | string
+  title?: string | null
+  secureUrl: string
+  publicId: string
+  category?: 'property' | 'event' | 'general'
+  isFeatured?: boolean
+}): Record<string, unknown> {
+  return {
+    tenant_id: args.tenantId,
+    category: args.category ?? 'property',
+    title: args.title ?? null,
+    cloudinary_public_id: args.publicId,
+    cloudinary_url: args.secureUrl,
+    cloudinary_secure_url: args.secureUrl,
+    listing_id: Number(args.propertyId),
+    is_featured: args.isFeatured ?? false,
+  }
+}

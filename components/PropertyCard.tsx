@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { MapPin, Maximize2, Home, BedDouble, Bath, Edit, Trash2, X, ImagePlus } from 'lucide-react'
+import { uploadManyToCloudinary, buildPropertyUploadFolder, buildPropertyGalleryRecord, buildSharpenedCloudinaryUrl } from '@/lib/cloudinary'
+import { MapPin, Maximize2, Home, BedDouble, Bath, Edit, Trash2, X, ImagePlus, Facebook, UploadCloud } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Tooltip } from './ui/tooltip'
@@ -52,6 +53,8 @@ export default function PropertyCard({
   const [newPhotoUrl, setNewPhotoUrl] = useState('')
   const [uploadingImage, setUploadingImage] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isUploadingPropertyImages, setIsUploadingPropertyImages] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const imageRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -69,6 +72,8 @@ export default function PropertyCard({
   const type: string = property['Type'] || ''
   const status: string = property['Status'] || 'Draft'
   const listingMode: string | null = property['Listing_Mode'] || null
+  const facebookLink: string | null = property['FB_Link'] || property['fb_link'] || property['Facebook_URL'] || property['facebook_url'] || property['Facebook_Video_URL'] || property['facebook_video_url'] || null
+  const description: string | null = property['Description'] || property['description'] || property['Notes'] || property['notes'] || null
   const rawId = Number(property['property_id'])
   const displayId = rawId > 2 ? rawId - 1 : rawId
   const href = `/properties/${displayId}`
@@ -130,6 +135,47 @@ export default function PropertyCard({
       setNewPhotoUrl('')
     } catch (e: any) {
       alert('Error updating photo: ' + e.message)
+    }
+  }
+
+  const handlePropertyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).filter(file => file.type.startsWith('image/'))
+    if (!files.length) return
+
+    setIsUploadingPropertyImages(true)
+    setUploadProgress(0)
+
+    try {
+      const tenantId = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ?? '81b78be3-db0c-41f3-8f6f-e3989114eacf'
+      const folder = buildPropertyUploadFolder(rawId || property['property_id'])
+      const results = await uploadManyToCloudinary(files, folder, (done, total) => setUploadProgress(Math.round((done / total) * 100)))
+
+      await Promise.all(results.map(result =>
+        databases.createDocument(DATABASE_ID, process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!, String(Date.now()) + Math.random().toString(36).slice(2), buildPropertyGalleryRecord({
+          tenantId,
+          propertyId: rawId || property['property_id'],
+          title: property['Title'] || property['Location'] || `Property ${rawId || property['property_id']}`,
+          secureUrl: result.secure_url,
+          publicId: result.public_id,
+          category: 'property',
+          isFeatured: false,
+        }))
+      ))
+
+      const firstPreviewUrl = buildSharpenedCloudinaryUrl(results[0]?.secure_url ?? '')
+      if (firstPreviewUrl) {
+        setNewPhotoUrl(firstPreviewUrl)
+        setIsEditingPhoto(true)
+      }
+
+      alert(`Uploaded ${results.length} image${results.length === 1 ? '' : 's'} for this property.`)
+      setUploadProgress(100)
+    } catch (e: any) {
+      alert('Error uploading images: ' + (e?.message ?? String(e)))
+    } finally {
+      setIsUploadingPropertyImages(false)
+      setUploadProgress(0)
+      e.target.value = ''
     }
   }
 
@@ -236,7 +282,10 @@ export default function PropertyCard({
                 <p className="text-xs truncate flex-1 text-gray-500">{locationText || '—'}</p>
               </div>
 
-              <p className="text-lg font-bold mb-3 text-gray-900">{formatPrice(price)}</p>
+              <p className="text-lg font-bold mb-2 text-gray-900">{formatPrice(price)}</p>
+              {description && (
+                <p className="text-sm text-gray-500 mb-3 line-clamp-2">{description}</p>
+              )}
 
               {(lotArea || floorArea || bedrooms || bathrooms) && (
                 <div className="flex items-center flex-wrap gap-x-4 gap-y-1 pt-3 text-xs text-gray-500 border-t border-gray-100">
@@ -281,6 +330,24 @@ export default function PropertyCard({
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </Tooltip>
+                    {facebookLink ? (
+                      <Tooltip content="Open Facebook link">
+                        <a
+                          href={facebookLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-blue-600 hover:bg-blue-100"
+                        >
+                          <Facebook className="w-4 h-4" />
+                        </a>
+                      </Tooltip>
+                    ) : null}
+                    <Tooltip content="Upload property images to Cloudinary">
+                      <label className="flex items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-600 hover:bg-emerald-100 cursor-pointer">
+                        <UploadCloud className="w-4 h-4" />
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={handlePropertyImageUpload} />
+                      </label>
+                    </Tooltip>
                     <FeaturedToggle
                       propertyId={property['property_id']}
                       isFeatured={!!property.featured}
@@ -289,9 +356,23 @@ export default function PropertyCard({
                     />
                   </>
                 ) : (
-                  <Link href={href} className="flex-1">
-                    <Button variant="default" size="sm" className="w-full">View Details</Button>
-                  </Link>
+                  <>
+                    <Link href={href} className="flex-1">
+                      <Button variant="default" size="sm" className="w-full">View Details</Button>
+                    </Link>
+                    {facebookLink ? (
+                      <Tooltip content="Open Facebook link">
+                        <a
+                          href={facebookLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-blue-600 hover:bg-blue-100"
+                        >
+                          <Facebook className="w-4 h-4" />
+                        </a>
+                      </Tooltip>
+                    ) : null}
+                  </>
                 )}
               </div>
             </div>
@@ -312,6 +393,9 @@ export default function PropertyCard({
             <div className="flex flex-col justify-between flex-1 p-4 min-w-0">
               <div>
                 <p className="text-base font-bold text-gray-900 mb-1">{formatPrice(price)}</p>
+                {description && (
+                  <p className="text-sm text-gray-500 mb-2 line-clamp-2">{description}</p>
+                )}
                 <div className="flex items-center gap-1 mb-2">
                   <MapPin className="w-3 h-3 flex-shrink-0 text-indigo-500" />
                   <p className="text-xs truncate text-gray-500">{locationText || '—'}</p>
@@ -335,6 +419,24 @@ export default function PropertyCard({
                     <Tooltip content="Delete property">
                       <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => onDelete!(property)}><Trash2 className="w-4 h-4" /></Button>
                     </Tooltip>
+                    {facebookLink ? (
+                      <Tooltip content="Open Facebook link">
+                        <a
+                          href={facebookLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-blue-600 hover:bg-blue-100"
+                        >
+                          <Facebook className="w-4 h-4" />
+                        </a>
+                      </Tooltip>
+                    ) : null}
+                    <Tooltip content="Upload property images to Cloudinary">
+                      <label className="flex items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-600 hover:bg-emerald-100 cursor-pointer">
+                        <UploadCloud className="w-4 h-4" />
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={handlePropertyImageUpload} />
+                      </label>
+                    </Tooltip>
                     <FeaturedToggle
                       propertyId={property['property_id']}
                       isFeatured={!!property.featured}
@@ -343,9 +445,23 @@ export default function PropertyCard({
                     />
                   </>
                 ) : (
-                  <Link href={href}>
-                    <Button variant="default" size="sm">View Details</Button>
-                  </Link>
+                  <>
+                    <Link href={href}>
+                      <Button variant="default" size="sm">View Details</Button>
+                    </Link>
+                    {facebookLink ? (
+                      <Tooltip content="Open Facebook link">
+                        <a
+                          href={facebookLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-blue-600 hover:bg-blue-100"
+                        >
+                          <Facebook className="w-4 h-4" />
+                        </a>
+                      </Tooltip>
+                    ) : null}
+                  </>
                 )}
               </div>
             </div>

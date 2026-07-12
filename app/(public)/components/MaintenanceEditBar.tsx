@@ -108,7 +108,6 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
     setSaving(true)
     try {
       const { getTenantScopedClient } = await import('@/lib/supabase/browserTenantClient')
-      const { supabase, listingsTable } = await getTenantScopedClient()
 
       const payload: Record<string, unknown> = {
         Type: type,
@@ -119,13 +118,6 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
       if (price.trim())     payload['Listing Price'] = parseFloat(price.replace(/,/g, '')) || null
       if (lotArea.trim())   payload['Lot Area sqm']  = parseFloat(lotArea) || null
       if (floorArea.trim()) payload['Floor Area sqm'] = parseFloat(floorArea) || null
-
-      const { error } = await supabase
-        .from(listingsTable)
-        .update(payload)
-        .eq('property_id', listing.property_id)
-
-      if (error) { alert('Save failed: ' + error.message); return }
 
       setSaved(true)
       onUpdated?.({

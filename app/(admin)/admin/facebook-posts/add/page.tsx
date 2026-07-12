@@ -106,10 +106,10 @@ export default function AddFacebookPostPage() {
       return
     }
 
-    if (!supabase) {
-      alert('Database connection not available')
-      return
-    }
+    // if (!supabase) {
+    //   alert('Database connection not available')
+    //   return
+    // }
 
     setSaving(true)
     try {

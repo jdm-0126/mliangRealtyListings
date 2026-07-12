@@ -5,6 +5,7 @@
   "scripts": {
     "db:migrate": "node database/appwrite/migrate.js",
     "db:seed": "node database/appwrite/seed.js",
+    "db:import-listings": "node database/appwrite/import_listings_csv.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

@@ -22,6 +22,15 @@ COLUMN_MAP = {
     "T&B":                "Bathroom",
     "Preview Photo":      "Preview_Photo",
     "Photos":             "Photos",
+    "Title":              "Title",
+    "Financing options":  "Financing_options",
+    "Financing_options":  "Financing_options",
+    "CGT":                "CGT",
+    "Transfer Title":     "Transfer_Title",
+    "Transfer_Title":     "Transfer_Title",
+    "FB_Link":            "FB_Link",
+    "Facebook Link":      "FB_Link",
+    "Facebook URL":       "FB_Link",
     "Notes":              "Notes",
     "Status":             "Status",
     "Map URL":            "Map_URL",
@@ -41,8 +50,9 @@ MODE_FIELD   = "Listing_Mode"
 OUT_COLS = [
     "property_id", "Type", "Location", "Village",
     "Listing_Price", "Lot_Area_sqm", "Floor_Area_sqm",
-    "Bedroom", "Bathroom", "Preview_Photo", "Photos",
-    "Notes", "Status", "Map_URL", "Video_URL",
+    "Bedroom", "Bathroom", "Preview_Photo", "Photos", "Title",
+    "Financing_options", "CGT", "Transfer_Title", "Description",
+    "FB_Link", "Notes", "Status", "Map_URL", "Video_URL",
     "Facebook_Video_URL", "featured", "Listing_Mode", "tenant_id",
 ]
 
@@ -95,9 +105,9 @@ def main(input_path, output_path):
                 elif dst == "Photos":
                     v = clean(val)
                     out[dst] = "" if v.startswith("data:") else v[:2000]
-                elif dst == "Notes":
+                elif dst in ("Notes", "Description"):
                     out[dst] = clean(val)[:5000]
-                elif dst in ("Map_URL", "Video_URL", "Facebook_Video_URL"):
+                elif dst in ("Map_URL", "Video_URL", "Facebook_Video_URL", "FB_Link"):
                     out[dst] = clean(val)[:2000]
                 else:
                     out[dst] = clean(val)

@@ -30,25 +30,7 @@ export default function AgentManagement({ brokerId }: { brokerId?: number }) {
   const [searchText, setSearchText] = useState('')
 
   const fetchAgents = async () => {
-    if (!supabase) return
-    setLoading(true)
-    
-    let query = supabase.from('agents').select('*')
 
-    if (brokerId != null && !Number.isNaN(Number(brokerId)) && Number(brokerId) > 0) {
-      const numericBrokerId = Number(brokerId)
-      query = query.or(`broker_id.is.null,broker_id.eq.${numericBrokerId}`)
-    }
-    
-    const { data, error } = await query.order('created_at', { ascending: false })
-    
-    if (error) {
-      console.error('Error fetching agents:', error)
-    } else {
-      setAgents(data || [])
-    }
-    setLoading(false)
-  }
 
   useEffect(() => {
     fetchAgents()
@@ -65,39 +47,6 @@ export default function AgentManagement({ brokerId }: { brokerId?: number }) {
   }
 
   const handleDelete = async (agent: Agent) => {
-    if (!supabase) return
-    
-    const confirmDelete = confirm(`Delete agent ${agent.name}? This action cannot be undone.`)
-    if (!confirmDelete) return
-    
-    const { error } = await supabase
-      .from('agents')
-      .delete()
-      .eq('id', agent.id)
-    
-    if (error) {
-      alert('Error deleting agent: ' + error.message)
-    } else {
-      alert('Agent deleted successfully!')
-      fetchAgents()
-    }
-  }
-
-  const handleStatusToggle = async (agent: Agent) => {
-    if (!supabase) return
-    
-    const newStatus = agent.status === 'Active' ? 'Inactive' : 'Active'
-    
-    const { error } = await supabase
-      .from('agents')
-      .update({ status: newStatus })
-      .eq('id', agent.id)
-    
-    if (error) {
-      alert('Error updating status: ' + error.message)
-    } else {
-      fetchAgents()
-    }
   }
 
   const filteredAgents = agents.filter(agent =>
@@ -186,7 +135,6 @@ export default function AgentManagement({ brokerId }: { brokerId?: number }) {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => handleStatusToggle(agent)}
                   className="flex-1"
                 >
                   {agent.status === 'Active' ? (
@@ -224,4 +172,5 @@ export default function AgentManagement({ brokerId }: { brokerId?: number }) {
       )}
     </div>
   )
+}
 }

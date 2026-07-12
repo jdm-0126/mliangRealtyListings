@@ -71,13 +71,22 @@ function ListingPickerModal({
       try {
         const queries = [Query.orderDesc('property_id'), Query.limit(500)]
         const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, queries)
-        const filtered = (res.documents as Record<string, unknown>[])
+        const filtered: Listing[] = (res.documents as Record<string, unknown>[])
           .filter((d: Record<string, unknown>) => matchesLocationSearch(d, search))
-          .map((d: Record<string, unknown>) => ({
-            id: d['property_id'],
-            location: d['Location'] ?? '',
-            title: d['Title'] ?? '',
-          }))
+          .map((d: Record<string, unknown>) => {
+            const rawId = d['property_id']
+            const id = typeof rawId === 'number'
+              ? rawId
+              : typeof rawId === 'string' && rawId.trim() !== ''
+                ? Number(rawId)
+                : 0
+
+            return {
+              id: Number.isFinite(id) ? id : 0,
+              location: String(d['Location'] ?? ''),
+              title: String(d['Title'] ?? ''),
+            }
+          })
         setListings(filtered)
       } finally {
         setLoading(false)
