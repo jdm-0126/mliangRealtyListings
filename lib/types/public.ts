@@ -3,6 +3,7 @@
 export interface PublicListing {
   id?: number           // alias used by tests and some components
   property_id?: number  // Appwrite document field
+  $id?: string          // Appwrite document $id — needed for updates
   displayId: number          // id > 2 ? id - 1 : id
   type: string
   location: string

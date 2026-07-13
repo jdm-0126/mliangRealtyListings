@@ -107,17 +107,25 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const { getTenantScopedClient } = await import('@/lib/supabase/browserTenantClient')
+      const { databases, DATABASE_ID } = await import('@/lib/appwrite/client')
+      const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 
-      const payload: Record<string, unknown> = {
-        Type: type,
-        Notes: notes,
-        'Preview Photo': photo || null,
-        'Map URL': mapUrl || null,
+      // Build only the fields that have values
+      const patch: Record<string, unknown> = { Type: type }
+      if (notes.trim())     patch['Notes']         = notes.trim()
+      if (photo.trim())     patch['Preview_Photo'] = photo.trim()
+      else                  patch['Preview_Photo'] = null
+      if (mapUrl.trim())    patch['Map_URL']        = mapUrl.trim()
+      else                  patch['Map_URL']        = null
+      if (price.trim())     patch['Listing_Price']  = parseFloat(price.replace(/,/g, '')) || null
+      if (lotArea.trim())   patch['Lot_Area_sqm']   = parseFloat(lotArea) || null
+      if (floorArea.trim()) patch['Floor_Area_sqm'] = parseFloat(floorArea) || null
+
+      // listing.$id is the Appwrite document ID
+      const docId = (listing as unknown as Record<string, unknown>)['$id'] as string
+      if (docId) {
+        await databases.updateDocument(DATABASE_ID, COL, docId, patch)
       }
-      if (price.trim())     payload['Listing Price'] = parseFloat(price.replace(/,/g, '')) || null
-      if (lotArea.trim())   payload['Lot Area sqm']  = parseFloat(lotArea) || null
-      if (floorArea.trim()) payload['Floor Area sqm'] = parseFloat(floorArea) || null
 
       setSaved(true)
       onUpdated?.({
@@ -130,6 +138,8 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
         mapUrl: mapUrl || null,
       })
       setTimeout(() => { setOpen(false); setSaved(false) }, 800)
+    } catch (err) {
+      alert('Save failed: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }

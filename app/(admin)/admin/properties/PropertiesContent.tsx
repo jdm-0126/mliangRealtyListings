@@ -44,11 +44,14 @@ export default function PropertiesContent() {
   const deferredSearch = useDeferredValue(searchText)
   const [statusFilter, setStatusFilter] = useState('active')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [locationFilter, setLocationFilter] = useState<string>('')
+  const [priceFilter, setPriceFilter] = useState<string>('')
   const [sortBy, setSortBy] = useState('newest')
   const [featuredFilter, setFeaturedFilter] = useState(false)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1)
+  const [sizeFilter, setSizeFilter] = useState<string>('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   const [showEditControls, setShowEditControls] = useState(false)
@@ -58,13 +61,17 @@ export default function PropertiesContent() {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const [showDuplicates, setShowDuplicates] = useState(false)
   const optionsMenuRef = useRef<HTMLDivElement>(null)
-
+  const [pageSize, setPageSize] = useState(48)
+  const [filteredData, setFilteredData] = useState<any[]>([])
   // ── Init from URL params ──────────────────────────────────────────────────
   useEffect(() => {
     const type = searchParams.get('type')
     const status = searchParams.get('status')
     const featured = searchParams.get('featured')
     const location = searchParams.get('location')
+    const price = searchParams.get('price')
+    const sortByParam = searchParams.get('sort')
+    const size = searchParams.get('size')
 
     if (type) {
       if (type.toLowerCase().includes('house')) setTypeFilter('residential')
@@ -74,8 +81,21 @@ export default function PropertiesContent() {
     if (status) setStatusFilter(status.toLowerCase())
     if (featured === 'true') { setFeaturedFilter(true); setStatusFilter('all') }
     if (location) setSearchText(location)
+    if (price) {
+      setPriceFilter(price)
+    }
+
+    if (size) {
+      setSizeFilter(size)
+    }
+
+    if (location) {
+      setLocationFilter(location)
+      setSearchText(location)
+    }
   }, [searchParams])
 
+    
   useEffect(() => {
     try {
       const role = sessionStorage.getItem('viewAsRole') ?? ''
@@ -121,18 +141,22 @@ export default function PropertiesContent() {
   useEffect(() => { fetchData() }, [fetchData])
 
   // Reset to page 1 when filters change (but not on page change itself)
-  const prevFilters = useRef({ statusFilter, featuredFilter, deferredSearch })
+  const prevFilters = useRef({ statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy })
   useEffect(() => {
     const prev = prevFilters.current
     if (
       prev.statusFilter !== statusFilter ||
       prev.featuredFilter !== featuredFilter ||
-      prev.deferredSearch !== deferredSearch
+      prev.deferredSearch !== deferredSearch  ||
+      prev.locationFilter !== locationFilter ||
+      prev.priceFilter !== priceFilter ||
+      prev.sizeFilter !== sizeFilter ||
+      prev.sortBy !== sortBy
     ) {
       setCurrentPage(1)
-      prevFilters.current = { statusFilter, featuredFilter, deferredSearch }
+      prevFilters.current = { statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy }
     }
-  }, [statusFilter, featuredFilter, deferredSearch])
+  }, [statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy])
 
   // ── Client-side type sort (within the fetched page) ───────────────────────
   const displayData = React.useMemo(() => {
@@ -203,23 +227,23 @@ export default function PropertiesContent() {
             <div className="flex gap-2">
               <Tooltip content="Quick add property via paste">
                 <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowQuickAdd(true)}>
-                  <Plus className="w-4 h-4 mr-1" /> Add
-                </Button>
-              </Tooltip>
-              <Tooltip content="Detect duplicate listings">
-                <Button size="sm" variant="outline" className="border-amber-400 text-amber-600 hover:bg-amber-50" onClick={() => setShowDuplicates(true)}>
-                  <AlertTriangle className="w-4 h-4 mr-1" /> Duplicates
-                </Button>
-              </Tooltip>
-              <Tooltip content={showFilters ? 'Hide filters' : 'Show filters'}>
-                <Button variant={showFilters ? 'default' : 'outline'} size="sm" onClick={() => setShowFilters(v => !v)}>
-                  <Filter className="w-4 h-4" />
+                  <Plus className="w-4 h-4 mr-1" />
                 </Button>
               </Tooltip>
               <Tooltip content="Enable edit/delete buttons">
                 <Button variant={showEditControls ? 'default' : 'outline'} size="sm" onClick={handleEditToggle}>
                   <Settings2 className="w-4 h-4 mr-1" />
-                  {showEditControls ? 'Editing On' : 'Edit'}
+                  {showEditControls ? 'Editing' : ''}
+                </Button>
+              </Tooltip>
+              {/* <Tooltip content="Detect duplicate listings">
+                <Button variant="outline" size="sm" className="border-amber-400 text-amber-600 hover:bg-amber-50" onClick={() => setShowDuplicates(true)}>
+                  <AlertTriangle className="w-4 h-4 mr-1" /> {showEditControls ? '' : ''}
+                </Button>
+              </Tooltip> */}
+              <Tooltip content={showFilters ? 'Hide filters' : 'Show filters'}>
+                <Button variant={showFilters ? 'default' : 'outline'} size="sm" onClick={() => setShowFilters(v => !v)}>
+                  <Filter className="w-4 h-4" />
                 </Button>
               </Tooltip>
               <div className="relative" ref={optionsMenuRef}>
@@ -240,7 +264,12 @@ export default function PropertiesContent() {
                         {mode === 'grid' ? 'Grid View' : 'List View'}
                       </button>
                     ))}
+                    <div>
+                    <button className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 `}  onClick={() => setShowDuplicates(true)}>
+                      <AlertTriangle className="w-4 h-4 mr-1" /> {showEditControls ? 'Scan' : 'Duplicate'}
+                    </button>
                   </div>
+                </div>
                 )}
               </div>
             </div>
@@ -264,7 +293,7 @@ export default function PropertiesContent() {
 
             {showFilters && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                <div>
+                {/* <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Status</label>
                   <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-black">
                     <option value="all">All</option>
@@ -272,7 +301,7 @@ export default function PropertiesContent() {
                     <option value="draft">Draft</option>
                     <option value="sold">Sold</option>
                   </select>
-                </div>
+                </div> */}
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Type</label>
                   <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-black">
@@ -282,8 +311,26 @@ export default function PropertiesContent() {
                     <option value="commercial">Commercial</option>
                   </select>
                 </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Location</label>
+                    <Input
+                      placeholder="e.g. San Fernando, Clark"
+                      value={locationFilter}
+                      onChange={(e) => setLocationFilter(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Price Range</label>
+                    <Input
+                      placeholder="e.g. 2M to 5M, Under 3M"
+                      value={priceFilter}
+                      onChange={(e) => setPriceFilter(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Sort</label>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Sort By</label>
                   <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-black">
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
@@ -293,7 +340,15 @@ export default function PropertiesContent() {
                 </div>
                 <div className="flex items-end">
                   <button
-                    onClick={() => { setStatusFilter('active'); setTypeFilter('all'); setFeaturedFilter(false); setSortBy('newest'); setSearchText('') }}
+                    onClick={() => {
+                      setStatusFilter('active'); 
+                      setTypeFilter('all'); 
+                      setFeaturedFilter(false); 
+                      setLocationFilter('')
+                      setPriceFilter(''); 
+                      setSortBy('newest');
+                      setSearchText('')
+                    }}
                     className="text-xs text-red-500 hover:text-red-700 underline"
                   >
                     Clear filters
@@ -303,7 +358,26 @@ export default function PropertiesContent() {
             )}
 
             <div className="flex items-center justify-between text-sm text-gray-500">
-              <span>{loading ? '…' : `${totalCount} total`}</span>
+              {/* <span>{loading ? '…' : `${totalCount} total`}</span> */}
+              {/* <div className="text-sm" style={{ color: '#4b5563' }}> */}
+                  {/* {loading ? 'Loading…' : `Showing ${start}–${end} of ${totalCount} properties`} */}
+              
+              {/* <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Per page:</label>
+                  <select
+                    value={pageSize}
+                    onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1) }}
+                    className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                    style={{ color: '#000000' }}
+                  >
+                    <option value={12}>12</option>
+                    <option value={24}>24</option>
+                    <option value={48}>48</option>
+                    <option value={96}>96</option>
+                    <option value={99999}>All</option>
+                  </select>
+                </div>
+              </div> */}
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={featuredFilter} onChange={e => setFeaturedFilter(e.target.checked)} />
                 Featured only
@@ -335,7 +409,7 @@ export default function PropertiesContent() {
                   onEdit={showEditControls ? setEditingProperty : undefined}
                   onDelete={showEditControls ? handleDelete : undefined}
                   onFeaturedChange={fetchData}
-                  canFeature={canFeature}
+                  canFeature={showEditControls ? canFeature : false}
                 />
               ))
           }
