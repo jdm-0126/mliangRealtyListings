@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { Star } from 'lucide-react'
 import { databases, DATABASE_ID } from '@/lib/appwrite/client'
 import { Query } from 'appwrite'
-
-const MAX_FEATURED = 6
+import { Button } from './ui/button'
+const MAX_FEATURED = 9
 const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 
 interface FeaturedToggleProps {
@@ -23,14 +23,24 @@ export default function FeaturedToggle({ propertyId, isFeatured, canToggle, onTo
 
   if (!canToggle) {
     return featured ? (
-      <span
+      <Button onClick={handleToggle} variant="outline" size="sm"
         title="Featured on homepage"
         className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs text-yellow-600 bg-yellow-50 border border-yellow-200"
       >
         <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
         Featured
-      </span>
-    ) : null
+      </Button>
+    ) : (
+    <Button
+      onClick={handleToggle} size="sm"
+      title="Replace current featured listing"
+      variant="outline"
+      className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs"
+    >
+      <Star className="w-3.5 h-3.5" />
+      Featured
+    </Button>
+  );
   }
 
   async function handleToggle() {
