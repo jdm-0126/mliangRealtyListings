@@ -49,6 +49,42 @@ export const STATUS_OPTIONS = [
   'draft',
 ] as const
 
+const floatFields = [
+  "Listing_Price",
+  "Lot Area sqm",
+  "Floor Area sqm",
+  // "Latitude",
+  // "Longitude",
+  // "HOA_Fee",
+  // "Reservation_Fee",
+  // "Downpayment",
+  // "Monthly_Amortization",
+  // "Monthly_Income_Required",
+]
+
+const intFields = [
+  "property_id",
+  "Bedroom",
+  "T&B",
+  "Garage",
+]
+
+// floatFields.forEach(field => {
+//   if (clean[field] !== undefined && clean[field] !== "") {
+//     clean[field] = parseFloat(
+//       String(clean[field]).replace(/[₱,\s]/g, "")
+//     )
+//   }
+// })
+
+// intFields.forEach(field => {
+//   if (clean[field] !== undefined && clean[field] !== "") {
+//     clean[field] = Number(clean[field])
+//   }
+// })
+
+
+
 export const VIEW_MODES = ['grid', 'list'] as const
 
 export type PropertyType = typeof PROPERTY_TYPES[number]
