@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import Image from 'next/image'
 import { databases, DATABASE_ID } from '@/lib/appwrite/client'
 import { Query } from 'appwrite'
-
+import { SortKey, SORT_OPTIONS } from '../../../lib/shared/sorting'
 const COL_GALLERY = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!
 import { X, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react'
 
@@ -17,16 +17,6 @@ interface GalleryItem {
   is_featured: boolean
   created_at: string
 }
-
-type SortKey = 'newest' | 'title_asc' | 'title_desc' | 'description_asc' | 'description_desc'
-
-const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: 'newest',           label: 'Newest first' },
-  { value: 'title_asc',        label: 'Project name A–Z' },
-  { value: 'title_desc',       label: 'Project name Z–A' },
-  { value: 'description_asc',  label: 'Location A–Z' },
-  { value: 'description_desc', label: 'Location Z–A' },
-]
 
 function sortItems(items: GalleryItem[], key: SortKey): GalleryItem[] {
   return [...items].sort((a, b) => {
@@ -161,9 +151,29 @@ export default function GalleryPage() {
   }, [])
 
   // General: all items; Events/Property: featured only
-  const general    = useMemo(() => sortItems(allItems.filter(i => i.category === 'general'), sort), [allItems, sort])
-  const events     = useMemo(() => sortItems(allItems.filter(i => i.category === 'event' && i.is_featured), sort), [allItems, sort])
-  const properties = useMemo(() => sortItems(allItems.filter(i => i.category === 'property' && i.is_featured), sort), [allItems, sort])
+ const general = useMemo(
+  () => sortItems(
+    allItems.filter(i => i.category === "general"),
+    sort
+  ),
+  [allItems, sort]
+)
+
+const events = useMemo(
+  () => sortItems(
+    allItems.filter(i => i.category === "event"),
+    sort
+  ),
+  [allItems, sort]
+)
+
+const properties = useMemo(
+  () => sortItems(
+    allItems.filter(i => i.category === "property"),
+    sort
+  ),
+  [allItems, sort]
+)
 
   const openLightbox = (items: GalleryItem[], idx: number) => {
     setLightboxItems(items)

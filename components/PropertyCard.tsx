@@ -82,7 +82,7 @@ export default function PropertyCard({
   const displayType = formatListingType(type)
   const listingModeLabel = listingMode?.toLowerCase().includes('rent') ? 'For Rent'
     : listingMode?.toLowerCase().includes('sale') ? 'For Sale'
-    : null
+      : null
 
   const FALLBACK_IMG = 'https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png'
 
@@ -126,6 +126,107 @@ export default function PropertyCard({
     reader.readAsDataURL(file)
   }
 
+  const handlePropertyImageUpload = async (
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  const files = Array.from(e.target.files ?? []).filter(file =>
+    file.type.startsWith("image/")
+  );
+
+  if (!files.length) return;
+
+  setIsUploadingPropertyImages(true);
+  setUploadProgress(0);
+
+  try {
+    const tenantId =
+      process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ??
+      "81b78be3-db0c-41f3-8f6f-e3989114eacf";
+
+    const propertyId = rawId || property["property_id"];
+    const folder = buildPropertyUploadFolder(propertyId);
+
+    // Upload to Cloudinary
+    const uploads = await uploadManyToCloudinary(
+      files,
+      folder,
+      (done, total) => {
+        setUploadProgress(Math.round((done / total) * 100));
+      }
+    );
+
+    const uploadedUrls = uploads.map(upload =>
+      buildSharpenedCloudinaryUrl(upload.secure_url)
+    );
+
+    // Create gallery records
+    await Promise.all(
+      uploads.map(upload =>
+        databases.createDocument(
+          DATABASE_ID,
+          process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!,
+          "unique()",
+          buildPropertyGalleryRecord({
+            tenantId,
+            propertyId,
+            title:
+              property["Title"] ??
+              property["Location"] ??
+              `Property ${propertyId}`,
+            secureUrl: upload.secure_url,
+            publicId: upload.public_id,
+            category: "property",
+            isFeatured: false,
+          })
+        )
+      )
+    );
+
+    // Merge with existing photos
+    const existingPhotos = Array.isArray(property["Photos"])
+      ? property["Photos"]
+      : [];
+
+    const photos = [...existingPhotos, ...uploadedUrls];
+
+    const previewPhoto =
+      property["Preview_Photo"] || uploadedUrls[0];
+
+    // Update listing
+    await databases.updateDocument(
+      DATABASE_ID,
+      COL_LISTINGS,
+      property.$id,
+      {
+        Photos: photos,
+        Preview_Photo: previewPhoto,
+      }
+    );
+
+    // Update local object so the UI changes immediately
+    property["Photos"] = photos;
+    property["Preview_Photo"] = previewPhoto;
+
+    setImageLoaded(false);
+
+    alert(
+      `Successfully uploaded ${uploads.length} image${
+        uploads.length > 1 ? "s" : ""
+      }.`
+    );
+  } catch (err: any) {
+    console.error(err);
+    alert(
+      "Error uploading images: " +
+        (err?.message ?? "Unknown error")
+    );
+  } finally {
+    setIsUploadingPropertyImages(false);
+    setUploadProgress(0);
+    e.target.value = "";
+  }
+};
+
   const handlePhotoUpdate = async () => {
     if (!newPhotoUrl.trim()) return
     try {
@@ -137,51 +238,12 @@ export default function PropertyCard({
       alert('Error updating photo: ' + e.message)
     }
   }
+  // Keep the local object in sync
 
-  const handlePropertyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []).filter(file => file.type.startsWith('image/'))
-    if (!files.length) return
-
-    setIsUploadingPropertyImages(true)
-    setUploadProgress(0)
-
-    try {
-      const tenantId = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ?? '81b78be3-db0c-41f3-8f6f-e3989114eacf'
-      const folder = buildPropertyUploadFolder(rawId || property['property_id'])
-      const results = await uploadManyToCloudinary(files, folder, (done, total) => setUploadProgress(Math.round((done / total) * 100)))
-
-      await Promise.all(results.map(result =>
-        databases.createDocument(DATABASE_ID, process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!, String(Date.now()) + Math.random().toString(36).slice(2), buildPropertyGalleryRecord({
-          tenantId,
-          propertyId: rawId || property['property_id'],
-          title: property['Title'] || property['Location'] || `Property ${rawId || property['property_id']}`,
-          secureUrl: result.secure_url,
-          publicId: result.public_id,
-          category: 'property',
-          isFeatured: false,
-        }))
-      ))
-
-      const firstPreviewUrl = buildSharpenedCloudinaryUrl(results[0]?.secure_url ?? '')
-      if (firstPreviewUrl) {
-        setNewPhotoUrl(firstPreviewUrl)
-        setIsEditingPhoto(true)
-      }
-
-      alert(`Uploaded ${results.length} image${results.length === 1 ? '' : 's'} for this property.`)
-      setUploadProgress(100)
-    } catch (e: any) {
-      alert('Error uploading images: ' + (e?.message ?? String(e)))
-    } finally {
-      setIsUploadingPropertyImages(false)
-      setUploadProgress(0)
-      e.target.value = ''
-    }
-  }
 
   const statusVariant = status.toLowerCase() === 'active' ? 'success'
     : status.toLowerCase() === 'draft' ? 'warning'
-    : 'secondary'
+      : 'secondary'
 
   // ── Shared photo area ──────────────────────────────────────────────────────
   const PhotoArea = ({ height = 'h-52' }: { height?: string }) => (
@@ -379,7 +441,7 @@ export default function PropertyCard({
           </div>
 
         ) : (
-        /* ── LIST VIEW ──────────────────────────────────────────────────── */
+          /* ── LIST VIEW ──────────────────────────────────────────────────── */
           <div
             className="flex items-stretch gap-0 rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-lg"
             style={{ background: 'var(--est-card, #fff)', border: '1px solid var(--est-border, #e5e7eb)' }}

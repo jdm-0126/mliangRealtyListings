@@ -3,11 +3,11 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getServerClient, DATABASE_ID } from '@/lib/appwrite/server'
 import { Query } from 'node-appwrite'
-
+import { getPropertyGalleryUrls } from "@/lib/shared/gallery/getPropertyGallery";
 const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 import type { PublicListing } from '@/lib/types/public'
 import { buildRealEstateListingJsonLd, generateDetailTitle, buildCanonicalUrl } from '@/lib/seo/jsonld'
-import ImageGallery from '@/app/(public)/components/ImageGallery'
+import ImageGallery from '@/components/ImageGallery'
 import JsonLd from '@/app/(public)/components/JsonLd'
 import { MapPin, Maximize2, Home, BedDouble, Bath, Mail, ArrowLeft, Map } from 'lucide-react'
 
@@ -47,9 +47,15 @@ async function fetchListing(displayId: number): Promise<PublicListing | null> {
     const statusRaw = String(row['Status'] ?? '').toLowerCase()
     if (statusRaw !== 'active') return null
     const id = Number(row['property_id'])
-    const photos: string[] = []
+    const photos = await getPropertyGalleryUrls(id);
     const previewRaw = row['Preview_Photo']
-    if (typeof previewRaw === 'string' && previewRaw.trim()) photos.push(previewRaw.trim())
+    if (
+      typeof previewRaw === "string" &&
+      previewRaw.trim() &&
+      !photos.includes(previewRaw.trim())
+    ) {
+      photos.unshift(previewRaw.trim());
+    }
     const extraPhotos = Array.isArray(row['Photos']) ? row['Photos'] as string[] : []
     for (const p of extraPhotos) { if (p && !photos.includes(p)) photos.push(p) }
     return {
@@ -59,8 +65,10 @@ async function fetchListing(displayId: number): Promise<PublicListing | null> {
       price: parseNum(row['Listing_Price']),
       lotArea: parseNum(row['Lot_Area_sqm']),
       floorArea: parseNum(row['Floor_Area_sqm']),
+      notes: String(row["Notes"] ?? ""),
       bedrooms: parseNum(row['Bedroom']), bathrooms: parseNum(row['Bathroom']),
-      previewPhoto: photos[0] ?? null, photos, notes: String(row['Notes'] ?? ''),
+      previewPhoto: photos[0] ?? null, 
+      photos,
       status: String(row['Status'] ?? ''),
       mapUrl: typeof row['Map_URL'] === 'string' && row['Map_URL'].trim() ? row['Map_URL'].trim() : null,
       videoUrl: typeof row['Video_URL'] === 'string' && row['Video_URL'].trim() ? row['Video_URL'].trim() : null,
@@ -142,7 +150,7 @@ export default async function PropertyDetailPage({ params }: Props) {
   const address = addressParts.join(', ') || listing.location
   const contactHref = `/contact?property=${encodeURIComponent(address)}`
   const displayType = formatListingType(listing.type)
-
+ 
   return (
     <>
       <JsonLd data={buildRealEstateListingJsonLd(listing)} />
@@ -158,54 +166,6 @@ export default async function PropertyDetailPage({ params }: Props) {
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {/* Gallery */}
-          <div>
-            <ImageGallery photos={listing.photos} alt={`${listing.type} in ${listing.location}`} />
-
-            {/* Video */}
-            {(listing.videoUrl || listing.facebookVideoUrl || listing.tiktokVideoUrl) && (
-              <div className="mt-4">
-                <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--est-muted)' }}>
-                  Property Video
-                </h2>
-                {listing.videoUrl ? (
-                  <video
-                    controls
-                    className="w-full rounded-xl"
-                    style={{ border: '1px solid var(--est-border)' }}
-                  >
-                    <source src={listing.videoUrl} type="video/mp4" />
-                    Your browser does not support video playback.
-                  </video>
-                ) : listing.tiktokVideoUrl ? (
-                  <div className="flex justify-center">
-                    <blockquote
-                      className="tiktok-embed"
-                      cite={listing.tiktokVideoUrl}
-                      data-video-id={listing.tiktokVideoUrl.match(/video\/(\d+)/)?.[1] ?? ''}
-                      style={{ maxWidth: 605, minWidth: 325 }}
-                    >
-                      <section />
-                    </blockquote>
-                    {/* TikTok embed script — loaded once per page */}
-                    {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-                    <script async src="https://www.tiktok.com/embed.js" />
-                  </div>
-                ) : listing.facebookVideoUrl ? (
-                  <div className="relative w-full overflow-hidden rounded-xl" style={{ paddingBottom: '56.25%', border: '1px solid var(--est-border)' }}>
-                    <iframe
-                      src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(listing.facebookVideoUrl)}&show_text=false&autoplay=false`}
-                      className="absolute inset-0 w-full h-full"
-                      style={{ border: 'none' }}
-                      allowFullScreen
-                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                    />
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </div>
-
           {/* Details */}
           <div className="flex flex-col gap-5">
             {/* Type badge + id */}
@@ -256,7 +216,7 @@ export default async function PropertyDetailPage({ params }: Props) {
             {/* Notes */}
             {listing.notes && (
               <div>
-                <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--est-muted)' }}>
+                <h2 className="text-xs bold uppercase tracking-widest mb-3" style={{ color: 'var(--est-muted)' }}>
                   Description
                 </h2>
                 <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--est-subtle)' }}>
@@ -291,6 +251,53 @@ export default async function PropertyDetailPage({ params }: Props) {
                 Contact About This Property
               </Link>
             </div>
+          </div>
+          {/* Gallery */}
+          <div>
+            <ImageGallery photos={listing.photos} alt={`${listing.type} in ${listing.location}`}/>
+
+            {/* Video */}
+            {(listing.videoUrl || listing.facebookVideoUrl || listing.tiktokVideoUrl) && (
+              <div className="mt-4">
+                <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--est-muted)' }}>
+                  Property Video
+                </h2>
+                {listing.videoUrl ? (
+                  <video
+                    controls
+                    className="w-full rounded-xl"
+                    style={{ border: '1px solid var(--est-border)' }}
+                  >
+                    <source src={listing.videoUrl} type="video/mp4" />
+                    Your browser does not support video playback.
+                  </video>
+                ) : listing.tiktokVideoUrl ? (
+                  <div className="flex justify-center">
+                    <blockquote
+                      className="tiktok-embed"
+                      cite={listing.tiktokVideoUrl}
+                      data-video-id={listing.tiktokVideoUrl.match(/video\/(\d+)/)?.[1] ?? ''}
+                      style={{ maxWidth: 605, minWidth: 325 }}
+                    >
+                      <section />
+                    </blockquote>
+                    {/* TikTok embed script — loaded once per page */}
+                    {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+                    <script async src="https://www.tiktok.com/embed.js" />
+                  </div>
+                ) : listing.facebookVideoUrl ? (
+                  <div className="relative w-full overflow-hidden rounded-xl" style={{ paddingBottom: '56.25%', border: '1px solid var(--est-border)' }}>
+                    <iframe
+                      src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(listing.facebookVideoUrl)}&show_text=false&autoplay=false`}
+                      className="absolute inset-0 w-full h-full"
+                      style={{ border: 'none' }}
+                      allowFullScreen
+                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
       </main>

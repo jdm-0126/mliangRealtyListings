@@ -27,6 +27,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import DuplicateDetector from '@/components/DuplicateDetector'
+import { title } from 'process'
 
 const PAGE_SIZE = 24
 
@@ -44,6 +45,7 @@ export default function PropertiesContent() {
   const deferredSearch = useDeferredValue(searchText)
   const [statusFilter, setStatusFilter] = useState('active')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [titleFilter, setTitleFilter] = useState<string>('')
   const [locationFilter, setLocationFilter] = useState<string>('')
   const [priceFilter, setPriceFilter] = useState<string>('')
   const [sortBy, setSortBy] = useState('newest')
@@ -80,7 +82,9 @@ export default function PropertiesContent() {
     }
     if (status) setStatusFilter(status.toLowerCase())
     if (featured === 'true') { setFeaturedFilter(true); setStatusFilter('all') }
-    if (location) setSearchText(location)
+    // if (location) setSearchText(location)
+    if (location) setLocationFilter(location)
+    if (title) setTitleFilter(title)
     if (price) {
       setPriceFilter(price)
     }
@@ -90,12 +94,12 @@ export default function PropertiesContent() {
     }
 
     if (location) {
-      setLocationFilter(location)
+      // setLocationFilter(location)
       setSearchText(location)
     }
   }, [searchParams])
 
-    
+
   useEffect(() => {
     try {
       const role = sessionStorage.getItem('viewAsRole') ?? ''
@@ -119,9 +123,9 @@ export default function PropertiesContent() {
     setLoading(true)
     try {
       const queries: string[] = [
-        Query.orderDesc('property_id'),
-        Query.limit(PAGE_SIZE),
-        Query.offset((currentPage - 1) * PAGE_SIZE),
+        Query.orderAsc("Location"),
+        Query.limit(pageSize),
+        Query.offset((currentPage - 1) * pageSize),
       ]
       if (statusFilter !== 'all') queries.push(Query.equal('Status', statusFilter))
       if (featuredFilter) queries.push(Query.equal('featured', true))
@@ -136,37 +140,133 @@ export default function PropertiesContent() {
       console.error(e)
     }
     setLoading(false)
-  }, [currentPage, statusFilter, featuredFilter, deferredSearch]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentPage,
+    pageSize,
+    statusFilter,
+    featuredFilter,
+    deferredSearch,]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { fetchData() }, [fetchData])
 
   // Reset to page 1 when filters change (but not on page change itself)
-  const prevFilters = useRef({ statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy })
+  const prevFilters = useRef({ titleFilter, statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy })
   useEffect(() => {
     const prev = prevFilters.current
     if (
+      prev.titleFilter !== titleFilter ||
       prev.statusFilter !== statusFilter ||
       prev.featuredFilter !== featuredFilter ||
-      prev.deferredSearch !== deferredSearch  ||
+      prev.deferredSearch !== deferredSearch ||
       prev.locationFilter !== locationFilter ||
       prev.priceFilter !== priceFilter ||
       prev.sizeFilter !== sizeFilter ||
       prev.sortBy !== sortBy
     ) {
       setCurrentPage(1)
-      prevFilters.current = { statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy }
+      prevFilters.current = { titleFilter, statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy }
     }
-  }, [statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy])
+  }, [titleFilter, statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy])
 
+
+  function cleanString(value?: string | null) {
+    return (value ?? "").trim().toLowerCase()
+  }
+
+
+  function getLocation(row: any) {
+  return cleanString(
+    row.Location ||
+    row.Village ||
+    row.location ||
+    row.village ||
+    row.City ||
+    row.city ||
+    ""
+  )
+}
+
+function getLocationText(row: any) {
+  return cleanString(
+    [row.Village, row.Location]
+      .filter(Boolean)
+      .join(", ")
+  )
+}
+
+  function parsePrice(value: any) {
+    return Number(
+      String(value ?? "")
+        .replace(/[₱,\s]/g, "")
+    ) || 0
+  }
+
+  
   // ── Client-side type sort (within the fetched page) ───────────────────────
   const displayData = React.useMemo(() => {
     let rows = [...data]
+    const nonEmpty = rows.filter(r => r.Location?.trim());
+
+    console.log("With location:", nonEmpty.length);
+    console.table(nonEmpty.slice(0, 20));
+
     if (typeFilter !== 'all') {
       rows = rows.filter(r => (r.Type as string || '').toLowerCase() === typeFilter.toLowerCase())
     }
-    if (sortBy === 'price-high') rows.sort((a, b) => Number(b.Listing_Price || 0) - Number(a.Listing_Price || 0))
-    else if (sortBy === 'price-low') rows.sort((a, b) => Number(a.Listing_Price || 0) - Number(b.Listing_Price || 0))
-    else if (sortBy === 'oldest') rows.sort((a, b) => Number(a.property_id) - Number(b.property_id))
+
+    let queries: string[] = [
+  Query.limit(pageSize),
+  Query.offset((currentPage - 1) * pageSize),
+];
+
+    switch (sortBy) {
+      case "price-high":
+        rows.sort(
+          (a, b) =>
+            parsePrice(b.Listing_Price) -
+            parsePrice(a.Listing_Price)
+        )
+        break
+
+      case "price-low":
+        rows.sort(
+          (a, b) =>
+            parsePrice(a.Listing_Price) -
+            parsePrice(b.Listing_Price)
+        )
+        break
+
+      case "oldest":
+        rows.sort(
+          (a, b) =>
+            Number(a.property_id) -
+            Number(b.property_id)
+        )
+        break
+
+      case "location_asc":
+  rows.sort((a, b) =>
+    getLocationText(a).localeCompare(getLocationText(b))
+  )
+  break
+
+case "location_desc":
+  rows.sort((a, b) =>
+    getLocationText(b).localeCompare(getLocationText(a))
+  )
+  break
+
+  case "title_asc":
+    queries.push(Query.orderAsc("Title"));
+    break;
+
+  case "title_desc":
+    queries.push(Query.orderDesc("Title"));
+    break;
+
+  default:
+    queries.push(Query.orderDesc("property_id"));
+
+    }
     return rows
   }, [data, typeFilter, sortBy])
 
@@ -208,8 +308,8 @@ export default function PropertiesContent() {
     </div>
   )
 
-  const start = (currentPage - 1) * PAGE_SIZE + 1
-  const end = Math.min(currentPage * PAGE_SIZE, totalCount)
+  const start = (currentPage - 1) * pageSize + 1
+  const end = Math.min(currentPage * pageSize, totalCount)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -265,11 +365,11 @@ export default function PropertiesContent() {
                       </button>
                     ))}
                     <div>
-                    <button className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 `}  onClick={() => setShowDuplicates(true)}>
-                      <AlertTriangle className="w-4 h-4 mr-1" /> {showEditControls ? 'Scan' : 'Duplicate'}
-                    </button>
+                      <button className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 `} onClick={() => setShowDuplicates(true)}>
+                        <AlertTriangle className="w-4 h-4 mr-1" /> {showEditControls ? 'Scan' : 'Duplicate'}
+                      </button>
+                    </div>
                   </div>
-                </div>
                 )}
               </div>
             </div>
@@ -311,7 +411,7 @@ export default function PropertiesContent() {
                     <option value="commercial">Commercial</option>
                   </select>
                 </div>
-                <div className="flex flex-col gap-1">
+                {/* <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Location</label>
                     <Input
                       placeholder="e.g. San Fernando, Clark"
@@ -319,33 +419,45 @@ export default function PropertiesContent() {
                       onChange={(e) => setLocationFilter(e.target.value)}
                       className="w-full"
                     />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Price Range</label>
-                    <Input
-                      placeholder="e.g. 2M to 5M, Under 3M"
-                      value={priceFilter}
-                      onChange={(e) => setPriceFilter(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
+                  </div> */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Price Range</label>
+                  <Input
+                    placeholder="e.g. 2M to 5M, Under 3M"
+                    value={priceFilter}
+                    onChange={(e) => setPriceFilter(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Sort By</label>
-                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-black">
+                  <select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-black"
+                  >
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
-                    <option value="price-high">Price: High → Low</option>
-                    <option value="price-low">Price: Low → High</option>
+
+                    <option value="title_asc">Project Name A-Z</option>
+                    <option value="title_desc">Project Name Z-A</option>
+
+                    <option value="location_asc">Location A-Z</option>
+                    <option value="location_desc">Location Z-A</option>
+
+                    <option value="price-high">Price High → Low</option>
+                    <option value="price-low">Price Low → High</option>
                   </select>
                 </div>
                 <div className="flex items-end">
                   <button
                     onClick={() => {
-                      setStatusFilter('active'); 
-                      setTypeFilter('all'); 
-                      setFeaturedFilter(false); 
+                      setTitleFilter('title_asc');
+                      setStatusFilter('active');
+                      setTypeFilter('all');
+                      setFeaturedFilter(false);
                       setLocationFilter('')
-                      setPriceFilter(''); 
+                      setPriceFilter('');
                       setSortBy('newest');
                       setSearchText('')
                     }}
@@ -360,8 +472,8 @@ export default function PropertiesContent() {
             <div className="flex items-center justify-between text-sm text-gray-500">
               {/* <span>{loading ? '…' : `${totalCount} total`}</span> */}
               {/* <div className="text-sm" style={{ color: '#4b5563' }}> */}
-                  {/* {loading ? 'Loading…' : `Showing ${start}–${end} of ${totalCount} properties`} */}
-              
+              {/* {loading ? 'Loading…' : `Showing ${start}–${end} of ${totalCount} properties`} */}
+
               {/* <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500">Per page:</label>
                   <select
@@ -387,14 +499,14 @@ export default function PropertiesContent() {
         </Card>
 
         {/* ── Top pagination ────────────────────────────────────────────── */}
-        {totalCount > PAGE_SIZE && (
-          <Pagination currentPage={currentPage} totalItems={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} />
+        {totalCount > pageSize && (
+          <Pagination currentPage={currentPage} totalItems={totalCount} pageSize={pageSize} onPageChange={setCurrentPage} />
         )}
 
         {/* ── Property grid / list ──────────────────────────────────────── */}
         <div className={`mt-6 mb-6 ${viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'flex flex-col gap-4'}`}>
           {loading
-            ? Array.from({ length: PAGE_SIZE }).map((_, i) => <SkeletonCard key={i} />)
+            ? Array.from({ length: pageSize }).map((_, i) => <SkeletonCard key={i} />)
             : displayData.length === 0
               ? (
                 <div className="col-span-full py-20 text-center text-gray-400">
@@ -416,8 +528,8 @@ export default function PropertiesContent() {
         </div>
 
         {/* ── Bottom pagination ─────────────────────────────────────────── */}
-        {totalCount > PAGE_SIZE && (
-          <Pagination currentPage={currentPage} totalItems={totalCount} pageSize={PAGE_SIZE} onPageChange={p => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+        {totalCount > pageSize && (
+          <Pagination currentPage={currentPage} totalItems={totalCount} pageSize={pageSize} onPageChange={p => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
         )}
 
         {/* ── Dialogs ───────────────────────────────────────────────────── */}

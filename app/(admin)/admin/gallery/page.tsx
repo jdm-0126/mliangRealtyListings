@@ -293,12 +293,12 @@ export default function GalleryPage() {
   }
 
   // Helper: get Appwrite document $id from property_id
-  const getListingDocId = async (propertyId: number): Promise<string> => {
+  const getListingDocId = async (property_id: number): Promise<string> => {
     const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, [
-      Query.equal('property_id', propertyId),
+      Query.equal('property_id', property_id),
       Query.limit(1),
     ])
-    if (!res.documents.length) throw new Error(`Listing #${propertyId} not found`)
+    if (!res.documents.length) throw new Error(`Listing #${property_id} not found`)
     return res.documents[0].$id
   }
 
