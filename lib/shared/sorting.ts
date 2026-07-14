@@ -18,42 +18,35 @@ export const SORT_OPTIONS = [
   { value: "description_desc", label: "Location Z–A" },
 ];
 
-export const Sorters: Record<string, (a: any, b: any) => number> = {
-  newest: (a, b) => Number(b.property_id) - Number(a.property_id),
+export const Sorters = {
+  newest: (a: any,b:any) =>
+    b.property_id - a.property_id,
 
-  oldest: (a, b) => Number(a.property_id) - Number(b.property_id),
+  oldest: (a: any,b:any) =>
+    a.property_id - b.property_id,
 
-  location_asc: (a, b) =>
-    `${a.Village ?? ""}, ${a.Location ?? ""}`.localeCompare(
-      `${b.Village ?? ""}, ${b.Location ?? ""}`
-    ),
+  price_high: (a: any,b:any) =>
+    parsePrice(b.Listing_Price) -
+    parsePrice(a.Listing_Price),
 
-  location_desc: (a, b) =>
-    `${b.Village ?? ""}, ${b.Location ?? ""}`.localeCompare(
-      `${a.Village ?? ""}, ${a.Location ?? ""}`
-    ),
+  price_low: (a: any,b:any) =>
+    parsePrice(a.Listing_Price) -
+    parsePrice(b.Listing_Price),
 
-  "price-high": (a, b) =>
-    parsePrice(b.Listing_Price) - parsePrice(a.Listing_Price),
+  title_asc: (a: any,b:any) =>
+    cleanString(a.Title)
+      .localeCompare(cleanString(b.Title)),
 
-  "price-low": (a, b) =>
-    parsePrice(a.Listing_Price) - parsePrice(b.Listing_Price),
+  title_desc: (a: any,b:any) =>
+    cleanString(b.Title)
+      .localeCompare(cleanString(a.Title)),
 
+  location_asc: (a: any,b:any) =>
+    getLocationText(a)
+      .localeCompare(getLocationText(b)),
 
-  // title_asc: (a: any,b:any) =>
-  //   cleanString(a.Title)
-  //     .localeCompare(cleanString(b.Title)),
-
-  // title_desc: (a: any,b:any) =>
-  //   cleanString(b.Title)
-  //     .localeCompare(cleanString(a.Title)),
-
-  // location_asc: (a: any,b:any) =>
-  //   getLocationText(a)
-  //     .localeCompare(getLocationText(b)),
-
-  // location_desc: (a: any,b:any) =>
-  //   getLocationText(b)
-  //     .localeCompare(getLocationText(a))
+  location_desc: (a: any,b:any) =>
+    getLocationText(b)
+      .localeCompare(getLocationText(a))
 }
 
