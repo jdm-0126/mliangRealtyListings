@@ -11,6 +11,7 @@ interface ListingsClientWrapperProps {
   initialLocation?: string
   initialPrice?: string
   initialMode?: string
+  initialPage?: string
 }
 
 const PAGE_SIZE = 12
@@ -102,7 +103,14 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
 
   // useMemo — filter runs when deferred value settles (decouples typing from filter)
   // For initial URL params, use locationQuery directly so results show immediately.
-  const filteredListings = useMemo(() => {
+    const filteredListings = useMemo(() => {
+      console.log("Filtering...", {
+      currentPage,
+      typeFilter,
+      locationQuery,
+      priceRange,
+      modeFilter,
+    });
     // Use the non-deferred value for initial render (prop-driven), deferred for typing
     const locationToFilter = deferredLocation || locationQuery
     const normalizedQuery = locationToFilter.trim().toLowerCase()
@@ -127,7 +135,11 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
   const showPagination = filteredListings.length > PAGE_SIZE
   const hasActiveFilters = typeFilter !== 'All' || locationQuery.trim() !== '' || priceRange !== 'All' || modeFilter !== 'All'
 
-  function handleTypeFilter(v: TypeFilter) { setTypeFilter(v); setCurrentPage(1) }
+  function handleTypeFilter(v: TypeFilter) {
+  console.log("Type changed:", v);
+  setTypeFilter(v);
+  setCurrentPage(1);
+  }
   function handleLocationQuery(v: string) { setLocationQuery(v); setCurrentPage(1) }
   function handlePriceRange(v: PriceRange) { setPriceRange(v); setCurrentPage(1) }
   function handleModeFilter(v: ModeFilter) { setModeFilter(v); setCurrentPage(1) }
@@ -146,6 +158,14 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
     items.push(totalPages)
     return items
   }
+
+  useEffect(() => {
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(totalPages);
+  } else if (totalPages === 0 && currentPage !== 1) {
+    setCurrentPage(1);
+  }
+}, [currentPage, totalPages]);
 
   return (
     <div>
@@ -299,7 +319,7 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             {paginatedListings.map((listing, idx) => (
-              <ListingCard key={`${listing.id}-${idx}`} listing={listing} viewMode="grid" priority={idx === 0} />
+              <ListingCard key={`${listing.property_id}-${viewMode}`} listing={listing} viewMode="grid" priority={idx === 0} />
             ))}
           </div>
         ) : (
