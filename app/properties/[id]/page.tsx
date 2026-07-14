@@ -432,7 +432,7 @@ ${tenantSettings.officeAddress}`
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="p-8 text-center">
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Property Not Found</h2>
-          <Button onClick={() => router.push('/admin')}>
+          <Button onClick={() => router.push('/admin/properties')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
@@ -444,7 +444,7 @@ ${tenantSettings.officeAddress}`
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button variant="outline" onClick={() => router.push('/admin')} className="mb-4">
+        <Button variant="outline" onClick={() => router.push('/admin/properties')} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useDeferredValue, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useDeferredValue, useRef, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { databases, DATABASE_ID } from '@/lib/appwrite/client'
 import { Query } from 'appwrite'
@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import DuplicateDetector from '@/components/DuplicateDetector'
 import { title } from 'process'
-
+import { Sorters } from '../../../../lib/shared/sorting'
 const PAGE_SIZE = 24
 
 export default function PropertiesContent() {
@@ -37,7 +37,7 @@ export default function PropertiesContent() {
   // ── Data ──────────────────────────────────────────────────────────────────
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [totalCount, setTotalCount] = useState(0)
+  // const [totalCount, setTotalCount] = useState(0)
   const [columns, setColumns] = useState<string[]>([])
 
   // ── Filters ───────────────────────────────────────────────────────────────
@@ -53,7 +53,6 @@ export default function PropertiesContent() {
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1)
-  const [sizeFilter, setSizeFilter] = useState<string>('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   const [showEditControls, setShowEditControls] = useState(false)
@@ -64,7 +63,7 @@ export default function PropertiesContent() {
   const [showDuplicates, setShowDuplicates] = useState(false)
   const optionsMenuRef = useRef<HTMLDivElement>(null)
   const [pageSize, setPageSize] = useState(48)
-  const [filteredData, setFilteredData] = useState<any[]>([])
+
   // ── Init from URL params ──────────────────────────────────────────────────
   useEffect(() => {
     const type = searchParams.get('type')
@@ -82,19 +81,13 @@ export default function PropertiesContent() {
     }
     if (status) setStatusFilter(status.toLowerCase())
     if (featured === 'true') { setFeaturedFilter(true); setStatusFilter('all') }
-    // if (location) setSearchText(location)
-    if (location) setLocationFilter(location)
+    if (location) setSearchText(location)
     if (title) setTitleFilter(title)
     if (price) {
       setPriceFilter(price)
     }
 
-    if (size) {
-      setSizeFilter(size)
-    }
-
     if (location) {
-      // setLocationFilter(location)
       setSearchText(location)
     }
   }, [searchParams])
@@ -117,55 +110,119 @@ export default function PropertiesContent() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showOptionsMenu])
-
-  // ── Fetch — server-side pagination + filter ───────────────────────────────
+  
+    // ── Fetch — server-side pagination + filter ───────────────────────────────
   const fetchData = useCallback(async () => {
-    setLoading(true)
-    try {
-      const queries: string[] = [
-        Query.orderAsc("Location"),
-        Query.limit(pageSize),
-        Query.offset((currentPage - 1) * pageSize),
-      ]
-      if (statusFilter !== 'all') queries.push(Query.equal('Status', statusFilter))
-      if (featuredFilter) queries.push(Query.equal('featured', true))
+  setLoading(true)
 
-      const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, queries)
-      const rows = (res.documents as unknown as Record<string, unknown>[])
-        .filter(row => matchesLocationSearch(row, deferredSearch))
-      setData(rows)
-      setTotalCount(res.total)
-      if (rows.length && !columns.length) setColumns(Object.keys(rows[0]))
-    } catch (e) {
-      console.error(e)
+
+  try {
+    const allRows: any[] = []
+    let offset = 0
+    const batch = 500
+
+    while (true) {
+      const res = await databases.listDocuments(
+        DATABASE_ID,
+        COL_LISTINGS,
+        [
+          Query.limit(batch),
+          Query.offset(offset),
+          // Query.orderDesc("property_id"),
+        ]
+      )
+
+      allRows.push(...res.documents)
+
+      if (res.documents.length < batch) break
+
+      offset += batch
     }
-    setLoading(false)
-  }, [currentPage,
-    pageSize,
-    statusFilter,
-    featuredFilter,
-    deferredSearch,]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { fetchData() }, [fetchData])
+    setData(allRows)
+  
+
+    if (allRows.length) {
+      setColumns(Object.keys(allRows[0]))
+    }
+  } finally {
+    setLoading(false)
+  }
+}, [searchText,
+priceFilter,
+sortBy,
+typeFilter,
+featuredFilter,
+statusFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+
+useEffect(() => { fetchData() }, [fetchData])
+
+const filteredData = useMemo(() => {
+  let rows = [...data]
+
+  // search
+  if (deferredSearch) {
+    rows = rows.filter(r =>
+      matchesLocationSearch(r, deferredSearch)
+    )
+  }
+
+  // status
+  if (statusFilter !== "all") {
+    rows = rows.filter(
+      r => r.Status?.toLowerCase() === statusFilter
+    )
+  }
+
+  // featured
+  if (featuredFilter) {
+    rows = rows.filter(r => r.featured)
+  }
+
+  // type
+  if (typeFilter !== "all") {
+    rows = rows.filter(r =>
+      r.Type?.toLowerCase().includes(typeFilter)
+    )
+  }
+
+  // price
+
+  // rows = filterByPrice(rows, priceFilter)
+
+  // sorting
+
+  // rows.sort(getSorter(sortBy))
+
+  const sorters = { Sorters }
+
+  return rows
+
+}, [
+  data,
+  deferredSearch,
+  statusFilter,
+  featuredFilter,
+  typeFilter,
+  priceFilter,
+  sortBy,
+])
 
   // Reset to page 1 when filters change (but not on page change itself)
-  const prevFilters = useRef({ titleFilter, statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy })
+  const prevFilters = useRef({ titleFilter, statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sortBy })
   useEffect(() => {
     const prev = prevFilters.current
     if (
-      prev.titleFilter !== titleFilter ||
       prev.statusFilter !== statusFilter ||
       prev.featuredFilter !== featuredFilter ||
       prev.deferredSearch !== deferredSearch ||
-      prev.locationFilter !== locationFilter ||
       prev.priceFilter !== priceFilter ||
-      prev.sizeFilter !== sizeFilter ||
       prev.sortBy !== sortBy
     ) {
       setCurrentPage(1)
-      prevFilters.current = { titleFilter, statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy }
+      prevFilters.current = { titleFilter, statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sortBy }
     }
-  }, [titleFilter, statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sizeFilter, sortBy])
+  }, [titleFilter, statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sortBy])
 
 
   function cleanString(value?: string | null) {
@@ -202,73 +259,18 @@ function getLocationText(row: any) {
 
   
   // ── Client-side type sort (within the fetched page) ───────────────────────
-  const displayData = React.useMemo(() => {
-    let rows = [...data]
-    const nonEmpty = rows.filter(r => r.Location?.trim());
+  const displayData = useMemo(() => {
 
-    console.log("With location:", nonEmpty.length);
-    console.table(nonEmpty.slice(0, 20));
+    const start = (currentPage - 1) * pageSize
 
-    if (typeFilter !== 'all') {
-      rows = rows.filter(r => (r.Type as string || '').toLowerCase() === typeFilter.toLowerCase())
-    }
+    return filteredData.slice(
+        start,
+        start + pageSize
+    )
 
-    let queries: string[] = [
-  Query.limit(pageSize),
-  Query.offset((currentPage - 1) * pageSize),
-];
+}, [filteredData, currentPage, pageSize])
 
-    switch (sortBy) {
-      case "price-high":
-        rows.sort(
-          (a, b) =>
-            parsePrice(b.Listing_Price) -
-            parsePrice(a.Listing_Price)
-        )
-        break
-
-      case "price-low":
-        rows.sort(
-          (a, b) =>
-            parsePrice(a.Listing_Price) -
-            parsePrice(b.Listing_Price)
-        )
-        break
-
-      case "oldest":
-        rows.sort(
-          (a, b) =>
-            Number(a.property_id) -
-            Number(b.property_id)
-        )
-        break
-
-      case "location_asc":
-  rows.sort((a, b) =>
-    getLocationText(a).localeCompare(getLocationText(b))
-  )
-  break
-
-case "location_desc":
-  rows.sort((a, b) =>
-    getLocationText(b).localeCompare(getLocationText(a))
-  )
-  break
-
-  case "title_asc":
-    queries.push(Query.orderAsc("Title"));
-    break;
-
-  case "title_desc":
-    queries.push(Query.orderDesc("Title"));
-    break;
-
-  default:
-    queries.push(Query.orderDesc("property_id"));
-
-    }
-    return rows
-  }, [data, typeFilter, sortBy])
+const totalCount = filteredData.length
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleDelete = async (property: any) => {
@@ -422,12 +424,21 @@ case "location_desc":
                   </div> */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Price Range</label>
-                  <Input
+                  {/* <Input
                     placeholder="e.g. 2M to 5M, Under 3M"
                     value={priceFilter}
                     onChange={(e) => setPriceFilter(e.target.value)}
                     className="w-full"
                   />
+                   */}
+                   <select
+                    id="price-range"
+                    value={priceFilter}
+                    onChange={(e) => setPriceFilter(e.target.value)}
+                    className="w-full"
+                  >
+                    {PRICE_RANGE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Sort By</label>
@@ -439,8 +450,8 @@ case "location_desc":
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
 
-                    <option value="title_asc">Project Name A-Z</option>
-                    <option value="title_desc">Project Name Z-A</option>
+                    {/* <option value="title_asc">Project Name A-Z</option>
+                    <option value="title_desc">Project Name Z-A</option> */}
 
                     <option value="location_asc">Location A-Z</option>
                     <option value="location_desc">Location Z-A</option>

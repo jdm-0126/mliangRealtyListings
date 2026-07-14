@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: 'All Properties – M. Liang Realty',
   description:
     'Browse the complete list of house and lot, lot only, and commercial properties ' +
-    'for sale and rent in Pampanga. Filter by type, location, and price.',
+    'for sale and rent in Pampanga. Filter by type, location, village and price.',
 }
 
 interface Props {
@@ -44,7 +44,7 @@ export default async function AllListingsPage({ searchParams }: Props) {
       </Link>
 
       <div className="mb-10">
-        <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--est-purple)' }}>
+        <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--Eest-purple)' }}>
           All Listings
         </p>
         <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--est-text)' }}>

@@ -5,6 +5,12 @@ import { PublicListing } from '@/lib/types/public'
 import ListingCard from './ListingCard'
 import { SlidersHorizontal, X, LayoutList, LayoutGrid } from 'lucide-react'
 
+import {
+  DEFAULT_PAGE_SIZE,
+  PROPERTY_TYPES,
+  PRICE_RANGES,
+  STORAGE_KEYS,
+} from '@/lib/shared/constantz'
 interface ListingsClientWrapperProps {
   allListings: PublicListing[]
   initialType?: string
@@ -14,13 +20,14 @@ interface ListingsClientWrapperProps {
   initialPage?: string
 }
 
-const PAGE_SIZE = 12
 
-const TYPE_OPTIONS = ['All', 'House and Lot', 'Lot only', 'Commercial'] as const
-const PRICE_RANGE_OPTIONS = ['All', 'Under ₱2M', '₱2M–₱5M', '₱5M–₱10M', 'Above ₱10M'] as const
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
-const SETTINGS_KEY = 'tenantSettings'
-const VIEW_MODE_KEY = 'publicListingsViewMode'
+const TYPE_OPTIONS = PROPERTY_TYPES
+const PRICE_RANGE_OPTIONS = PRICE_RANGES
+
+const SETTINGS_KEY = STORAGE_KEYS.SETTINGS
+const VIEW_MODE_KEY = STORAGE_KEYS.PUBLIC_VIEW_MODE
 
 function normalizeListingType(type?: string | null): string {
   const value = (type ?? '').trim().toLowerCase()
@@ -81,6 +88,7 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
     TYPE_OPTIONS.includes(initialType as TypeFilter) ? (initialType as TypeFilter) : 'All'
   )
   const [locationQuery, setLocationQuery] = useState(initialLocation ?? '')
+  const [villageQuery, setVillageQuery] = useState(initialLocation ?? '')
   const deferredLocation = useDeferredValue(locationQuery)
   const [priceRange, setPriceRange] = useState<PriceRange>(
     PRICE_RANGE_OPTIONS.includes(initialPrice as PriceRange) ? (initialPrice as PriceRange) : 'All'
@@ -108,6 +116,7 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
       currentPage,
       typeFilter,
       locationQuery,
+      villageQuery,
       priceRange,
       modeFilter,
     });
@@ -128,12 +137,12 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
       if (modeFilter === 'For Rent' && !(listing.listingMode ?? '').toLowerCase().includes('rent')) return false
       return true
     })
-  }, [allListings, typeFilter, deferredLocation, locationQuery, priceRange, modeFilter])
+  }, [allListings, typeFilter, deferredLocation, locationQuery, villageQuery, priceRange, modeFilter])
 
   const paginatedListings = filteredListings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
   const totalPages = Math.ceil(filteredListings.length / PAGE_SIZE)
   const showPagination = filteredListings.length > PAGE_SIZE
-  const hasActiveFilters = typeFilter !== 'All' || locationQuery.trim() !== '' || priceRange !== 'All' || modeFilter !== 'All'
+  const hasActiveFilters = typeFilter !== 'All' || locationQuery.trim() !== '' || villageQuery.trim() !== '' || priceRange !== 'All' || modeFilter !== 'All'
 
   function handleTypeFilter(v: TypeFilter) {
   console.log("Type changed:", v);
@@ -141,6 +150,7 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
   setCurrentPage(1);
   }
   function handleLocationQuery(v: string) { setLocationQuery(v); setCurrentPage(1) }
+  function handleVillageQuery(v: string) { setVillageQuery(v); setCurrentPage(1) }
   function handlePriceRange(v: PriceRange) { setPriceRange(v); setCurrentPage(1) }
   function handleModeFilter(v: ModeFilter) { setModeFilter(v); setCurrentPage(1) }
   function clearFilters() { setTypeFilter('All'); setLocationQuery(''); setPriceRange('All'); setModeFilter('All'); setCurrentPage(1) }
@@ -248,6 +258,17 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
             placeholder="Search by location…"
             value={locationQuery}
             onChange={e => handleLocationQuery(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+        <div className="flex-[2] min-w-[200px]">
+          <label htmlFor="location-query" style={labelStyle}>Village</label>
+          <input
+            id="location-query"
+            type="text"
+            placeholder="Search by village…"
+            value={villageQuery}
+            onChange={e => handleVillageQuery(e.target.value)}
             style={inputStyle}
           />
         </div>

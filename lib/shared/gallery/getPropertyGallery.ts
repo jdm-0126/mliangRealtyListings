@@ -27,7 +27,7 @@ export async function getPropertyGallery(
       [
         Query.equal("listing_id", listingId),
         Query.orderAsc("$createdAt"),
-        Query.limit(500),
+        // Query.limit(500),
       ]
     );
 

@@ -79,7 +79,7 @@ async function fetchListings(_slim: boolean): Promise<PublicListing[]> {
   const db = getServerClient()
   const res = await db.listDocuments(DATABASE_ID, COL, [
   Query.orderDesc("property_id"),
-  Query.limit(800),
+  Query.limit(1000),
 ]);
 
 console.log("TOTAL:", res.total);
@@ -87,7 +87,7 @@ console.log("RETURNED:", res.documents.length);
   try {
     const res = await db.listDocuments(DATABASE_ID, COL, [
       Query.orderDesc('property_id'),
-      Query.limit(800),
+      Query.limit(1000),
     ])
     return res.documents.map(d => mapRow(d as unknown as Record<string, unknown>))
   } catch (e) {

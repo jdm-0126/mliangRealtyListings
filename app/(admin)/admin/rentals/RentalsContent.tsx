@@ -401,8 +401,8 @@ export default function RentalsContent() {
                 .slice((currentPage - 1) * pageSize, currentPage * pageSize)
                 .map(property => (
                   <PropertyCard
-                    // key={property['property_id']}
-                    key={property.uuid}
+                    key={property['property_id']}
+                    // key={property.uuid}
                     property={property}
                     viewMode={viewMode}
                     onEdit={showEditControls ? p => setEditingProperty(p) : undefined}

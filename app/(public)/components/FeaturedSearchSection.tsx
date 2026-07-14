@@ -53,6 +53,7 @@ const labelStyle: React.CSSProperties = {
 export default function FeaturedSearchSection({ featuredListings = [] }: FeaturedSearchSectionProps) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('All')
   const [locationQuery, setLocationQuery] = useState('')
+  const [villageQuery, setVillageQuery] = useState('')
   const [priceRange, setPriceRange] = useState<PriceRange>('All')
   const [modeFilter, setModeFilter] = useState<'All' | 'For Sale' | 'For Rent'>('All')
 
@@ -60,6 +61,7 @@ export default function FeaturedSearchSection({ featuredListings = [] }: Feature
     const params = new URLSearchParams()
     if (typeFilter !== 'All') params.set('type', typeFilter)
     if (locationQuery.trim()) params.set('location', locationQuery.trim())
+    if (villageQuery.trim()) params.set('village', villageQuery.trim())
     if (priceRange !== 'All') params.set('price', priceRange)
     if (modeFilter !== 'All') params.set('mode', modeFilter)
     const qs = params.toString()
@@ -102,6 +104,19 @@ export default function FeaturedSearchSection({ featuredListings = [] }: Feature
             placeholder="Search by location…"
             value={locationQuery}
             onChange={e => setLocationQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') window.location.href = buildSearchUrl() }}
+            style={inputStyle}
+          />
+        </div>
+        {/* Village */}
+        <div className="flex-[2] min-w-[200px]">
+          <label htmlFor="fs-location-query" style={labelStyle}>Village</label>
+          <input
+            id="fs-village-query"
+            type="text"
+            placeholder="Search by village…"
+            value={villageQuery}
+            onChange={e => setVillageQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') window.location.href = buildSearchUrl() }}
             style={inputStyle}
           />

@@ -132,7 +132,7 @@ export default function GalleryPage() {
       try {
         const res = await databases.listDocuments(DATABASE_ID, COL_GALLERY, [
           Query.orderDesc('$createdAt'),
-          Query.limit(200),
+          // Query.limit(200),
         ])
         setAllItems(res.documents.map(d => ({
           id: d.$id,
