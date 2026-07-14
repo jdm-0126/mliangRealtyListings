@@ -7,7 +7,7 @@
 import React from 'react'
 import Link from 'next/link'
 import type { PublicListing } from '@/lib/types/public'
-import ImageGallery from './ImageGallery'
+import ImageGallery from '../../../components/ImageGallery'
 
 // ---------------------------------------------------------------------------
 // Helpers (mirrored from the server page — kept pure so tests can import them)

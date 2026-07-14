@@ -28,12 +28,14 @@ import {
 } from 'lucide-react'
 import DuplicateDetector from '@/components/DuplicateDetector'
 import { title } from 'process'
-import { Sorters } from '../../../../lib/shared/sorting'
-const PAGE_SIZE = 24
+import { Sorters } from '@/lib/shared/sorting'
+
+import { PRICE_RANGES} from '@/lib/shared/constantz'
+import { DEFAULT_PAGE_SIZE } from '@/lib/shared/constantz'
 
 export default function PropertiesContent() {
   const searchParams = useSearchParams()
-
+  const PAGE_SIZE = DEFAULT_PAGE_SIZE
   // ── Data ──────────────────────────────────────────────────────────────────
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -127,8 +129,7 @@ export default function PropertiesContent() {
         COL_LISTINGS,
         [
           Query.limit(batch),
-          Query.offset(offset),
-          // Query.orderDesc("property_id"),
+          Query.offset(offset)
         ]
       )
 
@@ -186,6 +187,16 @@ const filteredData = useMemo(() => {
     )
   }
 
+// property_id
+const sorter = Sorters[sortBy]
+
+if (sorter) {
+  rows.sort(sorter)
+} else {
+  // fallback
+  rows.sort((a, b) => Number(b.property_id) - Number(a.property_id))
+}
+
   // price
 
   // rows = filterByPrice(rows, priceFilter)
@@ -194,7 +205,12 @@ const filteredData = useMemo(() => {
 
   // rows.sort(getSorter(sortBy))
 
-  const sorters = { Sorters }
+  rows.sort(
+  Sorters[sortBy] ??
+  ((a, b) => Number(b.property_id) - Number(a.property_id))
+)
+
+return rows
 
   return rows
 
@@ -309,10 +325,14 @@ const totalCount = filteredData.length
       </div>
     </div>
   )
-
+  const PRICE_RANGE_OPTIONS = PRICE_RANGES
+  type PriceRange = (typeof PRICE_RANGE_OPTIONS)[number]
+  let initialPrice = ""
   const start = (currentPage - 1) * pageSize + 1
   const end = Math.min(currentPage * pageSize, totalCount)
-
+  const [priceRange, setPriceRange] = useState<PriceRange>(
+      PRICE_RANGE_OPTIONS.includes(initialPrice as PriceRange) ? (initialPrice as PriceRange) : 'All'
+    )
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -435,7 +455,7 @@ const totalCount = filteredData.length
                     id="price-range"
                     value={priceFilter}
                     onChange={(e) => setPriceFilter(e.target.value)}
-                    className="w-full"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-black"
                   >
                     {PRICE_RANGE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
