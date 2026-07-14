@@ -6,7 +6,7 @@
     "db:migrate": "node database/appwrite/migrate.js",
     "db:seed": "node database/appwrite/seed.js",
     "db:import-listings": "node database/appwrite/import_listings_csv.js",
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

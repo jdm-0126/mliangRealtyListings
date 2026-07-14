@@ -107,6 +107,57 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
     setFormData((prev: any) => ({ ...prev, ...parsed }))
     setPasteData('')
   }
+  
+  function normalizePropertyPayload(payload: any) {
+  const clean = { ...payload }
+
+  const floatFields = [
+    "Listing_Price",
+  ]
+
+  const intFields = [
+    "property_id",
+    "Lot Area sqm",
+    "Floor Area sqm",
+    "Bedroom",
+    "Garage",
+    "T&B",
+  ]
+
+  floatFields.forEach(field => {
+    if (field in clean) {
+      clean[field] =
+        clean[field] === ""
+          ? null
+          : Number(
+              String(clean[field])
+                .replace(/[₱,\s]/g, "")
+            )
+    }
+  })
+
+  intFields.forEach(field => {
+    if (field in clean) {
+      clean[field] =
+        clean[field] === ""
+          ? null
+          : parseInt(clean[field], 10)
+    }
+  })
+  
+  return clean
+  }
+  const {
+  $id,
+  $collectionId,
+  $databaseId,
+  $createdAt,
+  $updatedAt,
+  $permissions,
+  ...clean
+} = formData
+
+const payload = normalizePropertyPayload(clean)
 
   const handleCreate = async () => {
     setLoading(true)
@@ -127,12 +178,18 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
     }
     setLoading(false)
   }
-
+  
   const handleUpdate = async () => {
+    
     setLoading(true)
     const { $id, $collectionId, $databaseId, $createdAt, $updatedAt, $permissions, ...clean } = formData
     try {
-      await databases.updateDocument(DATABASE_ID, COL, property['$id'], clean)
+      await databases.updateDocument(
+        DATABASE_ID,
+        COL,
+        property.$id,
+        payload
+      )
       alert('Record successfully updated!')
       onClose()
     } catch (err: any) {
@@ -473,7 +530,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
                     </select>
-                  ) : (key === 'MOP' || key === 'Financing options') ? (
+                  ) : (key === 'MOP' || key === 'Financing_options') ? (
                     <select
                       value={formData[key] || 'Bank Financing'}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
@@ -508,7 +565,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                         </label>
                       ))}
                     </div>
-                  ) : key === 'Lot Area sqm' || key === 'Floor Area sqm' ? (
+                  ) : key === 'Lot_Area_sqm' || key === 'Floor_Area_sqm' ? (
                     <div className="flex items-center space-x-2">
                       <Button
                         type="button"
@@ -556,7 +613,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
                       className="w-full p-3 border border-gray-300 rounded-md text-black resize-none"
                       placeholder={key === 'Description' ? "Enter property description..." : "Enter property details, features, and additional information..."}
                     />
-                  ) : key.toLowerCase().includes('price') ? (
+                  ) : key.toLowerCase().includes('Listing_Price') ? (
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
                       <Input
