@@ -34,9 +34,9 @@ export default function PublicFooter({ settings }: PublicFooterProps) {
             <SocialLinks />
             <div>
               <p className='mt-5'>Your support, much appreciated</p>
-              <a href='https://sgp.cloud.appwrite.io/v1/storage/buckets/6a56bc40003575bc257b/files/6a56d1310001992e517a/view?project=6a531d6800147ceec486&impersonateuserid=&mode=admin' >
+              <a href='https://res.cloudinary.com/https-www-uplift-management-com/image/upload/v1784077184/GotymQr_oulagu.jpg' >
               <img className='mt-2 w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-5' sizes="lg" 
-              alt="Developer's QR Code"src="https://sgp.cloud.appwrite.io/v1/storage/buckets/6a56bc40003575bc257b/files/6a56d1310001992e517a/view?project=6a531d6800147ceec486&impersonateuserid=&mode=admin" /></a>
+              alt="Developer's QR Code"src="https://res.cloudinary.com/https-www-uplift-management-com/image/upload/v1784077184/GotymQr_oulagu.jpg" /></a>
             </div>
           </div>
 
