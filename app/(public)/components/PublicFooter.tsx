@@ -32,6 +32,12 @@ export default function PublicFooter({ settings }: PublicFooterProps) {
               Your trusted partner for properties in Pampanga.
             </p>
             <SocialLinks />
+            <div>
+              <p className='mt-5'>Your support, much appreciated</p>
+              <a href='https://sgp.cloud.appwrite.io/v1/storage/buckets/6a56bc40003575bc257b/files/6a56d1310001992e517a/view?project=6a531d6800147ceec486&impersonateuserid=&mode=admin' >
+              <img className='mt-2 w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-5' sizes="lg" 
+              alt="Developer's QR Code"src="https://sgp.cloud.appwrite.io/v1/storage/buckets/6a56bc40003575bc257b/files/6a56d1310001992e517a/view?project=6a531d6800147ceec486&impersonateuserid=&mode=admin" /></a>
+            </div>
           </div>
 
           {/* Quick links */}
@@ -127,6 +133,7 @@ export default function PublicFooter({ settings }: PublicFooterProps) {
           >
             Admin
           </Link>
+          <p>Powered by RealtyPro</p>
         </div>
       </div>
     </footer>

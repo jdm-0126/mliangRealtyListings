@@ -37,6 +37,7 @@ function formatListingType(type?: string | null): string {
 async function fetchListing(displayId: number): Promise<PublicListing | null> {
   const db = getServerClient()
   const internalId = displayId >= 2 ? displayId + 1 : displayId
+  console.log("Looking for property", internalId)
   try {
     const res = await db.listDocuments(DATABASE_ID, COL, [
       Query.equal('property_id', internalId),
@@ -90,7 +91,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = generateDetailTitle(listing.type, listing.location)
   const rawNotes = listing.notes ?? ''
   const description = rawNotes.length > 157 ? rawNotes.slice(0, 157) + '...' : rawNotes || title
-  const canonicalUrl = buildCanonicalUrl('https://realtyprov1.com', `/listings/${listing.displayId}`)
+  const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  "https://realtyprov1.appwrite.network";
+  
+  const canonicalUrl = buildCanonicalUrl(
+  SITE_URL,
+  `/listings/${listing.displayId}`
+  );
+
   return {
     title, description,
     openGraph: { title, description, images: listing.previewPhoto ? [{ url: listing.previewPhoto }] : [], url: canonicalUrl, type: 'website' },

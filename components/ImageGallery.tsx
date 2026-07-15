@@ -81,10 +81,6 @@ export default function ImageGallery({
         {/* Main Image */}
         <div
           className="relative w-full aspect-video rounded-2xl overflow-hidden"
-          style={{
-            background: 'var(--est-elevated)',
-            border: '1px solid var(--est-border)',
-          }}
         >
           <Image
             src={photos[activeIndex]}

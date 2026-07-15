@@ -50,8 +50,9 @@ export default function PublicHeader({ businessName }: PublicHeaderProps) {
           {/* Logo */}
           <Link href="/listings" className="flex items-center gap-2 group">
             <span
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold"
-            >
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                style={{ background: 'var(--est-purple)' }}
+              >
               M
             </span>
             <span

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "realtyprov1- Property Management System",
   description: "Modern property listings management system for real estate professionals",
   icons: {
-    icon: "/realtyprov1.png",
+    icon: "/favicon.ico",
   },
 };
 
