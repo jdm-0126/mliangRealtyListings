@@ -79,7 +79,7 @@ graph TD
     PageContent --> |"/about"| AboutPage["AboutPage<br/>(broker info, social links)"]
     PageContent --> |"/contact"| ContactPage["ContactPage<br/>(InquiryForm → Supabase leads)"]
 
-    HomePage --> |"fetch active listings (limit 6)"| Supabase[(Supabase<br/>mlianglistings)]
+    HomePage --> |"fetch active listings (limit 6)"| Supabase[(Supabase<br/>listings)]
     ListingsPage --> |"fetch active listings"| Supabase
     DetailPage --> |"fetch by id"| Supabase
     ContactPage --> |"insert lead"| SupabaseLeads[(Supabase<br/>leads)]
@@ -296,7 +296,7 @@ interface JsonLdProps {
 
 ### Supabase Tables
 
-#### `mlianglistings` (existing — read-only from public site)
+#### `listings` (existing — read-only from public site)
 
 The existing table uses inconsistent column naming (spaces, mixed case). The public site reads via the existing Supabase client and normalises at the component level. Key columns accessed:
 
@@ -408,7 +408,7 @@ export interface SocialConfig {
   ├── getTenantSettingsServer()          ← reads TENANT_DEFAULTS (no localStorage on server)
   │                                        localStorage is client-only; SSR uses hardcoded defaults
   │
-  └── supabase.from('mlianglistings')
+  └── supabase.from('listings')
         .select('*')
         .ilike('Status', 'active')       ← case-insensitive match
         .order('property_id', { ascending: false })
@@ -421,7 +421,7 @@ export interface SocialConfig {
 ```
 (public)/listings/page.tsx  [Server Component — initial render]
   │
-  └── supabase.from('mlianglistings')
+  └── supabase.from('listings')
         .select('*')
         .ilike('Status', 'active')
         .order('property_id', { ascending: false })
@@ -445,7 +445,7 @@ ListingsClientWrapper  [Client Component]
   │
   ├── params.id → displayId (number)
   ├── internalId = displayId >= 2 ? displayId + 1 : displayId  (reverse of admin logic)
-  └── supabase.from('mlianglistings')
+  └── supabase.from('listings')
         .select('*')
         .eq('property_id', internalId)
         .single()
@@ -531,7 +531,7 @@ import type { MetadataRoute } from 'next'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: listings } = await supabase
-    .from('mlianglistings')
+    .from('listings')
     .select('property_id, updated_at')
     .ilike('Status', 'active')
 
@@ -757,7 +757,7 @@ export function useTenantSettings(): TenantSettings {
 
 ### Property 9: Property detail page renders all non-null fields for any listing
 
-*For any* listing record fetched from `mlianglistings`, the detail page SHALL display each field that is non-null/non-empty (type, location, price, lot area, floor area, bedrooms, bathrooms, notes, photos). Fields that are null or empty SHALL be omitted without causing a render error.
+*For any* listing record fetched from `listings`, the detail page SHALL display each field that is non-null/non-empty (type, location, price, lot area, floor area, bedrooms, bathrooms, notes, photos). Fields that are null or empty SHALL be omitted without causing a render error.
 
 **Validates: Requirements 4.3**
 
@@ -843,7 +843,7 @@ export function useTenantSettings(): TenantSettings {
 All Supabase reads on public pages use a consistent pattern:
 
 ```typescript
-const { data, error } = await supabase.from('mlianglistings')...
+const { data, error } = await supabase.from('listings')...
 
 if (error) {
   // Log server-side (never expose error details to browser)
@@ -964,7 +964,7 @@ Key property tests and their targets:
 
 ### Integration / Smoke Tests
 
-- Smoke: Verify Supabase connection reaches `mlianglistings` table (1 query)
+- Smoke: Verify Supabase connection reaches `listings` table (1 query)
 - Smoke: Verify `leads` table exists and allows anon insert
 - Integration: Submit InquiryForm end-to-end with test data, verify row in leads table, then delete
 

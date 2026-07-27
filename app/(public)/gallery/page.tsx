@@ -2,21 +2,12 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Image from 'next/image'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
+import { GalleryItem } from "@/lib/shared/types/public"
+import { TABLES } from "@/lib/supabase/tables";
 import { SortKey, SORT_OPTIONS } from '../../../lib/shared/sorting'
-const COL_GALLERY = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!
 import { X, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { supabase } from "@/lib/supabase/client"
 
-interface GalleryItem {
-  id: string
-  title: string | null
-  description: string | null
-  category: 'property' | 'event' | 'general'
-  cloudinary_secure_url: string
-  is_featured: boolean
-  created_at: string
-}
 
 function sortItems(items: GalleryItem[], key: SortKey): GalleryItem[] {
   return [...items].sort((a, b) => {
@@ -128,36 +119,26 @@ export default function GalleryPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
   useEffect(() => {
-    const run = async () => {
-      try {
-        const res = await databases.listDocuments(DATABASE_ID, COL_GALLERY, [
-          Query.orderDesc('$createdAt'),
-          // Query.limit(200),
-        ])
-        setAllItems(res.documents.map(d => ({
-          id: d.$id,
-          title: d['title'] as string | null,
-          description: d['description'] as string | null,
-          category: d['category'] as 'property' | 'event' | 'general',
-          cloudinary_secure_url: d['cloudinary_secure_url'] as string,
-          is_featured: d['is_featured'] as boolean,
-          created_at: d['$createdAt'] as string,
-        })))
-      } finally {
-        setLoading(false)
-      }
-    }
-    run()
-  }, [])
+    async function loadGallery() {
+      setLoading(true);
 
-  // General: all items; Events/Property: featured only
- const general = useMemo(
-  () => sortItems(
-    allItems.filter(i => i.category === "general"),
-    sort
-  ),
-  [allItems, sort]
-)
+      const { data, error } = await supabase
+        .from(TABLES.gallery)
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        setAllItems([]);
+      } else {
+        setAllItems(data ?? []);
+      }
+
+      setLoading(false);
+    }
+
+    loadGallery();
+  }, []);
 
 const events = useMemo(
   () => sortItems(
@@ -179,6 +160,15 @@ const properties = useMemo(
     setLightboxItems(items)
     setLightboxIndex(idx)
   }
+  
+const general = useMemo(
+  () => sortItems(
+    allItems.filter(i => i.category === "general"),
+    sort
+  ),
+  [allItems, sort]
+)
+
 
   const isEmpty = !loading && general.length === 0 && events.length === 0 && properties.length === 0
 

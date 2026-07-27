@@ -19,8 +19,8 @@ The system targets foreign investors, OFWs, retirees, and expats searching for p
 ## Glossary
 
 - **Video_Hosting_Provider**: The third-party streaming service (Cloudflare Stream, Mux, or Bunny Stream) used to store and deliver video assets.
-- **Hero_Video**: A landscape-oriented MP4 video (16:9 aspect ratio) associated with a property listing, stored as a non-null `videoUrl` in the `mlianglistings` table and served via the Video_Hosting_Provider.
-- **Reel**: A short vertical video (9:16 aspect ratio, ≤ 60 seconds) associated with a property listing, stored in the `reel_url` column of `mlianglistings` and served via the Video_Hosting_Provider.
+- **Hero_Video**: A landscape-oriented MP4 video (16:9 aspect ratio) associated with a property listing, stored as a non-null `videoUrl` in the `listings` table and served via the Video_Hosting_Provider.
+- **Reel**: A short vertical video (9:16 aspect ratio, ≤ 60 seconds) associated with a property listing, stored in the `reel_url` column of `listings` and served via the Video_Hosting_Provider.
 - **Reels_Feed**: A publicly accessible page section that displays all available Reels in a scrollable vertical feed.
 - **Video_Player**: The embedded player component used on property pages and in the Reels modal, powered by the Video_Hosting_Provider's embed API.
 - **CMS**: The existing admin panel located at `/admin` within the Next.js application, backed by Supabase.
@@ -48,7 +48,7 @@ The system targets foreign investors, OFWs, retirees, and expats searching for p
 2. IF an uploaded file is not in MP4 format, THEN THE CMS SHALL reject the file before transmission and display an error message stating "Only MP4 video files are accepted."
 3. WHEN a video upload completes, THE Video_Hosting_Provider SHALL return a unique video identifier and a signed embed URL for use by the Video_Player.
 4. WHILE a video is being served by the Video_Hosting_Provider, THE Video_Player SHALL play the video without requiring the visitor to manually select a quality level.
-5. WHEN the Video_Hosting_Provider returns an embed URL, THE CMS SHALL store the embed URL and video identifier in the `mlianglistings` Supabase table against the corresponding property record.
+5. WHEN the Video_Hosting_Provider returns an embed URL, THE CMS SHALL store the embed URL and video identifier in the `listings` Supabase table against the corresponding property record.
 6. IF the Video_Hosting_Provider upload fails or does not complete within 300 seconds, THEN THE CMS SHALL display an error message describing the failure; for first-time uploads the video fields SHALL remain null, and for replacements the previously saved URL SHALL be retained.
 
 ---
@@ -186,11 +186,11 @@ The system targets foreign investors, OFWs, retirees, and expats searching for p
 
 #### Acceptance Criteria
 
-1. THE Supabase `mlianglistings` table SHALL contain a column `hero_video_url` of type TEXT (nullable) that stores the Video_Hosting_Provider embed URL for the Hero_Video.
-2. THE Supabase `mlianglistings` table SHALL contain a column `reel_url` of type TEXT (nullable) that stores the Video_Hosting_Provider embed URL for the Reel.
-3. THE Supabase `mlianglistings` table SHALL contain a column `hero_video_id` of type TEXT (nullable) that stores the Video_Hosting_Provider's unique asset identifier for the Hero_Video.
-4. THE Supabase `mlianglistings` table SHALL contain a column `reel_id` of type TEXT (nullable) that stores the Video_Hosting_Provider's unique asset identifier for the Reel.
-5. THE Supabase `mlianglistings` table SHALL contain a column `reel_thumbnail_url` of type TEXT (nullable) that stores a static image URL for use as the Reel preview in the Reels_Feed.
-6. IF the `mlianglistings` table does not already have an `updated_at` column, THEN THE migration SHALL add it as `TIMESTAMPTZ NOT NULL DEFAULT now()`.
+1. THE Supabase `listings` table SHALL contain a column `hero_video_url` of type TEXT (nullable) that stores the Video_Hosting_Provider embed URL for the Hero_Video.
+2. THE Supabase `listings` table SHALL contain a column `reel_url` of type TEXT (nullable) that stores the Video_Hosting_Provider embed URL for the Reel.
+3. THE Supabase `listings` table SHALL contain a column `hero_video_id` of type TEXT (nullable) that stores the Video_Hosting_Provider's unique asset identifier for the Hero_Video.
+4. THE Supabase `listings` table SHALL contain a column `reel_id` of type TEXT (nullable) that stores the Video_Hosting_Provider's unique asset identifier for the Reel.
+5. THE Supabase `listings` table SHALL contain a column `reel_thumbnail_url` of type TEXT (nullable) that stores a static image URL for use as the Reel preview in the Reels_Feed.
+6. IF the `listings` table does not already have an `updated_at` column, THEN THE migration SHALL add it as `TIMESTAMPTZ NOT NULL DEFAULT now()`.
 7. WHEN any of the five video columns (`hero_video_url`, `reel_url`, `hero_video_id`, `reel_id`, `reel_thumbnail_url`) are updated via an SQL UPDATE statement, a Supabase database trigger SHALL set the `updated_at` column to the current UTC timestamp.
 8. THE database migration adding these columns SHALL use `ADD COLUMN IF NOT EXISTS` for all new columns so that it is idempotent and can be re-run safely in any environment.

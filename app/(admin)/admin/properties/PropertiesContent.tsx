@@ -1,11 +1,8 @@
 'use client'
 
+import { supabase } from "@/lib/supabase/client"
 import React, { useState, useCallback, useEffect, useDeferredValue, useRef, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -15,7 +12,6 @@ import PropertyDialog from '@/components/PropertyDialog'
 import QuickAddProperty from '@/components/QuickAddProperty'
 import { Pagination } from '@/components/ui/Pagination'
 import { Tooltip } from '@/components/ui/tooltip'
-import { matchesLocationSearch } from '@/lib/appwrite/clientSearch'
 import {
   Search,
   Filter,
@@ -27,15 +23,12 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import DuplicateDetector from '@/components/DuplicateDetector'
-import { title } from 'process'
 import { Sorters } from '@/lib/shared/sorting'
 
-import { PRICE_RANGES} from '@/lib/shared/constantz'
-import { DEFAULT_PAGE_SIZE } from '@/lib/shared/constantz'
-
+import { TABLES } from "@/lib/supabase/tables"
 export default function PropertiesContent() {
   const searchParams = useSearchParams()
-  const PAGE_SIZE = DEFAULT_PAGE_SIZE
+  // const PAGE_SIZE = DEFAULT_PAGE_SIZE
   // ── Data ──────────────────────────────────────────────────────────────────
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +38,7 @@ export default function PropertiesContent() {
   // ── Filters ───────────────────────────────────────────────────────────────
   const [searchText, setSearchText] = useState('')
   const deferredSearch = useDeferredValue(searchText)
-  const [statusFilter, setStatusFilter] = useState('active')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
   const [titleFilter, setTitleFilter] = useState<string>('')
   const [locationFilter, setLocationFilter] = useState<string>('')
@@ -65,7 +58,7 @@ export default function PropertiesContent() {
   const [showDuplicates, setShowDuplicates] = useState(false)
   const optionsMenuRef = useRef<HTMLDivElement>(null)
   const [pageSize, setPageSize] = useState(48)
-
+  const [listings, setListings] = useState<any[]>([]);
   // ── Init from URL params ──────────────────────────────────────────────────
   useEffect(() => {
     const type = searchParams.get('type')
@@ -75,6 +68,7 @@ export default function PropertiesContent() {
     const price = searchParams.get('price')
     const sortByParam = searchParams.get('sort')
     const size = searchParams.get('size')
+    const titleParam = searchParams.get('title')
 
     if (type) {
       if (type.toLowerCase().includes('house')) setTypeFilter('residential')
@@ -84,7 +78,6 @@ export default function PropertiesContent() {
     if (status) setStatusFilter(status.toLowerCase())
     if (featured === 'true') { setFeaturedFilter(true); setStatusFilter('all') }
     if (location) setSearchText(location)
-    if (title) setTitleFilter(title)
     if (price) {
       setPriceFilter(price)
     }
@@ -92,15 +85,40 @@ export default function PropertiesContent() {
     if (location) {
       setSearchText(location)
     }
+    if (titleParam) {
+    setTitleFilter(titleParam)
+  }
   }, [searchParams])
 
 
-  useEffect(() => {
+ useEffect(() => {
+  async function loadListings() {
     try {
-      const role = sessionStorage.getItem('viewAsRole') ?? ''
-      setCanFeature(['superadmin', 'broker'].includes(role))
-    } catch { /* ignore */ }
-  }, [])
+      setLoading(true)
+
+      const { data, error } = await supabase
+        .from(TABLES.listings)
+        .select('*')
+        .order('property_id', { ascending: false })
+
+      if (error) throw error
+
+      console.log('LISTINGS DATA:', data)
+
+      setData(data ?? [])
+    } catch (error) {
+      console.error('Admin listings error:', error)
+
+      if (error instanceof Error) {
+        console.error(error.message)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  loadListings()
+}, [])
 
   // Close options menu on outside click
   useEffect(() => {
@@ -111,118 +129,86 @@ export default function PropertiesContent() {
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
+    
   }, [showOptionsMenu])
   
     // ── Fetch — server-side pagination + filter ───────────────────────────────
   const fetchData = useCallback(async () => {
-  setLoading(true)
-
-
   try {
-    const allRows: any[] = []
-    let offset = 0
-    const batch = 500
+    setLoading(true);
 
-    while (true) {
-      const res = await databases.listDocuments(
-        DATABASE_ID,
-        COL_LISTINGS,
-        [
-          Query.limit(batch),
-          Query.offset(offset)
-        ]
-      )
+    const res = await fetch("/api/listings");
 
-      allRows.push(...res.documents)
+    const result = await res.json();
 
-      if (res.documents.length < batch) break
+console.log("RESULT:", result);
 
-      offset += batch
-    }
-
-    setData(allRows)
-  
-
-    if (allRows.length) {
-      setColumns(Object.keys(allRows[0]))
-    }
-  } finally {
-    setLoading(false)
-  }
-}, [searchText,
-priceFilter,
-sortBy,
-typeFilter,
-featuredFilter,
-statusFilter]) // eslint-disable-line react-hooks/exhaustive-deps
-
-useEffect(() => { fetchData() }, [fetchData])
-
-const filteredData = useMemo(() => {
-  let rows = [...data]
-
-  // search
-  if (deferredSearch) {
-    rows = rows.filter(r =>
-      matchesLocationSearch(r, deferredSearch)
-    )
-  }
-
-  // status
-  if (statusFilter !== "all") {
-    rows = rows.filter(
-      r => r.Status?.toLowerCase() === statusFilter
-    )
-  }
-
-  // featured
-  if (featuredFilter) {
-    rows = rows.filter(r => r.featured)
-  }
-
-  // type
-  if (typeFilter !== "all") {
-    rows = rows.filter(r =>
-      r.Type?.toLowerCase().includes(typeFilter)
-    )
-  }
-
-// property_id
-const sorter = Sorters[sortBy]
-
-if (sorter) {
-  rows.sort(sorter)
-} else {
-  // fallback
-  rows.sort((a, b) => Number(b.property_id) - Number(a.property_id))
+if (!Array.isArray(result.data)) {
+  console.error("Data is not an array:", result);
+  setData([]);
+  return;
 }
 
-  // price
+setData(result.data);
 
-  // rows = filterByPrice(rows, priceFilter)
+    console.log("LISTINGS:", result);
 
-  // sorting
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+  
+}, []);
+    
 
-  // rows.sort(getSorter(sortBy))
+const filteredData = useMemo(() => {
+  if (!Array.isArray(data)) {
+    console.warn("Data is not an array:", data);
+    return [];
+  }
 
-  rows.sort(
-  Sorters[sortBy] ??
-  ((a, b) => Number(b.property_id) - Number(a.property_id))
-)
+  let rows = [...data];
 
-return rows
+  if (statusFilter !== "all") {
+    rows = rows.filter(r =>
+      (
+        r.Status ??
+        r.status ??
+        ""
+      )
+      .toLowerCase()
+      .includes(statusFilter)
+    );
+  }
 
-  return rows
+  if (featuredFilter) {
+    rows = rows.filter(r =>
+      r.featured === true ||
+      r.Featured === true
+    );
+  }
+
+  if (typeFilter !== "all") {
+    rows = rows.filter(r =>
+      (
+        r.Type ??
+        r.Property_Type ??
+        ""
+      )
+      .toLowerCase()
+      .includes(typeFilter)
+    );
+  }
+
+  return rows;
 
 }, [
   data,
-  deferredSearch,
   statusFilter,
   featuredFilter,
   typeFilter,
-  priceFilter,
-  sortBy,
-])
+]);
 
   // Reset to page 1 when filters change (but not on page change itself)
   const prevFilters = useRef({ titleFilter, statusFilter, featuredFilter, deferredSearch, locationFilter, priceFilter, sortBy })
@@ -276,29 +262,30 @@ function getLocationText(row: any) {
   
   // ── Client-side type sort (within the fetched page) ───────────────────────
   const displayData = useMemo(() => {
+    console.log({
+  dataType: typeof data,
+  isArrayData: Array.isArray(data),
+  datas: data,
+  filteredType: typeof filteredData,
+  isArrayFiltered: Array.isArray(filteredData),
+});
 
-    const start = (currentPage - 1) * pageSize
+  if (!Array.isArray(filteredData)) {
+    return [];
+  }
 
-    return filteredData.slice(
-        start,
-        start + pageSize
-    )
+  const start = (currentPage - 1) * pageSize;
 
-}, [filteredData, currentPage, pageSize])
+  return filteredData.slice(
+    start,
+    start + pageSize
+  );
+
+}, [filteredData, currentPage, pageSize]);
 
 const totalCount = filteredData.length
 
   // ── Actions ───────────────────────────────────────────────────────────────
-  const handleDelete = async (property: any) => {
-    if (!confirm(`Delete Property #${property['property_id']}? This cannot be undone.`)) return
-    try {
-      await databases.deleteDocument(DATABASE_ID, COL_LISTINGS, property['$id'])
-      fetchData()
-    } catch (e: any) {
-      alert('Error deleting: ' + e.message)
-    }
-  }
-
   async function handleEditToggle() {
     const turningOff = showEditControls
     setShowEditControls(v => !v)
@@ -312,7 +299,24 @@ const totalCount = filteredData.length
       } catch { /* non-critical */ }
     }
   }
+const handleDelete = async (property: any) => {
+  if (!confirm(`Delete Property #${property.property_id}? This cannot be undone.`)) return
 
+  try {
+    const { error } = await supabase
+      .from("listings")
+      .delete()
+      .eq("id", property.id)
+
+    if (error) {
+      throw error
+    }
+
+    fetchData()
+  } catch (e: any) {
+    alert("Error deleting: " + e.message)
+  }
+}
   // ── Skeleton cards for loading state ─────────────────────────────────────
   const SkeletonCard = () => (
     <div className="rounded-2xl overflow-hidden animate-pulse" style={{ background: '#fff', border: '1px solid #e5e7eb' }}>
@@ -325,14 +329,14 @@ const totalCount = filteredData.length
       </div>
     </div>
   )
-  const PRICE_RANGE_OPTIONS = PRICE_RANGES
-  type PriceRange = (typeof PRICE_RANGE_OPTIONS)[number]
+  // const PRICE_RANGE_OPTIONS = PRICE_RANGES
+  // type PriceRange = (typeof PRICE_RANGE_OPTIONS)[number]
   let initialPrice = ""
   const start = (currentPage - 1) * pageSize + 1
   const end = Math.min(currentPage * pageSize, totalCount)
-  const [priceRange, setPriceRange] = useState<PriceRange>(
-      PRICE_RANGE_OPTIONS.includes(initialPrice as PriceRange) ? (initialPrice as PriceRange) : 'All'
-    )
+  // const [priceRange, setPriceRange] = useState<PriceRange>(
+  //     PRICE_RANGE_OPTIONS.includes(initialPrice as PriceRange) ? (initialPrice as PriceRange) : 'All'
+  //   )
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -415,7 +419,7 @@ const totalCount = filteredData.length
 
             {showFilters && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                {/* <div>
+                <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Status</label>
                   <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-black">
                     <option value="all">All</option>
@@ -423,7 +427,7 @@ const totalCount = filteredData.length
                     <option value="draft">Draft</option>
                     <option value="sold">Sold</option>
                   </select>
-                </div> */}
+                </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Type</label>
                   <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-black">
@@ -549,8 +553,8 @@ const totalCount = filteredData.length
                   key={`${property.property_id}-${index}`}
                   property={property}
                   viewMode={viewMode}
-                  onEdit={showEditControls ? setEditingProperty : undefined}
                   onDelete={showEditControls ? handleDelete : undefined}
+                  onEdit={showEditControls ? setEditingProperty : undefined}
                   onFeaturedChange={fetchData}
                   canFeature={showEditControls ? canFeature : false}
                 />

@@ -2,11 +2,7 @@
 // app/(public)/components/InquiryForm.tsx — Estatein dark theme
 
 import { useState } from 'react'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { ID } from 'appwrite'
 import { validateContactNumber } from '@/lib/validation'
-
-const LEADS_COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 
 interface InquiryFormProps {
   initialPropertyOfInterest?: string
@@ -87,21 +83,7 @@ export default function InquiryForm({ initialPropertyOfInterest = '', contactNum
     const newErrors = validateForm(values)
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
     setStatus('loading'); setErrors({}); setErrorMsg('')
-    try {
-      await databases.createDocument(DATABASE_ID, LEADS_COL, ID.unique(), {
-        full_name: values.fullName.trim(),
-        contact_number: values.contactNumber.trim(),
-        email: values.email.trim(),
-        property_of_interest: values.propertyOfInterest.trim() || null,
-        message: values.message.trim(),
-        status: 'new',
-      })
-      setStatus('success')
-      setValues({ fullName: '', contactNumber: '', email: '', propertyOfInterest: '', message: '' })
-    } catch {
-      setStatus('error')
-      setErrorMsg(`Submission failed. Please try again or call us directly at ${contactNumber}.`)
-    }
+    
   }
 
   if (status === 'success') {

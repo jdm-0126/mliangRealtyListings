@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { PublicListing } from '@/lib/types/public'
+import { PublicListing } from '@/lib/shared/types/public'
 import { MapPin, Maximize2, Home, X, BedDouble, Bath } from 'lucide-react'
 import MaintenanceEditBar from './MaintenanceEditBar'
 

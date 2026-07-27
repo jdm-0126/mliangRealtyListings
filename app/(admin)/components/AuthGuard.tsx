@@ -1,40 +1,39 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { account } from '@/lib/appwrite/client'
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { isAuthenticated } from "@/lib/auth"
 
-type AuthState = 'loading' | 'authenticated' | 'unauthenticated'
+export default function AuthGuard({
+    children,
+}: {
+    children: React.ReactNode
+}) {
 
-interface AuthGuardProps {
-  children: React.ReactNode
-}
+    const router = useRouter()
 
-export default function AuthGuard({ children }: AuthGuardProps) {
-  const [authState, setAuthState] = useState<AuthState>('loading')
-  const router = useRouter()
+    const [loading,setLoading]=useState(true)
 
-  useEffect(() => {
-    account.get()
-      .then(() => setAuthState('authenticated'))
-      .catch(() => setAuthState('unauthenticated'))
-  }, [])
+    useEffect(()=>{
 
-  useEffect(() => {
-    if (authState === 'unauthenticated') {
-      router.push('/admin/login')
+        if(!isAuthenticated()){
+            router.replace("/login")
+            return
+        }
+
+        setLoading(false)
+
+    },[router])
+
+    if(loading){
+
+        return (
+            <div className="flex h-screen items-center justify-center">
+                Loading...
+            </div>
+        )
     }
-  }, [authState, router])
 
-  if (authState === 'loading') {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
-      </div>
-    )
-  }
+    return <>{children}</>
 
-  if (authState === 'unauthenticated') return null
-
-  return <>{children}</>
 }

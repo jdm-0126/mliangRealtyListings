@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { ID, Query } from 'appwrite'
+import { useState } from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { X } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
+import { TABLES } from "@/lib/constants"
 
-const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
+const TENANT_ID = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ?? '81b78be3-db0c-41f3-8f6f-e3989114eacf'
 
 interface ParsedProperty {
   title: string
@@ -71,39 +71,46 @@ function toNumber(price: string): number {
   return parseFloat(s.replace(/[^\d.]/g, '')) || 0
 }
 
-async function getNextPropertyId(): Promise<number> {
-  try {
-    const res = await databases.listDocuments(DATABASE_ID, COL, [
-      Query.orderDesc('property_id'),
-      Query.limit(1),
-      Query.select(['property_id']),
-    ])
-    const last = res.documents[0] as any
-    return (Number(last?.property_id) || 0) + 1
-  } catch { return Date.now() }
-}
+function toDbRow(p: ParsedProperty) {
+  const isRent = p.listingMode === "For Rent";
 
-function toDbRow(p: ParsedProperty, propertyId: number) {
-  const isRent = p.listingMode === 'For Rent'
   return {
-    property_id: propertyId,
-    Title: p.title || '',
-    Location: p.location || '',
-    Village: p.village || '',
-    Listing_Price: toNumber(p.price || '0'),
-    Lot_Area_sqm: p.lotArea ? Number(p.lotArea) : null,
-    Floor_Area_sqm: p.floorArea ? Number(p.floorArea) : null,
-    Bedroom: p.bedrooms ? Number(p.bedrooms) : null,
-    Bathroom: p.bathrooms ? Number(p.bathrooms) : null,
-    Preview_Photo: typeof p.photoUrl === "string" ? p.photoUrl : "",
-    Facebook_Video_URL: p.facebookUrl || null,
-    Listing_Mode: p.listingMode,
-    Financing_options: p.mop || 'Bank Financing',
-    Notes: isRent ? `[FOR RENT]\n${p.description}` : p.description,
-    Type: p.type || 'Residential',
-    Status: 'active',
-    ...(!isRent && { CGT: 'Seller', Transfer_Title: 'Buyer' }),
-  }
+    tenant_id: TENANT_ID,
+    title: p.title,
+    location: p.location,
+    village: p.village,
+
+    listing_price: toNumber(p.price),
+
+    lot_area_sqm: p.lotArea ? Number(p.lotArea) : null,
+    floor_area_sqm: p.floorArea ? Number(p.floorArea) : null,
+
+    bedroom: p.bedrooms ? Number(p.bedrooms) : null,
+    bathroom: p.bathrooms ? Number(p.bathrooms) : null,
+
+    preview_photo: p.photoUrl || null,
+
+    facebook_video_url: p.facebookUrl || null,
+
+    listing_mode: isRent ? "for_rent" : "for_sale",
+
+    financing_options: p.mop || "Bank Financing",
+
+    notes: isRent
+      ? `[FOR RENT]\n${p.description}`
+      : p.description,
+
+    type: p.type || "Residential",
+
+    status: "active",
+
+    ...(isRent
+      ? {}
+      : {
+          cgt: "Seller",
+          transfer_title: "Buyer",
+        }),
+  };
 }
 
 const FIELDS: [string, keyof ParsedProperty][] = [
@@ -125,19 +132,27 @@ export default function QuickAddProperty({ onClose, onSuccess }: { onClose: () =
   }
 
   const handleSave = async () => {
-    if (!parsed) return
-    setSaving(true)
-    setError('')
+    if (!parsed) return;
+
+    setSaving(true);
+    setError("");
+
     try {
-      const propertyId = await getNextPropertyId()
-      await databases.createDocument(DATABASE_ID, COL, ID.unique(), toDbRow(parsed, propertyId))
-      onSuccess()
-      onClose()
+      const { error } = await supabase
+        .from(TABLES.listings)
+        .insert(toDbRow(parsed))
+        .select();
+
+      if (error) throw error;
+
+      onSuccess();
+      onClose();
     } catch (err: any) {
-      setError(err?.message ?? String(err))
-      setSaving(false)
+      setError(err.message ?? String(err));
+    } finally {
+      setSaving(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">

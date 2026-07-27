@@ -2,8 +2,6 @@
 
 import React, { useState, useCallback, useEffect, useDeferredValue } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
 
 const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 import { Button } from '@/components/ui/button'
@@ -70,19 +68,6 @@ export default function RentalsContent() {
 
   const fetchData = useCallback(async () => {
     setLoading(true)
-    try {
-      const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, [
-        Query.orderDesc('property_id'),
-        Query.limit(100),
-      ])
-      const rentals = (res.documents as unknown as Record<string, unknown>[]).filter((row) =>
-        row['Listing_Mode'] === 'For Rent' ||
-        String(row['Notes'] || '').startsWith('[FOR RENT]')
-      )
-      setData(rentals)
-      if (rentals.length > 0) setColumns(Object.keys(rentals[0]))
-    } catch (e) { console.error(e) }
-    setLoading(false)
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -158,10 +143,7 @@ export default function RentalsContent() {
   const handleDelete = async (property: any) => {
     const docId = property['$id']
     if (!confirm(`Delete Property #${property['property_id']}? This cannot be undone.`)) return
-    try {
-      await databases.deleteDocument(DATABASE_ID, COL_LISTINGS, docId)
-      fetchData()
-    } catch (e: any) { alert('Error deleting property: ' + e.message) }
+    
   }
 
   if (loading) {

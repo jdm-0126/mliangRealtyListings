@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { PublicListing } from '@/lib/types/public'
+import { PublicListing } from '@/lib/shared/types/public'
 import { Pencil, X, Check, Loader2, MapPin } from 'lucide-react'
 
 interface Props {
@@ -107,8 +107,6 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const { databases, DATABASE_ID } = await import('@/lib/appwrite/client')
-      const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 
       // Build only the fields that have values
       const patch: Record<string, unknown> = { Type: type }
@@ -123,9 +121,7 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
 
       // listing.$id is the Appwrite document ID
       const docId = (listing as unknown as Record<string, unknown>)['$id'] as string
-      if (docId) {
-        await databases.updateDocument(DATABASE_ID, COL, docId, patch)
-      }
+      
 
       setSaved(true)
       onUpdated?.({

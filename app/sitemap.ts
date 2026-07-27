@@ -1,60 +1,63 @@
 // app/sitemap.ts
-// Next.js App Router sitemap generator — served at /sitemap.xml
-// Requirements: 7.1
 
-import type { MetadataRoute } from 'next'
-import { getServerClient, DATABASE_ID } from '@/lib/appwrite/server'
-import { Query } from 'node-appwrite'
-
-const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
+import type { MetadataRoute } from "next";
+import { supabaseAdmin  } from "@/lib/supabase/server";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = "https://realtyprov1.com";
+
   const staticRoutes: MetadataRoute.Sitemap = [
     {
-      url: 'https://realtyprov1.com/',
+      url: `${baseUrl}/`,
       lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1.0,
+      changeFrequency: "weekly",
+      priority: 1,
     },
     {
-      url: 'https://realtyprov1.com/listings',
+      url: `${baseUrl}/listings`,
       lastModified: new Date(),
-      changeFrequency: 'weekly',
+      changeFrequency: "weekly",
       priority: 0.9,
     },
     {
-      url: 'https://realtyprov1.com/about',
+      url: `${baseUrl}/about`,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
+      changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: 'https://realtyprov1.com/contact',
+      url: `${baseUrl}/contact`,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
+      changeFrequency: "monthly",
       priority: 0.8,
     },
-  ]
+  ];
 
-  const db = getServerClient()
-  let listingRoutes: MetadataRoute.Sitemap = []
   try {
-    const res = await db.listDocuments(DATABASE_ID, COL, [
-      Query.equal('Status', 'active'),
-      Query.select(['property_id', '$updatedAt']),
-      Query.limit(500),
-    ])
-    listingRoutes = res.documents.map((l) => {
-      const id = Number(l['property_id'])
-      const displayId = id > 2 ? id - 1 : id
-      return {
-        url: `https://realtyprov1.com/listings/${displayId}`,
-        lastModified: l.$updatedAt ? new Date(l.$updatedAt) : new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.8,
-      }
-    })
-  } catch { /* return static only */ }
+    const { data, error } = await supabaseAdmin
+      .from("listings")
+      .select("property_id, updated_at")
+      .order("property_id");
 
-  return [...staticRoutes, ...listingRoutes]
+    if (error) throw error;
+
+    const listingRoutes =
+      data?.map((listing) => {
+        const id = Number(listing.property_id);
+        const displayId = id > 2 ? id - 1 : id;
+
+        return {
+          url: `${baseUrl}/listings/${displayId}`,
+          lastModified: listing.updated_at
+            ? new Date(listing.updated_at)
+            : new Date(),
+          changeFrequency: "weekly" as const,
+          priority: 0.8,
+        };
+      }) ?? [];
+
+    return [...staticRoutes, ...listingRoutes];
+  } catch {
+    return staticRoutes;
+  }
 }

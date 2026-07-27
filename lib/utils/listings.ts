@@ -4,7 +4,7 @@
 // These are intentionally framework-free so they can be unit/property-tested
 // without setting up Next.js server-component infrastructure.
 
-import { PublicListing } from '@/lib/types/public'
+import { PublicListing } from '@/lib/shared/types/public'
 
 /**
  * selectFeaturedListings

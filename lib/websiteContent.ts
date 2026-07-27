@@ -1,71 +1,92 @@
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { ID, Query } from 'appwrite'
+import { supabase } from "@/lib/supabase/client";
+import { WebsiteContentEntry, WebsiteContentType } from "@/lib/shared/types/public";
 
-const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_WEBSITE_CONTENT!
+const TABLE = "website_content";
 
-export type WebsiteContentType = 'text' | 'html' | 'json'
+export async function readWebsiteContent(
+  sectionKey: string
+): Promise<WebsiteContentEntry | null> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("*")
+    .eq("section_key", sectionKey)
+    .eq("is_active", true)
+    .maybeSingle();
 
-export interface WebsiteContentEntry {
-  id?: string
-  section_key: string
-  content_type: WebsiteContentType
-  content_value: string
-  is_active?: boolean
-  display_order?: number
-}
-
-export async function readWebsiteContent(sectionKey: string): Promise<WebsiteContentEntry | null> {
-  try {
-    const res = await databases.listDocuments(DATABASE_ID, COL, [
-      Query.equal('section_key', sectionKey),
-      Query.equal('is_active', true),
-      Query.limit(1),
-    ])
-    if (!res.documents.length) return null
-    const doc = res.documents[0]
-    return {
-      id: doc.$id,
-      section_key: doc['section_key'] as string,
-      content_type: doc['content_type'] as WebsiteContentType,
-      content_value: doc['content_value'] as string,
-      is_active: doc['is_active'] as boolean,
-      display_order: doc['display_order'] as number,
-    }
-  } catch (e) {
-    console.error('[readWebsiteContent]', e)
-    return null
+  if (error) {
+    console.error("[readWebsiteContent]", error);
+    return null;
   }
+
+  return data;
 }
 
 export async function writeWebsiteContent(
   sectionKey: string,
   value: string | Record<string, unknown> | Array<unknown>,
-  contentType: WebsiteContentType = 'json'
+  contentType: WebsiteContentType = "json"
 ) {
-  const content_value = typeof value === 'string' ? value : JSON.stringify(value)
-  const payload = { section_key: sectionKey, content_type: contentType, content_value, is_active: true, display_order: 0 }
+  const content_value =
+    typeof value === "string" ? value : JSON.stringify(value);
 
-  // check if exists
-  const existing = await readWebsiteContent(sectionKey)
-  if (existing?.id) {
-    return databases.updateDocument(DATABASE_ID, COL, existing.id, payload)
+  const payload = {
+    section_key: sectionKey,
+    content_type: contentType,
+    content_value,
+    is_active: true,
+    display_order: 0,
+  };
+
+  // Upsert requires section_key to be UNIQUE in Supabase
+  const { data, error } = await supabase
+    .from(TABLE)
+    .upsert(payload, {
+      onConflict: "section_key",
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.log("SUPABASE WRITE ERROR");
+  console.log("message:", error.message);
+  console.log("details:", error.details);
+  console.log("hint:", error.hint);
+  console.log("code:", error.code);
+    throw error;
   }
-  return databases.createDocument(DATABASE_ID, COL, ID.unique(), payload)
+
+  return data;
 }
 
-export async function readWebsiteContentValue<T = unknown>(sectionKey: string, fallback?: T): Promise<T | undefined> {
-  const entry = await readWebsiteContent(sectionKey)
-  if (!entry) return fallback
-  if (entry.content_type === 'json') {
-    try { return JSON.parse(entry.content_value) as T } catch { return fallback }
+export async function readWebsiteContentValue<T = unknown>(
+  sectionKey: string,
+  fallback?: T
+): Promise<T | undefined> {
+  const entry = await readWebsiteContent(sectionKey);
+
+  if (!entry) return fallback;
+
+  if (entry.content_type === "json") {
+    try {
+      return JSON.parse(entry.content_value) as T;
+    } catch {
+      return fallback;
+    }
   }
-  return entry.content_value as T
+
+  return entry.content_value as T;
 }
 
-export async function readWebsiteContentJson<T = unknown>(sectionKey: string, fallback?: T): Promise<T | undefined> {
-  return readWebsiteContentValue<T>(sectionKey, fallback)
+export async function readWebsiteContentJson<T = unknown>(
+  sectionKey: string,
+  fallback?: T
+): Promise<T | undefined> {
+  return readWebsiteContentValue(sectionKey, fallback);
 }
 
-export async function writeWebsiteContentJson(sectionKey: string, value: Record<string, unknown> | Array<unknown>) {
-  return writeWebsiteContent(sectionKey, value, 'json')
+export async function writeWebsiteContentJson(
+  sectionKey: string,
+  value: Record<string, unknown> | Array<unknown>
+) {
+  return writeWebsiteContent(sectionKey, value, "json");
 }

@@ -9,18 +9,78 @@ import { Button } from './ui/button'
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
 
 const navigation = [
-  { name: 'Dashboard',        href: '/admin',               icon: Home,      roles: ['superadmin', 'broker', 'agent'] },
-  { name: 'Broker Dashboard', href: '/admin/broker-dashboard', icon: BarChart3, roles: ['superadmin', 'broker'] },
-  { name: 'Properties',       href: '/admin/properties',    icon: BarChart3, roles: ['superadmin', 'broker', 'agent'] },
-  { name: 'Rentals',          href: '/admin/rentals',       icon: KeyRound,  roles: ['superadmin', 'broker', 'agent'] },
-  { name: 'Gallery',          href: '/admin/gallery',       icon: Upload,    roles: ['superadmin', 'broker'] },
-  { name: 'Featured Video',   href: '/admin/featured-video', icon: Video,          roles: ['superadmin', 'broker'] },
-  { name: 'Inquiries',        href: '/admin/inquiries',      icon: MessageSquare,  roles: ['superadmin', 'broker'] },
-  { name: 'Brokers',          href: '/admin/brokers',       icon: Users,     roles: ['superadmin'] },
-  { name: 'Agents',           href: '/admin/agents',        icon: Users,     roles: ['superadmin', 'broker'] },
-  { name: 'My Profile',       href: '/admin/agent-profile', icon: Settings,  roles: ['agent'] },
-  { name: 'Settings',         href: '/admin/settings',      icon: Settings,  roles: ['superadmin', 'broker'] },
-  { name: 'Tenant Management', href: '/admin/tenant-management', icon: Database,  roles: ['superadmin'] },
+  {
+    name: "Dashboard",
+    href: "/admin",
+    icon: Home,
+    roles: ["superadmin", "broker", "agent"],
+  },
+  {
+    name: "Broker Dashboard",
+    href: "/admin/broker-dashboard",
+    icon: BarChart3,
+    roles: ["superadmin", "broker"],
+  },
+  {
+    name: "Properties",
+    href: "/admin/properties",
+    icon: BarChart3,
+    roles: ["superadmin", "broker", "agent"],
+  },
+  {
+    name: "Rentals",
+    href: "/admin/rentals",
+    icon: KeyRound,
+    roles: ["superadmin", "broker", "agent"],
+  },
+  {
+    name: "Gallery",
+    href: "/admin/gallery",
+    icon: Upload,
+    roles: ["superadmin", "broker"],
+  },
+  {
+    name: "Featured Video",
+    href: "/admin/featured-video",
+    icon: Video,
+    roles: ["superadmin", "broker"],
+  },
+  {
+    name: "Inquiries",
+    href: "/admin/inquiries",
+    icon: MessageSquare,
+    roles: ["superadmin", "broker"],
+  },
+  {
+    name: "Brokers",
+    href: "/admin/brokers",
+    icon: Users,
+    roles: ["superadmin"],
+  },
+  {
+    name: "Agents",
+    href: "/admin/agents",
+    icon: Users,
+    roles: ["superadmin", "broker"],
+  },
+  {
+    name: "My Profile",
+    href: "/admin/agent-profile",
+    icon: Settings,
+    roles: ["agent"],
+  },
+  {
+    name: "Settings",
+    href: "/admin/settings",
+    icon: Settings,
+    roles: ["superadmin", "broker"],
+  },
+  {
+    name: "Tenant Management",
+    href: "/admin/tenant-management",
+    icon: Database,
+    roles: ["superadmin"],
+  },
 ]
 
 // ── CSS variable shorthand styles ─────────────────────────────────────────────
@@ -98,51 +158,73 @@ const dropdownItemStyle: React.CSSProperties = {
 
 export default function Navigation() {
   const pathname = usePathname()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [businessName, setBusinessName] = useState('M. Liang Realty')
-  const [hasMounted, setHasMounted] = useState(false)
-  const [userRole, setUserRole] = useState<'superadmin' | 'broker' | 'agent' | null>(null)
-  const [viewAsRole, setViewAsRole] = useState<'superadmin' | 'broker' | 'agent'>('superadmin')
-  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false)
 
-  useEffect(() => {
-    setHasMounted(true)
-    const savedBusinessName = localStorage.getItem('businessName')
-    const auth = sessionStorage.getItem('brokerAdminAuth')
-    const userEmail = sessionStorage.getItem('userEmail')
-    const storedRole = sessionStorage.getItem('userRole')
+const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+const [businessName, setBusinessName] = useState("M. Liang Realty")
+const [hasMounted, setHasMounted] = useState(false)
 
-    let role: 'superadmin' | 'broker' | 'agent' | null = null
-    let viewRole: 'superadmin' | 'broker' | 'agent' = 'superadmin'
+const [userRole, setUserRole] = useState<
+  "superadmin" | "broker" | "agent"
+>("broker")
 
-    if (auth === 'authenticated' && userEmail === SUPERADMIN_EMAIL) {
-      role = 'superadmin'
-      const savedView = sessionStorage.getItem('viewAsRole') || 'superadmin'
-      viewRole = savedView === 'superadmin' || savedView === 'broker' || savedView === 'agent' ? savedView : 'superadmin'
-    } else if (auth === 'authenticated' && storedRole === 'tenant_admin') {
-      role = 'broker'; viewRole = 'broker'
-    } else if (auth === 'authenticated' && userEmail) {
-      role = 'broker'; viewRole = 'broker'
-    } else if (userEmail) {
-      role = 'agent'; viewRole = 'agent'
-    }
+const [viewAsRole, setViewAsRole] = useState<
+  "superadmin" | "broker" | "agent"
+>("broker")
 
-    if (savedBusinessName) setBusinessName(savedBusinessName)
-    setUserRole(role)
-    setViewAsRole(viewRole)
-  }, [])
+const [showRoleSwitcher, setShowRoleSwitcher] = useState(false)
 
-  const handleViewChange = (role: 'superadmin' | 'broker' | 'agent') => {
-    setViewAsRole(role)
-    sessionStorage.setItem('viewAsRole', role)
-    setShowRoleSwitcher(false)
+useEffect(() => {
+  setHasMounted(true)
+
+  const savedBusinessName = localStorage.getItem("businessName")
+  if (savedBusinessName) {
+    setBusinessName(savedBusinessName)
   }
 
-  const isSuperAdmin = userRole === 'superadmin'
-  const isTenantAdmin = hasMounted && sessionStorage.getItem('userRole') === 'tenant_admin'
-  const filteredNavigation = navigation.filter(item =>
-    isSuperAdmin || (viewAsRole && item.roles.includes(viewAsRole))
+  const adminUser = JSON.parse(
+    localStorage.getItem("adminUser") ?? "{}"
   )
+  
+  let role: "superadmin" | "broker" | "agent" = "broker"
+
+  if (adminUser?.email === SUPERADMIN_EMAIL) {
+    role = "superadmin"
+  } else if (
+    adminUser?.role === "broker" ||
+    adminUser?.role === "agent"
+  ) {
+    role = adminUser.role
+  }
+
+  setUserRole(role)
+
+  const savedView =
+    (sessionStorage.getItem("viewAsRole") as
+      | "superadmin"
+      | "broker"
+      | "agent"
+      | null) ?? role
+
+  setViewAsRole(savedView)
+}, [])
+
+const handleViewChange = (
+  role: "superadmin" | "broker" | "agent"
+) => {
+  setViewAsRole(role)
+  sessionStorage.setItem("viewAsRole", role)
+  setShowRoleSwitcher(false)
+}
+
+const filteredNavigation = navigation.filter(
+  (item) =>
+    item &&
+    item.href &&
+    item.name &&
+    item.roles?.includes(viewAsRole)
+)
+
+  const isTenantAdmin = hasMounted && sessionStorage.getItem('userRole') === 'tenant_admin'
 
   const SidebarContent = () => (
     <>
@@ -157,7 +239,7 @@ export default function Navigation() {
             <span className="text-lg font-bold block" style={brandTextStyle}>
               {hasMounted ? businessName : 'M. Liang Realty'}
             </span>
-            {isTenantAdmin && (
+            {userRole === "broker" && (
               <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: 'hsl(var(--primary) / 0.12)', color: 'hsl(var(--primary))' }}>
                 Tenant Admin
               </span>
@@ -189,56 +271,23 @@ export default function Navigation() {
 
       {/* Nav links */}
       <div className="flex-1 px-4 py-6 space-y-1">
-        {filteredNavigation.map(item => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              style={isActive ? navLinkActive : navLinkBase}
-              onClick={() => setMobileMenuOpen(false)}
-              onMouseEnter={e => {
-                if (!isActive) Object.assign((e.currentTarget as HTMLElement).style, {
-                  background: 'hsl(var(--primary) / 0.08)',
-                  color: 'hsl(var(--foreground))',
-                })
-              }}
-              onMouseLeave={e => {
-                if (!isActive) Object.assign((e.currentTarget as HTMLElement).style, {
-                  background: navLinkBase.background,
-                  color: navLinkBase.color,
-                })
-              }}
-              onPointerDown={e => {
-                Object.assign((e.currentTarget as HTMLElement).style, {
-                  background: 'hsl(var(--primary) / 0.2)',
-                  color: 'hsl(var(--primary))',
-                  transform: 'scale(0.98)',
-                })
-              }}
-              onPointerUp={e => {
-                const el = e.currentTarget as HTMLElement
-                el.style.transform = 'scale(1)'
-                setTimeout(() => {
-                  if (!isActive) Object.assign(el.style, {
-                    background: navLinkBase.background,
-                    color: navLinkBase.color,
-                  })
-                }, 150)
-              }}
-              onPointerCancel={e => {
-                if (!isActive) Object.assign((e.currentTarget as HTMLElement).style, {
-                  background: navLinkBase.background,
-                  color: navLinkBase.color,
-                  transform: 'scale(1)',
-                })
-              }}
-            >
-              <item.icon className="w-5 h-5 mr-3" />
-              {item.name}
-            </Link>
-          )
-        })}
+        {filteredNavigation.map((item) => {
+  if (!item?.href) return null
+
+  const isActive = pathname === item.href
+
+  return (
+    <Link
+      key={item.href}
+      href={item.href}
+      style={isActive ? navLinkActive : navLinkBase}
+      onClick={() => setMobileMenuOpen(false)}
+    >
+      <item.icon className="w-5 h-5 mr-3" />
+      {item.name}
+    </Link>
+  )
+})}
       </div>
     </>
   )

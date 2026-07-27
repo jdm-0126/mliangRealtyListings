@@ -1,11 +1,10 @@
 'use client'
 
+import { supabase } from '@/lib/supabase/client'
 import { useState, useRef, useEffect } from 'react'
 import { MessageCircle, X, Send } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
 import {
   RecentSearchEntry,
   loadRecentSearches,
@@ -170,20 +169,48 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
   }, [isOpen]);
 
   const fetchRealProperties = async () => {
-    const col = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS
-    if (!col) return
-    try {
-      const res = await databases.listDocuments(DATABASE_ID, col, [
-        Query.equal('Status', 'active'),
-        Query.orderDesc('property_id'),
-        Query.limit(200),
-      ])
-      setRealProperties(res.documents as unknown as any[])
-      setPropertiesLoaded(true)
-    } catch (err) {
-      console.error('Error fetching properties:', err)
-    }
+  try {
+    const { data, error } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('status', 'Active')
+      .order('property_id', { ascending: false })
+
+    if (error) throw error
+
+    setRealProperties(data ?? [])
+    setPropertiesLoaded(true)
+    const mapped = (data ?? []).map(p => ({
+  ...p,
+
+  Price: p.Listing_Price,
+  ListingPrice: p.Listing_Price,
+
+  LotArea: p.Lot_Area_sqm,
+  FloorArea: p.Floor_Area_sqm,
+
+  "Listing Price": p.Listing_Price,
+  "Lot Area": p.Lot_Area_sqm,
+  "Floor Area": p.Floor_Area_sqm,
+}))
+
+setRealProperties(mapped)
+setPropertiesLoaded(true)
+
+  } catch (err) {
+  console.error("Failed to load properties:");
+  console.error(err);
+
+  if (err instanceof Error) {
+    console.error(err.message);
+    console.error(err.stack);
   }
+
+  setRealProperties([]);
+  setPropertiesLoaded(true);
+  }
+}
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -545,6 +572,13 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
   // Don't render anything until after mount — server and first client render must match
   if (!mounted) return null
 
+  const escapeHtml = (text: string) =>
+  text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
   return (
     <>
       {!isOpen && (
@@ -624,7 +658,7 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
                             className="text-sm whitespace-pre-line"
                             style={{ color: message.sender === 'user' ? '#ffffff' : '#000000' }}
                             dangerouslySetInnerHTML={{
-                              __html: message.text
+                              __html: escapeHtml(message.text)
                                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                                 .replace(/\n/g, '<br/>'),
                             }}

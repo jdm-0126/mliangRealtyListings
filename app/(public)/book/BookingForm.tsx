@@ -2,11 +2,8 @@
 // app/(public)/book/BookingForm.tsx
 
 import { useState, useEffect } from 'react'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { ID, Query } from 'appwrite'
 import { validateContactNumber } from '@/lib/validation'
 
-const LEADS_COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 import { CalendarDays, Clock, Home, Building2 } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -97,13 +94,7 @@ export default function BookingForm({ contactNumber }: BookingFormProps) {
       } catch { /* ignore */ }
 
       // Active projects from DB — no projects collection yet, skip gracefully
-      try {
-        const res = await databases.listDocuments(DATABASE_ID, 'projects', [
-          Query.equal('status', 'Active'),
-          Query.orderAsc('name'),
-        ])
-        setProjects(res.documents as unknown as ProjectOption[])
-      } catch { /* projects collection optional */ }
+      
     }
     load()
   }, [])
@@ -128,24 +119,7 @@ export default function BookingForm({ contactNumber }: BookingFormProps) {
     if (Object.keys(errs).length) { setErrors(errs); return }
     setStatus('loading'); setErrors({}); setErrorMsg('')
 
-    try {
-      await databases.createDocument(DATABASE_ID, LEADS_COL, ID.unique(), {
-        full_name: fullName.trim(),
-        contact_number: phone.trim(),
-        email: email.trim(),
-        property_of_interest: interestType === 'listing' ? propertyInterest.trim() : null,
-        message: [
-          `Booking: ${date} at ${timeSlot}`,
-          interestType === 'project' && projectId ? `Project ID: ${projectId}` : '',
-          message.trim() || '',
-        ].filter(Boolean).join('\n'),
-        status: 'new',
-      })
-      setStatus('success')
-    } catch {
-      setStatus('error')
-      setErrorMsg(`Booking failed. Please try again or call us at ${contactNumber}.`)
-    }
+    
   }
 
   if (status === 'success') {

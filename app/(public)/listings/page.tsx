@@ -1,6 +1,6 @@
 // app/(public)/listings/page.tsx
 import type { Metadata } from 'next'
-import { PublicListing } from '@/lib/types/public'
+import { PublicListing } from '@/lib/shared/types/public'
 import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
 import FeaturedSearchSection from '@/app/(public)/components/FeaturedSearchSection'
 import FeaturedVideoSection from '@/app/(public)/components/FeaturedVideoSection'

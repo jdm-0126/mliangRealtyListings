@@ -4,11 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
 
-const COL_SOLD = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_SOLD_PROPERTIES!
-const COL_AGENTS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_AGENTS!
 import { 
   DollarSign, 
   TrendingUp, 
@@ -72,18 +68,7 @@ export default function BrokerDashboard() {
     
     const fetchDashboardData = async () => {
       setLoading(true)
-      try {
-        const [soldRes, agentsRes] = await Promise.all([
-          databases.listDocuments(DATABASE_ID, COL_SOLD, [Query.orderDesc('date_sold')]),
-          databases.listDocuments(DATABASE_ID, COL_AGENTS, [Query.equal('status', 'Active'), Query.orderDesc('$createdAt')]),
-        ])
-
-        const soldData = soldRes.documents as unknown as SoldProperty[]
-        setSoldProperties(soldData)
-        setTotalCommission(soldData.reduce((s, p) => p.status === 'Paid' ? s + p.commission_amount : s, 0))
-        setPendingCommission(soldData.reduce((s, p) => p.status === 'Pending' ? s + p.commission_amount : s, 0))
-        setAgents(agentsRes.documents as unknown as Agent[])
-      } catch (e) { console.error(e) }
+      
       setLoading(false)
     }
 

@@ -20,7 +20,7 @@ supabase/
 | `leads` | Contact/inquiry submissions from public site |
 | `website_content` | CMS content blocks for public pages |
 | `system_settings` | Business info, social links, feature flags |
-| `mlianglistings` | *(existing)* Property listing records |
+| `listings` | *(existing)* Property listing records |
 
 ## Seeded Roles
 

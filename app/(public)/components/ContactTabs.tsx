@@ -62,7 +62,7 @@ export default function ContactTabs({ contactNumber, initialPropertyOfInterest =
             <p className="text-xs mb-6" style={{ color: 'var(--est-muted)' }}>
               Want to sell or rent out your property? Share the details and we'll reach out to discuss how we can help you get the best deal.
             </p>
-            <SellerForm contactNumber={contactNumber} />
+            <SellerForm  />
           </>
         )}
       </div>

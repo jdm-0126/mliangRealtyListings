@@ -1,13 +1,7 @@
 'use client'
-// app/(admin)/admin/inquiries/page.tsx
-// View all buyer inquiries and seller/listing submissions in one place.
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL_LEADS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 import { MessageSquare, Home, Phone, Mail, Calendar, Search, X, Tag } from 'lucide-react'
 
 interface Lead {
@@ -33,7 +27,8 @@ function formatDate(iso: string) {
   }).format(new Date(iso))
 }
 
-export default function InquiriesPage() {
+// 1. Move your page logic into a content component
+function InquiriesContent() {
   const searchParams = useSearchParams()
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,23 +42,6 @@ export default function InquiriesPage() {
 
   useEffect(() => {
     async function load() {
-      try {
-        const res = await databases.listDocuments(DATABASE_ID, COL_LEADS, [
-          Query.orderDesc('$createdAt'),
-          Query.limit(50),
-        ])
-        setLeads(res.documents.map(d => ({
-          id: d.$id as unknown as number,
-          full_name: d['full_name'] as string,
-          contact_number: d['contact_number'] as string,
-          email: d['email'] as string,
-          property_of_interest: d['property_of_interest'] as string | null,
-          message: d['message'] as string,
-          created_at: d['$createdAt'] as string,
-        })))
-      } catch (e: any) {
-        setError(e.message)
-      }
       setLoading(false)
     }
     load()
@@ -106,14 +84,17 @@ export default function InquiriesPage() {
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         {/* Type tabs */}
         <div className="flex rounded-lg border border-gray-200 overflow-hidden bg-white flex-shrink-0">
-          {([['all', 'All'], ['buyer', 'Buyers'], ['seller', 'Sellers']] as const).map(([val, label]) => (
-            <button key={val} onClick={() => setFilter(val)}
-              className="px-4 py-2 text-sm font-medium transition-colors"
+          {(['all', 'buyer', 'seller'] as const).map(val => (
+            <button
+              key={val}
+              onClick={() => setFilter(val)}
+              className="px-4 py-2 text-sm font-medium transition-colors capitalize"
               style={{
                 background: filter === val ? '#3b82f6' : 'white',
                 color: filter === val ? 'white' : '#374151',
-              }}>
-              {label}
+              }}
+            >
+              {val === 'all' ? 'All' : val === 'buyer' ? 'Buyers' : 'Sellers'}
             </button>
           ))}
         </div>
@@ -129,7 +110,10 @@ export default function InquiriesPage() {
             className="w-full pl-9 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-900 focus:outline-none focus:border-blue-400"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+            >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
@@ -151,14 +135,15 @@ export default function InquiriesPage() {
             const seller = isSellerLead(lead)
             const isOpen = expanded === lead.id
             return (
-              <div key={lead.id}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-blue-200 transition-colors">
+              <div
+                key={lead.id}
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-blue-200 transition-colors"
+              >
                 {/* Summary row */}
                 <button
                   onClick={() => setExpanded(isOpen ? null : lead.id)}
                   className="w-full flex items-start gap-4 px-5 py-4 text-left"
                 >
-                  {/* Icon */}
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${seller ? 'bg-purple-50' : 'bg-blue-50'}`}>
                     {seller
                       ? <Home className="w-4 h-4 text-purple-600" />
@@ -181,8 +166,12 @@ export default function InquiriesPage() {
                     <p className="text-xs text-gray-400">{formatDate(lead.created_at)}</p>
                   </div>
 
-                  <svg className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform mt-1 ${isOpen ? 'rotate-180' : ''}`}
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform mt-1 ${isOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
@@ -190,15 +179,18 @@ export default function InquiriesPage() {
                 {/* Expanded detail */}
                 {isOpen && (
                   <div className="border-t border-gray-100 px-5 py-4 bg-gray-50 space-y-4">
-                    {/* Contact info */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <a href={`tel:${lead.contact_number}`}
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                      <a
+                        href={`tel:${lead.contact_number}`}
+                        className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                      >
                         <Phone className="w-3.5 h-3.5" />
                         {lead.contact_number}
                       </a>
-                      <a href={`mailto:${lead.email}`}
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                      <a
+                        href={`mailto:${lead.email}`}
+                        className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                      >
                         <Mail className="w-3.5 h-3.5" />
                         {lead.email}
                       </a>
@@ -208,7 +200,6 @@ export default function InquiriesPage() {
                       </span>
                     </div>
 
-                    {/* Property of interest */}
                     {lead.property_of_interest && (
                       <div className="flex items-start gap-2">
                         <Tag className="w-3.5 h-3.5 mt-0.5 text-gray-400 flex-shrink-0" />
@@ -216,25 +207,30 @@ export default function InquiriesPage() {
                       </div>
                     )}
 
-                    {/* Message */}
                     <div className="bg-white rounded-lg border border-gray-200 p-4">
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Message</p>
                       <p className="text-sm text-gray-700 whitespace-pre-wrap">{lead.message}</p>
                     </div>
 
-                    {/* Quick actions */}
                     <div className="flex gap-2 flex-wrap">
-                      <a href={`tel:${lead.contact_number}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                      <a
+                        href={`tel:${lead.contact_number}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                      >
                         <Phone className="w-3 h-3" /> Call
                       </a>
-                      <a href={`mailto:${lead.email}?subject=Re: Your Inquiry with M. Liang Realty`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-gray-200 text-gray-700 hover:border-blue-300 transition-colors">
+                      <a
+                        href={`mailto:${lead.email}?subject=Re: Your Inquiry with M. Liang Realty`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-gray-200 text-gray-700 hover:border-blue-300 transition-colors"
+                      >
                         <Mail className="w-3 h-3" /> Email
                       </a>
-                      <a href={`https://wa.me/${lead.contact_number.replace(/\D/g,'').replace(/^0/,'63')}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 transition-colors">
+                      <a
+                        href={`https://wa.me/${lead.contact_number.replace(/\D/g, '').replace(/^0/, '63')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
+                      >
                         WhatsApp
                       </a>
                     </div>
@@ -246,5 +242,20 @@ export default function InquiriesPage() {
         </div>
       )}
     </div>
+  )
+}
+
+// 2. Export the main page wrapped with Suspense
+export default function InquiriesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-20">
+          <div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-blue-600 animate-spin" />
+        </div>
+      }
+    >
+      <InquiriesContent />
+    </Suspense>
   )
 }

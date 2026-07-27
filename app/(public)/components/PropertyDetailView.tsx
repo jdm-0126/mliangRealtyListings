@@ -6,7 +6,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import type { PublicListing } from '@/lib/types/public'
+import type { PublicListing } from '@/lib/shared/types/public'
 import ImageGallery from '../../../components/ImageGallery'
 
 // ---------------------------------------------------------------------------

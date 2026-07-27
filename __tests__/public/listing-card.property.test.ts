@@ -19,7 +19,7 @@ jest.mock('next/link', () => ({
 }))
 
 import ListingCard from '../../app/(public)/components/ListingCard'
-import { PublicListing } from '../../lib/types/public'
+import { PublicListing } from '../../lib/shared/types/public'
 
 // Generate arbitrary valid PublicListing objects
 const arbitraryListing = fc.record<PublicListing>({

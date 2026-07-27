@@ -2,11 +2,6 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
-const COL_LEADS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 import {
   Home,
   BarChart3,
@@ -94,31 +89,8 @@ export default function AdminDashboard() {
   const [allData, setAllData] = useState<any[]>([])
 
   const fetchData = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [listingsRes, leadsRes] = await Promise.all([
-        databases.listDocuments(DATABASE_ID, COL_LISTINGS, [Query.orderDesc('property_id'), Query.limit(500)]),
-        databases.listDocuments(DATABASE_ID, COL_LEADS, [Query.limit(25)]),
-      ])
-      const data = listingsRes.documents as unknown as Record<string, unknown>[]
-      const leads = leadsRes.documents as unknown as { $id: string; message: string }[]
-      const sellerCount = leads.filter(l => String(l.message || '').startsWith('[SELLER INQUIRY]')).length
-      setAllData(data)
-      setStats({
-        total: data.length,
-        active: data.filter(r => String(r['Status'] || '').toLowerCase() === 'active').length,
-        draft: data.filter(r => String(r['Status'] || '').toLowerCase() === 'draft').length,
-        sold: data.filter(r => String(r['Status'] || '').toLowerCase() === 'sold').length,
-        houseAndLot: data.filter(r => String(r['Type'] || '').toLowerCase().includes('house')).length,
-        lotOnly: data.filter(r => ['lot only', 'lot'].includes(String(r['Type'] || '').toLowerCase())).length,
-        commercial: data.filter(r => String(r['Type'] || '').toLowerCase().includes('commercial')).length,
-        featured: data.filter(r => r['featured'] === true).length,
-        inquiries: leads.length - sellerCount,
-        sellerLeads: sellerCount,
-      })
-      setRecentListings(data.slice(0, 5))
-    } catch (e) { console.error(e) }
     setLoading(false)
+    
   }, [])
 
   useEffect(() => {

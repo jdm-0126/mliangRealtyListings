@@ -5,41 +5,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { CalendarCheck, MessageCircle, UserCheck } from 'lucide-react'
 import { getSocialLinksFromStorage } from '@/lib/social'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL_AGENTS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_AGENTS!
 
 type AgentEntry = { name: string; title: string; phone: string }
 
 const DEFAULT_AGENT: AgentEntry = { name: 'M. Liang', title: 'Licensed Broker', phone: '09393440944' }
 
-async function fetchTodayAgent(): Promise<AgentEntry> {
-  try {
-    const raw = localStorage.getItem('tenantSettings')
-    if (!raw) return DEFAULT_AGENT
-    const parsed = JSON.parse(raw)
-    const ids: (number | null)[] = parsed.agentsOfTheDay
-    if (!Array.isArray(ids) || ids.length !== 7) return DEFAULT_AGENT
-
-    const todayId = ids[new Date().getDay()]
-    if (!todayId) return DEFAULT_AGENT
-
-    const res = await databases.listDocuments(DATABASE_ID, COL_AGENTS, [
-      Query.equal('$id', String(todayId)),
-      Query.equal('status', 'Active'),
-      Query.limit(1),
-    ])
-    if (!res.documents.length) return DEFAULT_AGENT
-    const d = res.documents[0]
-    return {
-      name: d['name'] as string,
-      title: (d['specialization'] as string) || 'Agent',
-      phone: (d['phone'] as string) || '',
-    }
-  } catch {
-    return DEFAULT_AGENT
-  }
+async function fetchTodayAgent() {
+  
 }
 
 export default function BookingCTASection() {
@@ -47,7 +19,7 @@ export default function BookingCTASection() {
   const [agent, setAgent] = useState<AgentEntry>(DEFAULT_AGENT)
 
   useEffect(() => {
-    fetchTodayAgent().then(setAgent)
+    fetchTodayAgent()
 
     // Read Messenger URL from localStorage (set by admin in settings)
     const links = getSocialLinksFromStorage()

@@ -28,14 +28,14 @@ const TENANTS = [
     db: {
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || '(set in .env)',
       anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '(set in .env)',
-      listingsTable: 'mlianglistings',
+      listingsTable: 'listings',
       tenantId: '81b78be3-db0c-41f3-8f6f-e3989114eacf',
     },
     env: [
       { key: 'NEXT_PUBLIC_SUPABASE_URL',      value: process.env.NEXT_PUBLIC_SUPABASE_URL || '' },
       { key: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', value: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '' },
       { key: 'NEXT_PUBLIC_TENANT_SLUG',       value: 'mliang' },
-      { key: 'NEXT_PUBLIC_LISTINGS_TABLE',    value: 'mlianglistings' },
+      { key: 'NEXT_PUBLIC_LISTINGS_TABLE',    value: 'listings' },
       { key: 'NEXT_PUBLIC_TENANT_ID',         value: '81b78be3-db0c-41f3-8f6f-e3989114eacf' },
     ],
     rls: [

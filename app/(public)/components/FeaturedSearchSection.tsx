@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, SlidersHorizontal, Search } from 'lucide-react'
-import { PublicListing } from '@/lib/types/public'
+import { PublicListing } from '@/lib/shared/types/public'
 import ListingCard from './ListingCard'
 
 interface FeaturedSearchSectionProps {

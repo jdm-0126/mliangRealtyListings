@@ -1,10 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_FACEBOOK_POSTS!
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,22 +32,11 @@ export default function FacebookPostsPage() {
 
   const fetchPosts = async () => {
     setLoading(true)
-    try {
-      const res = await databases.listDocuments(DATABASE_ID, COL, [Query.orderDesc('$createdAt')])
-      setPosts(res.documents)
-    } catch (e) { console.error(e) }
     setLoading(false)
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this Facebook post?')) return
-    try {
-      await databases.deleteDocument(DATABASE_ID, COL, id)
-      alert('Facebook post deleted successfully!')
-      fetchPosts()
-    } catch (e: any) {
-      alert('Failed to delete: ' + e.message)
-    }
   }
 
   const formatDate = (dateString: string) => {

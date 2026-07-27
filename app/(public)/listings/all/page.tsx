@@ -2,7 +2,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { PublicListing } from '@/lib/types/public'
+import { PublicListing } from '@/lib/shared/types/public'
 import ListingsClientWrapper from '@/app/(public)/components/ListingsClientWrapper'
 import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
 import { getSlimPublicListings } from '@/lib/listings/publicListings'

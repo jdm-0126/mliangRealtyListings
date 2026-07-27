@@ -285,13 +285,13 @@ ON CONFLICT (section_key) DO NOTHING;
 -- 5. PROPERTY LISTING SAMPLE DATA (seed a few listings for testing)
 -- ============================================================================
 
--- Note: The project uses an existing mlianglistings table with specific column names
+-- Note: The project uses an existing listings table with specific column names
 -- This seed adds a few test properties if the table exists
 
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'mlianglistings') THEN
-    INSERT INTO mlianglistings (
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'listings') THEN
+    INSERT INTO listings (
       "Type", "Location", "Village", "Listing Price", "Lot Area sqm", 
       "Floor Area sqm", "Bedroom", "Bathroom", "Notes", "Status", "Preview Photo"
     ) VALUES

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { TENANT_DEFAULTS } from '@/lib/types/public'
+import { TENANT_DEFAULTS } from '@/lib/shared/types/public'
 import AboutContent from './AboutContent'
 
 export const revalidate = 3600 // rebuild at most once per hour

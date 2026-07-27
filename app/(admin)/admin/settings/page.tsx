@@ -2,12 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
 
-const COL_AGENTS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_AGENTS!
-const COL_SOLD = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_SOLD_PROPERTIES!
-const COL_BROKERS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_BROKERS!
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -146,17 +141,6 @@ export default function SettingsPage() {
     }
 
     // Load active agents from DB for the dropdown pool
-    databases.listDocuments(DATABASE_ID, COL_AGENTS, [
-      Query.equal('status', 'Active'),
-      Query.orderAsc('name'),
-    ]).then(res => {
-      setAgentPool(res.documents.map(d => ({
-        id: d.$id as unknown as number,
-        name: d['name'] as string,
-        phone: d['phone'] as string | null,
-        specialization: d['specialization'] as string | null,
-      })))
-    }).catch(() => {})
 
     setMaintenanceModeState(localStorage.getItem('maintenanceMode') === 'true')
 
@@ -894,7 +878,7 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
                     Table Name
                   </label>
-                  <Input defaultValue="mlianglistings" disabled />
+                  <Input defaultValue="listings" disabled />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>

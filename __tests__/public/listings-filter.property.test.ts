@@ -6,7 +6,7 @@
  * ALL active filter predicates simultaneously.
  */
 import * as fc from 'fast-check'
-import { PublicListing } from '../../lib/types/public'
+import { PublicListing } from '../../lib/shared/types/public'
 
 // ---------------------------------------------------------------------------
 // Filter predicate functions — mirror the logic in ListingsClientWrapper

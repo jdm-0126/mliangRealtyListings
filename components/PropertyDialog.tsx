@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { ID } from 'appwrite'
+import { supabase } from '@/lib/supabase/client'
+import { TABLES } from '@/lib/constants'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { X, Plus, Minus, Upload, Eye, EyeOff } from 'lucide-react'
+import { normalizePayload } from '@/lib/helpers/normalizePayload'
 
 interface PropertyDialogProps {
   property: any
@@ -23,28 +24,43 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showListingAgent, setShowListingAgent] = useState(false)
 
-  const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
+  const numberFields = [
+  'Listing_Price',
+  'Lot_Area_sqm',
+  'Floor_Area_sqm',
+  'Bedroom',
+  'Bathroom',
+  'Garage',
+]
+const textareaFields = [
+  'description',
+  'notes',
+]
+const hiddenFields = [
+  'id',
+  'created_at',
+  'updated_at',
+]
+
 
   useEffect(() => {
     if (property) {
       setFormData({ ...property })
-      setPreviewImage(property['Preview_Photo'] || '')
+      setPreviewImage(property.preview_photo || '')
     } else {
       // Don't auto-generate property_id - let user enter it manually or leave empty
       setFormData({
           // 'property_id' is optional - user can provide it
-          Status: 'Active',
-          Type: 'Residential',
-          CGT: 'Seller',
-          'Transfer Title': 'Buyer',
-          'Listing Mode': 'For Sale',
-          'Lot Area sqm': '100',
-          'Floor Area sqm': '100',
-          Location: 'City of San Fernando',
-          'Listing Price': '',
-          Negotiable: 'Yes',
-          Preview_Photo: '',
-          Financing_options: 'Bank Financing'
+          status: 'Active',
+          type: 'Residential',
+          cgt: 'Seller',
+          transfer_title: 'Buyer',
+          listing_mode: 'For Sale',
+          lot_area_sqm: 100,
+          floor_area_sqm: 100,
+          listing_price: '',
+          preview_photo: '',
+          financing_options: 'Bank Financing',
         })
       setPreviewImage('')
     }
@@ -74,7 +90,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
       reader.onloadend = () => {
         const base64String = reader.result as string
         setPreviewImage(base64String)
-        setFormData((prev: any) => ({ ...prev, Preview_Photo: base64String }))
+        setFormData((prev: any) => ({ ...prev, preview_photo: base64String }))
         setUploadingImage(false)
       }
       reader.onerror = () => {
@@ -90,7 +106,7 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
 
   const removePreviewImage = () => {
     setPreviewImage('')
-    setFormData((prev: any) => ({ ...prev, Preview_Photo: '' }))
+    setFormData((prev: any) => ({ ...prev, preview_photo: '' }))
   }
 
   const parseExcelData = () => {
@@ -108,97 +124,73 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
     setPasteData('')
   }
   
-  function normalizePropertyPayload(payload: any) {
-  const clean = { ...payload }
 
-  const floatFields = [
-    "Listing_Price",
-  ]
+  const clean = { ...formData }
 
-  const intFields = [
-    "property_id",
-    "Lot Area sqm",
-    "Floor Area sqm",
-    "Bedroom",
-    "Garage",
-    "T&B",
-  ]
-
-  floatFields.forEach(field => {
-    if (field in clean) {
-      clean[field] =
-        clean[field] === ""
-          ? null
-          : Number(
-              String(clean[field])
-                .replace(/[₱,\s]/g, "")
-            )
-    }
-  })
-
-  intFields.forEach(field => {
-    if (field in clean) {
-      clean[field] =
-        clean[field] === ""
-          ? null
-          : parseInt(clean[field], 10)
-    }
-  })
   
-  return clean
-  }
-  const {
-  $id,
-  $collectionId,
-  $databaseId,
-  $createdAt,
-  $updatedAt,
-  $permissions,
-  ...clean
-} = formData
-
-const payload = normalizePropertyPayload(clean)
 
   const handleCreate = async () => {
-    setLoading(true)
-    // Strip Appwrite system fields before insert
-    const { $id, $collectionId, $databaseId, $createdAt, $updatedAt, $permissions, ...clean } = formData
-    const pid = clean['property_id']
-    if (!pid || String(pid).trim() === '' || pid === 0 || pid === '0' || isNaN(Number(pid))) {
-      delete clean['property_id']
-    } else {
-      clean['property_id'] = Number(pid)
+  setLoading(true)
+
+  try {
+    const payload = normalizePayload(formData)
+
+    if (!payload.property_id) {
+      delete payload.property_id
     }
-    try {
-      await databases.createDocument(DATABASE_ID, COL, ID.unique(), clean)
-      alert('Record successfully added!')
-      onClose()
-    } catch (err: any) {
-      alert('Error: ' + (err?.message ?? String(err)))
-    }
+
+    const { error } = await supabase
+      .from(TABLES.listings)
+      .insert(payload)
+
+    if (error) throw error
+
+    onClose()
+  } catch (err: any) {
+    alert(err.message)
+  } finally {
     setLoading(false)
   }
+}
   
-  const handleUpdate = async () => {
-    
-    setLoading(true)
-    const { $id, $collectionId, $databaseId, $createdAt, $updatedAt, $permissions, ...clean } = formData
-    try {
-      await databases.updateDocument(
-        DATABASE_ID,
-        COL,
-        property.$id,
-        payload
-      )
-      alert('Record successfully updated!')
-      onClose()
-    } catch (err: any) {
-      alert(`Error: ${err?.message ?? String(err)}`)
-    }
+ const handleUpdate = async () => {
+  setLoading(true)
+
+  try {
+    const payload = normalizePayload(formData)
+
+    const { error } = await supabase
+      .from(TABLES.listings)
+      .update(payload)
+      .eq('property_id', property.property_id)
+
+    if (error) throw error
+
+    onClose()
+  } catch (err: any) {
+    alert(err.message)
+  } finally {
     setLoading(false)
   }
+}
+const selectFields: Record<string, string[]> = {
+  Status: ['Draft','Active','Sold'],
+  Type: ['Residential','Lot','Commercial'],
+  Listing_Mode: ['For Sale','For Rent'],
+  CGT: ['Seller','Buyer'],
+  Transfer_Title: ['Buyer','Seller'],
+  Negotiable: ['Yes','No'],
+  Financing_Options: [
+    'Cash',
+    'Bank Financing',
+    'Pagibig',
+    'Inhouse',
+    'Others',
+  ],
+}
 
   if (!isOpen) return null
+
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
@@ -305,10 +297,10 @@ const payload = normalizePropertyPayload(clean)
                         </label>
                         <input
                           type="text"
-                          value={formData['Preview_Photo'] || ''}
+                          value={formData.preview_photo || ''}
                           onChange={(e) => {
                             setPreviewImage(e.target.value)
-                            setFormData((prev: any) => ({ ...prev, Preview_Photo: e.target.value }))
+                            setFormData((prev: any) => ({ ...prev, preview_photo: e.target.value }))
                           }}
                           placeholder="https://example.com/image.jpg"
                           className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
@@ -325,7 +317,7 @@ const payload = normalizePropertyPayload(clean)
                   </label>
                   <Input
                     type="text"
-                    value={formData['Photos'] || ''}
+                    value={formData.photos|| ''}
                     onChange={(e) => setFormData((prev: any) => ({ ...prev, Photos: e.target.value }))}
                     placeholder="Paste Google Photos album link here..."
                   />
@@ -340,8 +332,8 @@ const payload = normalizePropertyPayload(clean)
                   </label>
                   <Input
                     type="text"
-                    value={formData['FB_Link'] || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, FB_Link: e.target.value }))}
+                    value={formData.fb_link|| ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, fb_link: e.target.value }))}
                     placeholder="Paste Facebook post or marketplace link here..."
                   />
                   <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
@@ -355,8 +347,8 @@ const payload = normalizePropertyPayload(clean)
                   </label>
                   <Input
                     type="text"
-                    value={formData['Video_URL'] || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, Video_URL: e.target.value }))}
+                    value={formData.video_url || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, video_url: e.target.value }))}
                     placeholder="https://yourstorage.com/property-video.mp4"
                   />
                   <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
@@ -370,8 +362,8 @@ const payload = normalizePropertyPayload(clean)
                   </label>
                   <Input
                     type="text"
-                    value={formData['Facebook_Video_URL'] || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, Facebook_Video_URL: e.target.value }))}
+                    value={formData.facebook_video_url || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, facebook_video_url: e.target.value }))}
                     placeholder="https://www.facebook.com/reel/... or watch?v=..."
                   />
                   <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
@@ -385,8 +377,8 @@ const payload = normalizePropertyPayload(clean)
                   </label>
                   <Input
                     type="text"
-                    value={formData['Tiktok_Video_URL'] || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, Tiktok_Video_URL: e.target.value }))}
+                    value={formData.tiktok_video_url || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, tiktok_video_url: e.target.value }))}
                     placeholder="https://www.tiktok.com/@user/video/..."
                   />
                   <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
@@ -427,11 +419,11 @@ const payload = normalizePropertyPayload(clean)
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {columns
                 .filter(key => {
-                  const photoColumns = ['Photos', 'FB_Link', 'Preview_Photo', 'Video_URL', 'Facebook_Video_URL', 'Tiktok_Video_URL']
+                  const photoColumns = ['photos', 'fb_link', 'preview_photo', 'video_url', 'facebook_video_url', 'tiktok_video_url']
                   return !photoColumns.some(col => col.toLowerCase() === key.toLowerCase())
                 })
                 .filter(key => {
-                  const isLotOnly = formData['Type'] === 'Lot'
+                  const isLotOnly = formData.type === 'Lot'
                   const houseOnlyFields = ['Floor_Area_sqm', 'Bedroom', 'T&B', 'Garage']
                   if (isLotOnly && houseOnlyFields.includes(key)) return false
                   // Skip Appwrite system fields
@@ -512,7 +504,7 @@ const payload = normalizePropertyPayload(clean)
                       <option value="Seller">Seller</option>
                       <option value="Buyer">Buyer</option>
                     </select>
-                  ) : key === 'Transfer Title' ? (
+                  ) : key === 'transfer_title' ? (
                     <select
                       value={formData[key] || 'Buyer'}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, [key]: e.target.value }))}
@@ -542,7 +534,7 @@ const payload = normalizePropertyPayload(clean)
                       <option value="Inhouse">Inhouse</option>
                       <option value="Others">Others</option>
                     </select>
-                  ) : key === 'Listing Mode' ? (
+                  ) : key === 'listing_mode' ? (
                     <div className="flex gap-3">
                       {(['For Sale', 'For Rent'] as const).map(mode => (
                         <label
@@ -613,7 +605,7 @@ const payload = normalizePropertyPayload(clean)
                       className="w-full p-3 border border-gray-300 rounded-md text-black resize-none"
                       placeholder={key === 'Description' ? "Enter property description..." : "Enter property details, features, and additional information..."}
                     />
-                  ) : key.toLowerCase().includes('Listing_Price') ? (
+                  ) : key.toLowerCase().includes('listing_price') ? (
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
                       <Input
@@ -634,6 +626,7 @@ const payload = normalizePropertyPayload(clean)
                   )}
                 </div>
               ))}
+              
             </div>
           </div>
         </div>

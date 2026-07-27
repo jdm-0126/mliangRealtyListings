@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
 import { uploadManyToCloudinary, buildPropertyUploadFolder, buildPropertyGalleryRecord, buildSharpenedCloudinaryUrl } from '@/lib/cloudinary'
 import { MapPin, Maximize2, Home, BedDouble, Bath, Edit, Trash2, X, ImagePlus, Facebook, UploadCloud } from 'lucide-react'
 import { Badge } from './ui/badge'
@@ -11,7 +10,6 @@ import { Button } from './ui/button'
 import { Tooltip } from './ui/tooltip'
 import FeaturedToggle from './FeaturedToggle'
 
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 
 interface PropertyCardProps {
   property: any
@@ -61,22 +59,22 @@ export default function PropertyCard({
   const editMode = !!(onEdit && onDelete)
 
   // Field names (Appwrite uses underscores)
-  const previewPhoto: string | null = property['Preview_Photo'] || null
-  const price = property['Listing_Price']
-  const lotArea = property['Lot_Area_sqm']
-  const floorArea = property['Floor_Area_sqm']
-  const bedrooms = property['Bedroom']
-  const bathrooms = property['Bathroom']
-  const location: string = property['Location'] || ''
-  const village: string = property['Village'] || ''
-  const type: string = property['Type'] || ''
-  const status: string = property['Status'] || 'Draft'
-  const listingMode: string | null = property['Listing_Mode'] || null
-  const facebookLink: string | null = property['FB_Link'] || property['fb_link'] || property['Facebook_URL'] || property['facebook_url'] || property['Facebook_Video_URL'] || property['facebook_video_url'] || null
-  const description: string | null = property['Description'] || property['description'] || property['Notes'] || property['notes'] || null
-  const rawId = Number(property['property_id'])
-  const displayId = rawId > 2 ? rawId - 1 : rawId
-  const href = `/properties/${displayId}`
+  const previewPhoto: string | null = property.preview_photo || null
+  const price = property.listing_price
+  const lotArea = property.lotArea
+  const floorArea = property.floorArea
+  const bedrooms = property.bedrooms
+  const bathrooms = property.bathrooms
+  const location: string = property.location || ''
+  const village: string = property.village || ''
+  const type: string = property.type || ''
+  const status: string = property.status || 'Active'
+  const listingMode: string | null = property.listingMode || null
+  const facebookLink: string | null = property.facebookLink || property['fb_link'] || property['Facebook_URL'] || property['facebook_url'] || property['Facebook_Video_URL'] || property['facebook_video_url'] || null
+  const description: string | null = property.description || property['description'] || property.notes || property['notes'] || null
+  const rawId = Number(property.property_id)
+  const displayId = rawId
+  const href = `/admin/properties/${displayId}`
 
   const locationText = [village, location].filter(Boolean).join(', ')
   const displayType = formatListingType(type)
@@ -99,6 +97,7 @@ export default function PropertyCard({
 
   useEffect(() => {
     const node = imageRef.current
+    
     if (!node) return
 
     // If already in viewport, show immediately
@@ -107,7 +106,7 @@ export default function PropertyCard({
       setInView(true)
       return
     }
-
+    
     const observer = new IntersectionObserver(
       entries => { if (entries[0].isIntersecting) { setInView(true); observer.disconnect() } },
       { rootMargin: '200px 0px' }
@@ -160,27 +159,7 @@ export default function PropertyCard({
     );
 
     // Create gallery records
-    await Promise.all(
-      uploads.map(upload =>
-        databases.createDocument(
-          DATABASE_ID,
-          process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!,
-          "unique()",
-          buildPropertyGalleryRecord({
-            tenantId,
-            propertyId,
-            title:
-              property["Title"] ??
-              property["Location"] ??
-              `Property ${propertyId}`,
-            secureUrl: upload.secure_url,
-            publicId: upload.public_id,
-            category: "property",
-            isFeatured: false,
-          })
-        )
-      )
-    );
+   
 
     // Merge with existing photos
     const existingPhotos = Array.isArray(property["Photos"])
@@ -193,15 +172,7 @@ export default function PropertyCard({
       property["Preview_Photo"] || uploadedUrls[0];
 
     // Update listing
-    await databases.updateDocument(
-      DATABASE_ID,
-      COL_LISTINGS,
-      property.$id,
-      {
-        Photos: photos,
-        Preview_Photo: previewPhoto,
-      }
-    );
+    
 
     // Update local object so the UI changes immediately
     property["Photos"] = photos;
@@ -228,15 +199,7 @@ export default function PropertyCard({
 };
 
   const handlePhotoUpdate = async () => {
-    if (!newPhotoUrl.trim()) return
-    try {
-      await databases.updateDocument(DATABASE_ID, COL_LISTINGS, property['$id'], { Preview_Photo: newPhotoUrl })
-      property['Preview_Photo'] = newPhotoUrl
-      setIsEditingPhoto(false)
-      setNewPhotoUrl('')
-    } catch (e: any) {
-      alert('Error updating photo: ' + e.message)
-    }
+    
   }
   // Keep the local object in sync
 

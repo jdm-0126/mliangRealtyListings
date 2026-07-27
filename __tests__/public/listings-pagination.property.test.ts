@@ -36,7 +36,7 @@ jest.mock('../../app/(public)/components/ListingCard', () => ({
 // ---------------------------------------------------------------------------
 
 import ListingsClientWrapper from '../../app/(public)/components/ListingsClientWrapper'
-import { PublicListing } from '../../lib/types/public'
+import { PublicListing } from '../../lib/shared/types/public'
 
 // ---------------------------------------------------------------------------
 // Pure pagination logic (mirrors ListingsClientWrapper internals)

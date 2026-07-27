@@ -1,0 +1,147 @@
+// lib/types/public.ts
+
+export interface PublicListing {
+  id?: number           // alias used by tests and some components
+  property_id?: number  // Appwrite document field
+  $id?: string          // Appwrite document $id — needed for updates
+  displayId: number          // id > 2 ? id - 1 : id
+  type: string
+  title: string
+  location: string
+  village?: string
+  price: number | null
+  lotArea: number | null
+  floorArea: number | null
+  bedrooms: number | null
+  bathrooms: number | null
+  previewPhoto: string | null
+  photos: string[]
+  notes: string
+  status: string
+  mapUrl?: string | null
+  videoUrl?: string | null
+  facebookVideoUrl?: string | null
+  tiktokVideoUrl?: string | null
+  featured?: boolean
+  listingMode?: string  // 'For Sale' | 'For Rent'
+  updatedAt?: string
+}
+
+export interface TenantSettings {
+  businessName: string
+  brokerName: string
+  brokerTitle: string
+  prcNumber: string
+  officeAddress: string
+  contactNumber: string
+  emailAddress: string
+}
+
+export const TENANT_DEFAULTS: TenantSettings = {
+  businessName:  'M. Liang Realty',
+  brokerName:    'M. Liang',
+  brokerTitle:   'Licensed Real Estate Broker',
+  prcNumber:     '0019653',
+  officeAddress: 'S10, 2nd Floor Plaza Cristina Building, Dolores, City of San Fernando, Pampanga',
+  contactNumber: '09393440944',
+  emailAddress:  'contact@realtyprov1.com',
+}
+
+export interface LeadInsert {
+  full_name: string
+  contact_number: string
+  email: string
+  property_of_interest?: string
+  message: string
+  created_at: string   // ISO 8601 UTC
+}
+
+export interface SocialConfig {
+  facebook?:  string
+  instagram?: string
+  tiktok?:    string
+  youtube?:   string
+  viber?:     string
+  whatsapp?:  string
+}
+
+export interface MonthlyPayment {
+  years: number;
+  months: number;
+  monthly: number;
+  totalPaid: number;
+  totalInterest: number;
+}
+
+export interface FinancingResult {
+  totalPrice: number;
+  equity: number;
+  loanAmount: number;
+  rawMortgage?: number;
+  monthlyPayments: MonthlyPayment[];
+}
+
+
+export interface PropertyGalleryImage {
+  id: string;
+  listingId: number;
+  url: string;
+  publicId?: string;
+  title?: string;
+  isFeatured: boolean;
+}
+export interface UseFacebookPostProps {
+  property: PublicListing | null;
+  tenantSettings: TenantSettings;
+  hasPhotos?: boolean;
+  hasVideo?: boolean;
+}
+
+export interface FacebookPreviewProps {
+  property: any
+  hasPhotos: boolean
+  hasVideo: boolean
+  tenantSettings: TenantSettings
+}
+
+export interface BuildFacebookPostOptions {
+  property: PublicListing | null;
+  tenantSettings: TenantSettings;
+  hasPhotos?: boolean;
+  hasVideo?: boolean;
+}
+
+export interface WebsiteContentSection {
+  key: string
+  name: string
+  entries: WebsiteContentEntry[]
+}
+
+export interface GalleryItem {
+  id: string
+  title: string | null
+  description: string | null
+  category: 'property' | 'event' | 'general'
+  cloudinary_secure_url: string
+  is_featured: boolean
+  created_at: string
+}
+
+export type WebsiteContentType = 'text' | 'html' | 'json'
+
+export interface WebsiteContentEntry {
+  id?: string
+  section_key: string
+  content_type: WebsiteContentType
+  content_value: string
+  is_active?: boolean
+  display_order?: number
+}
+
+export interface FeaturedToggleProps {
+  propertyId: number
+  isFeatured: boolean | null | undefined
+  canToggle: boolean
+  onToggle?: (newValue: boolean) => void
+}
+

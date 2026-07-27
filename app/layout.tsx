@@ -1,51 +1,14 @@
-import type { Metadata } from "next";
-import { Urbanist } from "next/font/google";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next"
-import { BRAND_COLOR_STORAGE_KEY, DEFAULT_BRAND_COLOR, isValidBrandColor } from '@/lib/theme/brandColor'
-import BrandColorInitializer from '@/app/(admin)/components/BrandColorInitializer'
-
-// Only load Urbanist — the single font actually used across the UI.
-// Removing Geist/Geist_Mono eliminates two extra font file round-trips.
-const urbanist = Urbanist({
-  variable: "--font-urbanist",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",      // show system font immediately, swap when ready
-  preload: true,
-});
-
-const shouldLoadAnalytics = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_URL) || process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' || process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
-
-export const metadata: Metadata = {
-  title: "realtyprov1- Property Management System",
-  description: "Modern property listings management system for real estate professionals",
-  icons: {
-    icon: "/favicon.ico",
-  },
-};
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Admin theme: inject before hydration to prevent flash */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('adminTheme');if(t==='dark')document.documentElement.setAttribute('data-admin-theme','dark');}catch(e){}try{var c=localStorage.getItem('${BRAND_COLOR_STORAGE_KEY}');var d='${DEFAULT_BRAND_COLOR}';if(c&&${isValidBrandColor(DEFAULT_BRAND_COLOR).toString()}){if(/^#[0-9a-f]{3,6}$/i.test(c)){document.documentElement.style.setProperty('--est-purple',c);document.documentElement.style.setProperty('--est-purple-h',c);}}else{document.documentElement.style.setProperty('--est-purple',d);document.documentElement.style.setProperty('--est-purple-h',d);}}catch(e){}})();`,
-          }}
-        />
-      </head>
-      <body
-        className={`${urbanist.variable} antialiased`}
-      >
-        <BrandColorInitializer />
+      <body>
         {children}
-        {shouldLoadAnalytics ? <Analytics /> : null}
       </body>
     </html>
   );

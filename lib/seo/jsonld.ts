@@ -1,6 +1,6 @@
 // lib/seo/jsonld.ts
 
-import { TenantSettings, PublicListing } from '../types/public'
+import { TenantSettings, PublicListing } from '../shared/types/public'
 
 /**
  * Generates the canonical detail page title for a property.

@@ -1,6 +1,6 @@
 // Server Component — no 'use client' needed
 import Link from 'next/link'
-import { TenantSettings } from '@/lib/types/public'
+import { TenantSettings } from '@/lib/shared/types/public'
 import SocialLinks from './SocialLinks'
 
 interface PublicFooterProps {

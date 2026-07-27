@@ -137,59 +137,59 @@ ON CONFLICT DO NOTHING;
 
 
 -- ============================================================================
--- 4. MLIANGLISTINGS — columns, RLS, indexes
+-- 4. listings — columns, RLS, indexes
 -- ============================================================================
 
 -- Extra columns (table itself is pre-existing in Supabase)
-ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS featured       BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS "Preview Photo" TEXT;
-ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS "Listing Mode"  TEXT NOT NULL DEFAULT 'For Sale'
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS featured       BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS "Preview Photo" TEXT;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS "Listing Mode"  TEXT NOT NULL DEFAULT 'For Sale'
   CHECK ("Listing Mode" IN ('For Sale', 'For Rent'));
-ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS tenant_id      INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS "Map URL"      TEXT;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS tenant_id      INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS "Map URL"      TEXT;
 
 -- Back-fill
-UPDATE mlianglistings SET tenant_id = 1      WHERE tenant_id IS NULL;
-UPDATE mlianglistings SET "Listing Mode" = 'For Rent' WHERE "Notes" ILIKE '[FOR RENT]%';
+UPDATE listings SET tenant_id = 1      WHERE tenant_id IS NULL;
+UPDATE listings SET "Listing Mode" = 'For Rent' WHERE "Notes" ILIKE '[FOR RENT]%';
 
 -- RLS
-ALTER TABLE mlianglistings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "public_read_listings"        ON mlianglistings;
+DROP POLICY IF EXISTS "public_read_listings"        ON listings;
 CREATE POLICY "public_read_listings"
-  ON mlianglistings FOR SELECT TO anon, authenticated USING (true);
+  ON listings FOR SELECT TO anon, authenticated USING (true);
 
-DROP POLICY IF EXISTS "authenticated_write_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "authenticated_write_listings" ON listings;
 CREATE POLICY "authenticated_write_listings"
-  ON mlianglistings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  ON listings FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "anon_update_featured_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "anon_update_featured_listings" ON listings;
 CREATE POLICY "anon_update_featured_listings"
-  ON mlianglistings FOR UPDATE TO anon USING (true) WITH CHECK (true);
+  ON listings FOR UPDATE TO anon USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "anon_insert_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "anon_insert_listings" ON listings;
 CREATE POLICY "anon_insert_listings"
-  ON mlianglistings FOR INSERT TO anon WITH CHECK (true);
+  ON listings FOR INSERT TO anon WITH CHECK (true);
 
-DROP POLICY IF EXISTS "anon_delete_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "anon_delete_listings" ON listings;
 CREATE POLICY "anon_delete_listings"
-  ON mlianglistings FOR DELETE TO anon USING (true);
+  ON listings FOR DELETE TO anon USING (true);
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_featured
-  ON mlianglistings (featured) WHERE featured = TRUE;
+  ON listings (featured) WHERE featured = TRUE;
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_tenant_id
-  ON mlianglistings (tenant_id);
+  ON listings (tenant_id);
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_property_id
-  ON mlianglistings ("property_id" DESC);
+  ON listings ("property_id" DESC);
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_tenant_property_id
-  ON mlianglistings (tenant_id, "property_id" DESC);
+  ON listings (tenant_id, "property_id" DESC);
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_tenant_status_property_id
-  ON mlianglistings (tenant_id, "Status", "property_id" DESC);
+  ON listings (tenant_id, "Status", "property_id" DESC);
 
 
 -- ============================================================================
@@ -275,10 +275,10 @@ CREATE INDEX IF NOT EXISTS idx_sold_properties_agent     ON sold_properties(agen
 
 
 -- ============================================================================
--- 8. GALLERY (GalleryMliang)
+-- 8. GALLERY (gallery)
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS "GalleryMliang" (
+CREATE TABLE IF NOT EXISTS "gallery" (
   id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id             UUID,
   category              TEXT        NOT NULL DEFAULT 'general'
@@ -299,19 +299,19 @@ CREATE TABLE IF NOT EXISTS "GalleryMliang" (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE "GalleryMliang" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "gallery" ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "anon_select_gallery" ON "GalleryMliang";
-CREATE POLICY "anon_select_gallery" ON "GalleryMliang" FOR SELECT TO anon USING (true);
+DROP POLICY IF EXISTS "anon_select_gallery" ON "gallery";
+CREATE POLICY "anon_select_gallery" ON "gallery" FOR SELECT TO anon USING (true);
 
-DROP POLICY IF EXISTS "anon_insert_gallery" ON "GalleryMliang";
-CREATE POLICY "anon_insert_gallery" ON "GalleryMliang" FOR INSERT TO anon WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_insert_gallery" ON "gallery";
+CREATE POLICY "anon_insert_gallery" ON "gallery" FOR INSERT TO anon WITH CHECK (true);
 
-DROP POLICY IF EXISTS "anon_update_gallery" ON "GalleryMliang";
-CREATE POLICY "anon_update_gallery" ON "GalleryMliang" FOR UPDATE TO anon USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_update_gallery" ON "gallery";
+CREATE POLICY "anon_update_gallery" ON "gallery" FOR UPDATE TO anon USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "anon_delete_gallery" ON "GalleryMliang";
-CREATE POLICY "anon_delete_gallery" ON "GalleryMliang" FOR DELETE TO anon USING (true);
+DROP POLICY IF EXISTS "anon_delete_gallery" ON "gallery";
+CREATE POLICY "anon_delete_gallery" ON "gallery" FOR DELETE TO anon USING (true);
 
 
 -- ============================================================================

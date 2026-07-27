@@ -1,15 +1,14 @@
 'use client'
 
+
+import { supabase } from "@/lib/supabase/client"
+import { TABLES } from "@/lib/constants"
 import React, { useState, useCallback } from 'react'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
 import {
   X, AlertTriangle, Copy, Image as ImageIcon, Layers,
   ChevronDown, ChevronUp, Pencil, Trash2,
 } from 'lucide-react'
 import { Button } from './ui/button'
-
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 
 interface DuplicateGroup {
   reason: 'image' | 'price+lot' | 'price+lot+floor'
@@ -37,7 +36,7 @@ function detectDuplicates(rows: any[]): DuplicateGroup[] {
 
   const byImage = new Map<string, any[]>()
   for (const r of rows) {
-    const img = norm(r['Preview_Photo'])
+    const img = norm(r.preview_photo)
     if (!img || img.length < 10) continue
     if (!byImage.has(img)) byImage.set(img, [])
     byImage.get(img)!.push(r)
@@ -49,7 +48,9 @@ function detectDuplicates(rows: any[]): DuplicateGroup[] {
 
   const byPriceLot = new Map<string, any[]>()
   for (const r of rows) {
-    const price = numVal(r['Listing_Price']); const lot = numVal(r['Lot_Area_sqm'])
+    const price = numVal(r.listing_price)
+    const floor = numVal(r.floor_area_sqm)
+    const lot = numVal(r.lot_area_sqm)
     if (!price || !lot) continue
     const key = `${price}|${lot}`
     if (!byPriceLot.has(key)) byPriceLot.set(key, [])
@@ -63,7 +64,7 @@ function detectDuplicates(rows: any[]): DuplicateGroup[] {
 
   const byAll = new Map<string, any[]>()
   for (const r of rows) {
-    const price = numVal(r['Listing_Price']); const lot = numVal(r['Lot_Area_sqm']); const floor = numVal(r['Floor_Area_sqm'])
+    const price = numVal(r['listing_price']); const lot = numVal(r['lot_area_sqm']); const floor = numVal(r['floor_area_sqm'])
     if (!price || !lot || !floor) continue
     const key = `${price}|${lot}|${floor}`
     if (!byAll.has(key)) byAll.set(key, [])
@@ -107,7 +108,7 @@ interface GroupRowProps {
 
 function GroupRow({ group, selected, onToggle, onToggleAll, onEdit, onDeleteOne }: GroupRowProps) {
   const [open, setOpen] = useState(true)
-  const ids = group.properties.map(p => p['$id'] as string)
+  const ids = group.properties.map(p => String(p.property_id))
   const allSelected = ids.every(id => selected.has(id))
   const someSelected = ids.some(id => selected.has(id))
 
@@ -141,15 +142,15 @@ function GroupRow({ group, selected, onToggle, onToggleAll, onEdit, onDeleteOne 
           {group.properties.map((p) => {
             const rawId = Number(p['property_id'])
             const displayId = rawId > 2 ? rawId - 1 : rawId
-            const location = [p['Village'], p['Location']].filter(Boolean).join(', ') || '—'
-            const lot = numVal(p['Lot_Area_sqm'])
-            const floor = numVal(p['Floor_Area_sqm'])
-            const img = p['Preview_Photo']
+            const location = [p.village, p.location].filter(Boolean).join(", ")
+            const lot = numVal(p['lot_area_sqm'])
+            const floor = numVal(p['floor_area_sqm'])
+            const img = norm(p.preview_photo)
             const isSelected = selected.has(p['$id'])
 
             return (
               <div
-                key={p['$id']}
+                key={p.property_id}
                 className={`flex items-center gap-3 px-4 py-2.5 transition-colors ${isSelected ? 'bg-red-50/60' : ''}`}
               >
                 {/* Row checkbox */}
@@ -171,10 +172,10 @@ function GroupRow({ group, selected, onToggle, onToggleAll, onEdit, onDeleteOne 
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-700">#{displayId} · {p['Type'] || '—'}</p>
+                  <p className="text-xs font-semibold text-gray-700">#{displayId} · {p['type'] || '—'}</p>
                   <p className="text-xs text-gray-500 truncate">{location}</p>
                   <p className="text-xs text-gray-500">
-                    {formatPrice(p['Listing_Price'])}
+                    {formatPrice(p['listing_price'])}
                     {lot ? ` · ${lot} sqm lot` : ''}
                     {floor ? ` · ${floor} sqm floor` : ''}
                   </p>
@@ -183,11 +184,11 @@ function GroupRow({ group, selected, onToggle, onToggleAll, onEdit, onDeleteOne 
                 {/* Status + actions */}
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    (p['Status'] || '').toLowerCase() === 'active'
+                    (p['status'] || '').toLowerCase() === 'active'
                       ? 'bg-green-100 text-green-700'
                       : 'bg-gray-100 text-gray-500'
                   }`}>
-                    {p['Status'] || 'Draft'}
+                    {p['status'] || 'Draft'}
                   </span>
                   <button
                     onClick={() => onEdit(p)}
@@ -244,73 +245,99 @@ export default function DuplicateDetector({ onClose, onEdit, onDelete }: Props) 
 
   // ── Remove deleted ids from groups state ──────────────────────────────────
   const removeFromGroups = (ids: Set<string>) =>
-    setGroups(prev =>
-      prev
-        .map(g => ({ ...g, properties: g.properties.filter(x => !ids.has(x['$id'])) }))
-        .filter(g => g.properties.length >= 2)
-    )
+  setGroups(prev =>
+    prev
+      .map(group => ({
+        ...group,
+        properties: group.properties.filter(
+          p => !ids.has(String(p.property_id))
+        ),
+      }))
+      .filter(group => group.properties.length >= 2)
+  )
 
   // ── Single delete ─────────────────────────────────────────────────────────
   const handleDeleteOne = async (p: any) => {
-    const rawId = Number(p['property_id'])
-    const displayId = rawId > 2 ? rawId - 1 : rawId
-    if (!confirm(`Delete Property #${displayId}? This cannot be undone.`)) return
-    try {
-      await databases.deleteDocument(DATABASE_ID, COL_LISTINGS, p['$id'])
-      removeFromGroups(new Set([p['$id']]))
-      setSelected(prev => { const s = new Set(prev); s.delete(p['$id']); return s })
-      onDelete(p)
-    } catch (e: any) {
-      alert('Error deleting: ' + e.message)
-    }
+  if (
+    !confirm(
+      `Delete Property #${p.property_id}? This cannot be undone.`
+    )
+  )
+    return
+
+  const { error } = await supabase
+    .from(TABLES.listings)
+    .delete()
+    .eq("property_id", p.property_id)
+
+  if (error) {
+    alert(error.message)
+    return
   }
+
+  removeFromGroups(new Set([String(p.property_id)]))
+  onDelete(p)
+}
 
   // ── Bulk delete ───────────────────────────────────────────────────────────
   const handleBulkDelete = async () => {
-    if (selected.size === 0) return
-    if (!confirm(`Delete ${selected.size} selected propert${selected.size > 1 ? 'ies' : 'y'}? This cannot be undone.`)) return
-    setBulkDeleting(true)
-    const failed: string[] = []
-    for (const id of selected) {
-      try {
-        await databases.deleteDocument(DATABASE_ID, COL_LISTINGS, id)
-      } catch {
-        failed.push(id)
-      }
-    }
-    const deleted = new Set([...selected].filter(id => !failed.includes(id)))
-    removeFromGroups(deleted)
-    setSelected(new Set(failed)) // keep only failed ones selected
-    if (failed.length) alert(`${failed.length} item(s) could not be deleted.`)
-    onDelete(null) // signal parent to refresh
+  if (selected.size === 0) return
+
+  if (
+    !confirm(
+      `Delete ${selected.size} selected properties?`
+    )
+  )
+    return
+
+  setBulkDeleting(true)
+
+  const ids = [...selected].map(Number)
+
+  const { error } = await supabase
+    .from(TABLES.listings)
+    .delete()
+    .in("property_id", ids)
+
+  if (error) {
+    alert(error.message)
     setBulkDeleting(false)
+    return
   }
+
+  removeFromGroups(selected)
+
+  setSelected(new Set())
+
+  onDelete(null)
+
+  setBulkDeleting(false)
+}
 
   // ── Scan ──────────────────────────────────────────────────────────────────
   const runScan = useCallback(async () => {
-    setScanning(true)
-    setScanned(false)
-    setGroups([])
-    setSelected(new Set())
-    try {
-      const all: any[] = []
-      let offset = 0
-      while (true) {
-        const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, [
-          Query.limit(100), Query.offset(offset), Query.orderDesc('property_id'),
-        ])
-        all.push(...(res.documents as unknown as any[]))
-        if (all.length >= res.total) break
-        offset += 100
-      }
-      setTotalScanned(all.length)
-      setGroups(detectDuplicates(all))
-    } catch (e: any) {
-      alert('Scan error: ' + e.message)
-    }
+  setScanning(true)
+  setScanned(false)
+  setGroups([])
+  setSelected(new Set())
+
+  const { data, error } = await supabase
+    .from(TABLES.listings)
+    .select("*")
+
+  if (error) {
+    console.error(error)
+    alert(error.message)
     setScanning(false)
-    setScanned(true)
-  }, [])
+    return
+  }
+
+  setTotalScanned(data.length)
+  setGroups(detectDuplicates(data))
+
+  setScanning(false)
+  setScanned(true)
+}, [])
 
   const totalDupes = groups.reduce((s, g) => s + g.properties.length, 0)
 

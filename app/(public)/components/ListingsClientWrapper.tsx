@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect, useDeferredValue } from 'react'
-import { PublicListing } from '@/lib/types/public'
+import { PublicListing } from '@/lib/shared/types/public'
 import ListingCard from './ListingCard'
 import { SlidersHorizontal, X, LayoutList, LayoutGrid } from 'lucide-react'
 
@@ -10,7 +10,7 @@ import {
   PROPERTY_TYPES,
   PRICE_RANGES,
   STORAGE_KEYS,
-} from '@/lib/shared/constantz'
+} from '@/lib/constants'
 interface ListingsClientWrapperProps {
   allListings: PublicListing[]
   initialType?: string
