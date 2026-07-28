@@ -2,11 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 import { Button } from '@/components/ui/button'
-
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -161,28 +158,45 @@ ${tenantSettings.officeAddress}`
   }
 
   const handlePhotoUpdate = async () => {
-    if (!newPhotoUrl.trim()) { alert('Please enter a valid image URL or upload an image'); return }
-    try {
-      await databases.updateDocument(DATABASE_ID, COL_LISTINGS, property['$id'], { Preview_Photo: newPhotoUrl })
+    if (!newPhotoUrl.trim()) {
+      alert('Please enter a valid image URL or upload an image')
+      return
+    }
+
+    if (!supabase) {
+      alert('Database connection error')
+      return
+    }
+
+    const { error } = await supabase
+      .from('listings')
+      .update({ 'Preview Photo': newPhotoUrl })
+      .eq('property_id', property.property_id)
+
+    if (error) {
+      alert('Error updating photo: ' + error.message)
+    } else {
       alert('Photo updated successfully!')
       setIsUploadingPhoto(false)
       setNewPhotoUrl('')
-      setProperty({ ...property, Preview_Photo: newPhotoUrl })
-    } catch (e: any) {
-      alert('Error updating photo: ' + e.message)
+      setProperty({ ...property, 'Preview Photo': newPhotoUrl })
     }
   }
 
   useEffect(() => {
     const fetchProperty = async () => {
+      if (!supabase) return
+      
+      // Adjust the ID: if user requests ID > 2, fetch ID + 1 from database
       const dbId = Number(id) > 2 ? Number(id) + 1 : Number(id)
-      try {
-        const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, [
-          Query.equal('property_id', dbId),
-          Query.limit(1),
-        ])
-        if (res.documents.length) setProperty(res.documents[0])
-      } catch (e) { console.error(e) }
+      
+      const { data, error } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('Property ID', dbId)
+        .single()
+      
+      if (!error) setProperty(data)
       setLoading(false)
     }
     fetchProperty()
@@ -455,8 +469,8 @@ ${tenantSettings.officeAddress}`
               Property #{property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}
             </h1>
             <div className="flex items-center gap-3 flex-wrap">
-              <Badge variant={property.Status === 'Active' ? 'success' : property.Status === 'Draft' ? 'warning' : 'secondary'}>
-                {property.Status || 'Draft'}
+              <Badge variant={property.status === 'Active' ? 'success' : property.status === 'Draft' ? 'warning' : 'secondary'}>
+                {property.status || 'Draft'}
               </Badge>
               <Badge variant="outline">{property.Type || 'Residential'}</Badge>
               {hasPhotos && (

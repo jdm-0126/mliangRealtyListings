@@ -66,7 +66,7 @@ test('Property B – returned listings have the highest IDs', () => {
   )
 })
 
-test('Property C – result is ordered by ID descending (newest first)', () => {
+test('property.price – result is ordered by ID descending (newest first)', () => {
   fc.assert(
     fc.property(arbListingArray, (listings) => {
       const result = selectFeaturedListings(listings)
@@ -82,7 +82,7 @@ test('Property D – empty input returns empty array', () => {
   expect(selectFeaturedListings([])).toEqual([])
 })
 
-test('Property E – respects custom maxCount parameter', () => {
+test('property.price – respects custom maxCount parameter', () => {
   fc.assert(
     fc.property(
       arbListingArray,

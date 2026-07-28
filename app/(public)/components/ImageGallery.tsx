@@ -27,8 +27,7 @@ export default function ImageGallery({ photos, alt }: ImageGalleryProps) {
 
   if (photos.length === 0) {
     return (
-      <div
-        className="relative w-full h-64 rounded-2xl overflow-hidden"
+      <div className="relative w-full h-64 rounded-2xl overflow-hidden"
         style={{ background: 'var(--est-elevated)', border: '1px solid var(--est-border)' }}
       >
         <Image

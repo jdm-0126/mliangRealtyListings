@@ -2,7 +2,7 @@
 -- Run this after creating sold_properties table
 
 INSERT INTO sold_properties (
-    property_id, property_title, property_location, sale_price, 
+    property.priced, property_title, property_location, sale_price, 
     commission_amount, commission_percentage, date_sold, 
     date_commission_received, agent_name, broker_name, status, notes
 ) VALUES

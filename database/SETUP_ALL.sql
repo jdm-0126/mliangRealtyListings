@@ -137,59 +137,59 @@ ON CONFLICT DO NOTHING;
 
 
 -- ============================================================================
--- 4. MLIANGLISTINGS — columns, RLS, indexes
+-- 4. listings — columns, RLS, indexes
 -- ============================================================================
 
 -- Extra columns (table itself is pre-existing in Supabase)
-ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS featured       BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS "Preview Photo" TEXT;
-ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS "Listing Mode"  TEXT NOT NULL DEFAULT 'For Sale'
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS featured       BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS "Preview Photo" TEXT;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS "Listing Mode"  TEXT NOT NULL DEFAULT 'For Sale'
   CHECK ("Listing Mode" IN ('For Sale', 'For Rent'));
-ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS tenant_id      INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE mlianglistings ADD COLUMN IF NOT EXISTS "Map URL"      TEXT;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS tenant_id      INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS "Map URL"      TEXT;
 
 -- Back-fill
-UPDATE mlianglistings SET tenant_id = 1      WHERE tenant_id IS NULL;
-UPDATE mlianglistings SET "Listing Mode" = 'For Rent' WHERE "Notes" ILIKE '[FOR RENT]%';
+UPDATE listings SET tenant_id = 1      WHERE tenant_id IS NULL;
+UPDATE listings SET "Listing Mode" = 'For Rent' WHERE "Notes" ILIKE '[FOR RENT]%';
 
 -- RLS
-ALTER TABLE mlianglistings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "public_read_listings"        ON mlianglistings;
+DROP POLICY IF EXISTS "public_read_listings"        ON listings;
 CREATE POLICY "public_read_listings"
-  ON mlianglistings FOR SELECT TO anon, authenticated USING (true);
+  ON listings FOR SELECT TO anon, authenticated USING (true);
 
-DROP POLICY IF EXISTS "authenticated_write_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "authenticated_write_listings" ON listings;
 CREATE POLICY "authenticated_write_listings"
-  ON mlianglistings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  ON listings FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "anon_update_featured_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "anon_update_featured_listings" ON listings;
 CREATE POLICY "anon_update_featured_listings"
-  ON mlianglistings FOR UPDATE TO anon USING (true) WITH CHECK (true);
+  ON listings FOR UPDATE TO anon USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "anon_insert_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "anon_insert_listings" ON listings;
 CREATE POLICY "anon_insert_listings"
-  ON mlianglistings FOR INSERT TO anon WITH CHECK (true);
+  ON listings FOR INSERT TO anon WITH CHECK (true);
 
-DROP POLICY IF EXISTS "anon_delete_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "anon_delete_listings" ON listings;
 CREATE POLICY "anon_delete_listings"
-  ON mlianglistings FOR DELETE TO anon USING (true);
+  ON listings FOR DELETE TO anon USING (true);
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_featured
-  ON mlianglistings (featured) WHERE featured = TRUE;
+  ON listings (featured) WHERE featured = TRUE;
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_tenant_id
-  ON mlianglistings (tenant_id);
+  ON listings (tenant_id);
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_property_id
-  ON mlianglistings ("property_id" DESC);
+  ON listings ("property.priced" DESC);
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_tenant_property_id
-  ON mlianglistings (tenant_id, "property_id" DESC);
+  ON listings (tenant_id, "property.priced" DESC);
 
 CREATE INDEX IF NOT EXISTS idx_mlianglistings_tenant_status_property_id
-  ON mlianglistings (tenant_id, "Status", "property_id" DESC);
+  ON listings (tenant_id, "status", "property.priced" DESC);
 
 
 -- ============================================================================
@@ -232,7 +232,7 @@ CREATE POLICY "authenticated_all_leads"
 
 CREATE TABLE IF NOT EXISTS facebook_posts (
   id SERIAL PRIMARY KEY,
-  property_id INTEGER,
+  property.priced INTEGER,
   messenger_name TEXT NOT NULL,
   location TEXT,
   price TEXT,
@@ -243,7 +243,7 @@ CREATE TABLE IF NOT EXISTS facebook_posts (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_facebook_posts_property_id ON facebook_posts(property_id);
+CREATE INDEX IF NOT EXISTS idx_facebook_posts_property_id ON facebook_posts(property.priced);
 CREATE INDEX IF NOT EXISTS idx_facebook_posts_created_at  ON facebook_posts(created_at DESC);
 
 
@@ -253,7 +253,7 @@ CREATE INDEX IF NOT EXISTS idx_facebook_posts_created_at  ON facebook_posts(crea
 
 CREATE TABLE IF NOT EXISTS sold_properties (
   id BIGSERIAL PRIMARY KEY,
-  property_id INTEGER,
+  property.priced INTEGER,
   property_title TEXT NOT NULL,
   property_location TEXT,
   sale_price NUMERIC NOT NULL,

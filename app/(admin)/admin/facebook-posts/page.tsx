@@ -1,14 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
 
-const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_FACEBOOK_POSTS!
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, Trash2, ExternalLink, Plus } from 'lucide-react'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 
 export default function FacebookPostsPage() {
   const [posts, setPosts] = useState<any[]>([])
@@ -37,8 +35,14 @@ export default function FacebookPostsPage() {
   const fetchPosts = async () => {
     setLoading(true)
     try {
-      const res = await databases.listDocuments(DATABASE_ID, COL, [Query.orderDesc('$createdAt')])
-      setPosts(res.documents)
+      const { data, error } = await supabase
+      .from("listings") // Replace with your actual table name
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+      setPosts(data)
     } catch (e) { console.error(e) }
     setLoading(false)
   }
@@ -46,7 +50,12 @@ export default function FacebookPostsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this Facebook post?')) return
     try {
-      await databases.deleteDocument(DATABASE_ID, COL, id)
+      const { error } = await supabase
+      .from("listings")
+      .delete()
+      .eq("property_id", id);
+
+    if (error) throw error;
       alert('Facebook post deleted successfully!')
       fetchPosts()
     } catch (e: any) {

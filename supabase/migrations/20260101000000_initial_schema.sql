@@ -39,30 +39,30 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
 
 -- ============================================================================
--- MLIANGLISTINGS (existing table — add RLS policies only)
+-- listings (existing table — add RLS policies only)
 -- ============================================================================
 
 -- Public site and admin both need to read listings.
 -- anon role = public visitors and server-side fetches using the anon key.
-ALTER TABLE mlianglistings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "public_read_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "public_read_listings" ON listings;
 CREATE POLICY "public_read_listings"
-  ON mlianglistings FOR SELECT
+  ON listings FOR SELECT
   TO anon, authenticated
   USING (true);
 
-DROP POLICY IF EXISTS "authenticated_write_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "authenticated_write_listings" ON listings;
 CREATE POLICY "authenticated_write_listings"
-  ON mlianglistings FOR ALL
+  ON listings FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
 
 -- Allow anon to update the featured column (admin uses anon key with sessionStorage auth)
-DROP POLICY IF EXISTS "anon_update_featured_listings" ON mlianglistings;
+DROP POLICY IF EXISTS "anon_update_featured_listings" ON listings;
 CREATE POLICY "anon_update_featured_listings"
-  ON mlianglistings FOR UPDATE
+  ON listings FOR UPDATE
   TO anon
   USING (true)
   WITH CHECK (true);

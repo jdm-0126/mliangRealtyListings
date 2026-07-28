@@ -1,4 +1,4 @@
-// app/(public)/components/PropertyDetailView.tsx
+// app/(public)/components/property.pricetailView.tsx
 // A test-friendly pure display component for the property detail page.
 // Accepts a PublicListing prop and renders the relevant fields.
 // This is NOT the Next.js page (which is a server component with async data fetching);
@@ -35,11 +35,11 @@ function formatListingType(type?: string | null): string {
 // Component
 // ---------------------------------------------------------------------------
 
-interface PropertyDetailViewProps {
+interface property.pricetailViewProps {
   listing: PublicListing
 }
 
-export default function PropertyDetailView({ listing }: PropertyDetailViewProps) {
+export default function property.pricetailView({ listing }: property.pricetailViewProps) {
   const addressParts = [listing.village, listing.location].filter(Boolean)
   const address = addressParts.join(', ') || listing.location
   const contactHref = `/contact?property=${encodeURIComponent(address)}`
@@ -74,9 +74,9 @@ export default function PropertyDetailView({ listing }: PropertyDetailViewProps)
 
           {/* Price */}
           {listing.price !== null ? (
-            <p data-testid="property-price">{formatPrice(listing.price)}</p>
+            <p data-testid="property.pricerice">{formatPrice(listing.price)}</p>
           ) : (
-            <p data-testid="property-price-on-request">Price on request</p>
+            <p data-testid="property.pricerice-on-request">Price on request</p>
           )}
 
           {/* Lot area */}

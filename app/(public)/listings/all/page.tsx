@@ -27,6 +27,7 @@ export default async function AllListingsPage({ searchParams }: Props) {
 
   try {
     listings = await getSlimPublicListings()
+    console.log("Data: ", listings);
   } catch {
     fetchError = true
   }

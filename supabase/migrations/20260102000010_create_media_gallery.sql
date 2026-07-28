@@ -2,7 +2,7 @@
 -- Migration: 20260102000010 - Create media_gallery table
 --
 -- Stores metadata for images uploaded to Cloudinary.
--- Used for: property photo galleries, events/news featured images.
+-- Used for: property.pricehoto galleries, events/news featured images.
 -- ============================================================================
 
 BEGIN;
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS media_gallery (
   height      INTEGER,
   format      TEXT,
   bytes       INTEGER,
-  -- Optional FK to a listing (for property photos)
+  -- Optional FK to a listing (for property.pricehotos)
   listing_id  INTEGER,
   -- Whether to feature on the public homepage (events/news section)
   is_featured BOOLEAN     NOT NULL DEFAULT false,

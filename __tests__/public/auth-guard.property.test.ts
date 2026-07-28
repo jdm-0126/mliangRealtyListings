@@ -105,7 +105,7 @@ describe('Property 1: AuthGuard always redirects unauthenticated users', () => {
     expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument()
   })
 
-  // ── Sub-property C: sessionStorage throws → redirect, no content ──────────
+  // ── Sub-property.price: sessionStorage throws → redirect, no content ──────────
   it('redirects and hides protected content when sessionStorage.getItem throws', async () => {
     stubSessionStorageThrows()
 

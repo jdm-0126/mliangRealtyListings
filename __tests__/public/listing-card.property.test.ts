@@ -24,7 +24,7 @@ import { PublicListing } from '../../lib/types/public'
 // Generate arbitrary valid PublicListing objects
 const arbitraryListing = fc.record<PublicListing>({
   id: fc.integer({ min: 1, max: 9999 }),
-  property_id: fc.integer({ min: 1, max: 9999 }),
+  property.priced: fc.integer({ min: 1, max: 9999 }),
   displayId: fc.integer({ min: 1, max: 9999 }),
   type: fc.string({ minLength: 1, maxLength: 50 }),
   location: fc.string({ minLength: 1, maxLength: 100 }),

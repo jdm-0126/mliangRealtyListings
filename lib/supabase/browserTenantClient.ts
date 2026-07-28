@@ -1,13 +1,26 @@
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
+import { supabase } from '@/app/lib/supabaseClient'
+
+export { supabase }
 
 const DEFAULT_TENANT_ID = '81b78be3-db0c-41f3-8f6f-e3989114eacf'
-const LISTINGS_COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
+const DEFAULT_TABLE = 'listings'
+
+function getSupabaseClient() {
+  if (!supabase) {
+    throw new Error(
+      'Supabase client is not configured. Check the public Supabase environment variables.'
+    )
+  }
+
+  return supabase as NonNullable<typeof supabase>
+}
 
 export async function getTenantScopedClient() {
+  const client = getSupabaseClient()
+
   return {
-    databases,
-    databaseId: DATABASE_ID,
+    supabase: client,
     tenantId: DEFAULT_TENANT_ID,
-    listingsCollection: LISTINGS_COL,
+    listingsTable: DEFAULT_TABLE,
   }
 }

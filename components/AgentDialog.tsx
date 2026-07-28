@@ -137,7 +137,7 @@ export default function AgentDialog({ agent, brokerId, isOpen, onClose }: AgentD
 
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: '#000000' }}>
-                Status
+                status
               </label>
               <select
                 value={formData.status}

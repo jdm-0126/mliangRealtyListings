@@ -3,18 +3,18 @@ with open(r'app\properties\[id]\page.tsx', 'r', encoding='utf-8') as f:
 
 old_return = """`${heading}${readyText}
 ${property.Village || ''} ${property.Location || ''}
-| ${property.Road || property.Street || 'Main Road'}
+| ${property.priceoad || property.Street || 'Main Road'}
 ${property.Distance || 'Minutes from city center'}
 Near ${property.Landmarks || 'Major landmarks'}
 | ${property.Boundary || 'City boundary'}
 
 Property Highlights:
-${property.Model || 'Property'} ${property.Description || ''}${propertyDetails}
+${property.Model || 'Property'} ${property.Description || ''}${property.pricetails}
 
 Community Amenities:
 ${property.Amenities || ['Entrance Gate with Guard','Clubhouse & Events Place','Church','Swimming Pool','Basketball Court','Playground','Community Plaza'].join('\\n')}
 
-Price ${property['Listing Price'] || property.ListingPrice || property.Price || 'On request'}
+Price ${property.priceListing Price'] || property.ListingPrice || property.pricerice || 'On request'}
 MOP: ${property.MOP || 'Cash or BF'}
 
 ${tenantSettings.businessName}
@@ -26,18 +26,18 @@ ${property.Hashtags || '#realestate #realtor #property #home #houseforsale #home
 new_return = """[
       heading + readyText,
       (property.Village || '') + ' ' + (property.Location || ''),
-      '| ' + (property.Road || property.Street || 'Main Road'),
+      '| ' + (property.priceoad || property.Street || 'Main Road'),
       property.Distance || 'Minutes from city center',
       'Near ' + (property.Landmarks || 'Major landmarks'),
       '| ' + (property.Boundary || 'City boundary'),
       '',
       'Property Highlights:',
-      (property.Model || 'Property') + ' ' + (property.Description || '') + propertyDetails,
+      (property.Model || 'Property') + ' ' + (property.Description || '') + property.pricetails,
       '',
       'Community Amenities:',
       property.Amenities || ['Entrance Gate with Guard','Clubhouse & Events Place','Church','Swimming Pool','Basketball Court','Playground','Community Plaza'].join('\\n'),
       '',
-      "Price " + (property['Listing Price'] || property.ListingPrice || property.Price || 'On request'),
+      "Price " + (property.priceListing Price'] || property.ListingPrice || property.pricerice || 'On request'),
       'MOP: ' + (property.MOP || 'Cash or BF'),
       '',
       tenantSettings.businessName,

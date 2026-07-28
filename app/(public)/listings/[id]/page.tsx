@@ -1,10 +1,8 @@
 // app/(public)/listings/[id]/page.tsx — Estatein dark theme
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { getServerClient, DATABASE_ID } from '@/lib/appwrite/server'
-import { Query } from 'node-appwrite'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 
-const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 import type { PublicListing } from '@/lib/types/public'
 import { buildRealEstateListingJsonLd, generateDetailTitle, buildCanonicalUrl } from '@/lib/seo/jsonld'
 import ImageGallery from '@/app/(public)/components/ImageGallery'
@@ -35,40 +33,46 @@ function formatListingType(type?: string | null): string {
 }
 
 async function fetchListing(displayId: number): Promise<PublicListing | null> {
-  const db = getServerClient()
-  const internalId = displayId >= 2 ? displayId + 1 : displayId
-  try {
-    const res = await db.listDocuments(DATABASE_ID, COL, [
-      Query.equal('property_id', internalId),
-      Query.limit(1),
-    ])
-    if (!res.documents.length) return null
-    const row = res.documents[0] as unknown as Record<string, unknown>
-    const statusRaw = String(row['Status'] ?? '').toLowerCase()
+  const internalId = displayId >= 2 ? displayId + 1 : displayId;
+  const { data, error } = await supabase
+      .from("listings")
+      .select("*")
+      .eq("property_id", internalId)
+      .limit(1);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) return null;
+
+    const row = data[0] as Record<string, unknown>;
+    const statusRaw = String(row['status'] ?? '').toLowerCase()
     if (statusRaw !== 'active') return null
     const id = Number(row['property_id'])
     const photos: string[] = []
-    const previewRaw = row['Preview_Photo']
+    const previewRaw = row['preview_photo']
     if (typeof previewRaw === 'string' && previewRaw.trim()) photos.push(previewRaw.trim())
-    const extraPhotos = Array.isArray(row['Photos']) ? row['Photos'] as string[] : []
+    const extraPhotos = Array.isArray(row['photos']) ? row['photos'] as string[] : []
     for (const p of extraPhotos) { if (p && !photos.includes(p)) photos.push(p) }
     return {
-      property_id: id, displayId,
-      type: String(row['Type'] ?? ''), location: String(row['Location'] ?? ''),
-      village: typeof row['Village'] === 'string' && row['Village'].trim() ? row['Village'].trim() : undefined,
-      price: parseNum(row['Listing_Price']),
-      lotArea: parseNum(row['Lot_Area_sqm']),
-      floorArea: parseNum(row['Floor_Area_sqm']),
+      propertyId: Number(row["property_id"]),
+      id,
+      displayId,
+      type: String(row['Type'] ?? ''), 
+      title: String(row['title'] ?? ''),
+      location: String(row['location'] ?? ''),
+      village: typeof row['village'] === 'string' && row['village'].trim() ? row['village'].trim() : undefined,
+      price: parseNum(row['listing_price']),
+      lotArea: parseNum(row['lot_area_sqm']),
+      floorArea: parseNum(row['floor_area_sqm']),
       bedrooms: parseNum(row['Bedroom']), bathrooms: parseNum(row['Bathroom']),
-      previewPhoto: photos[0] ?? null, photos, notes: String(row['Notes'] ?? ''),
-      status: String(row['Status'] ?? ''),
-      mapUrl: typeof row['Map_URL'] === 'string' && row['Map_URL'].trim() ? row['Map_URL'].trim() : null,
-      videoUrl: typeof row['Video_URL'] === 'string' && row['Video_URL'].trim() ? row['Video_URL'].trim() : null,
-      facebookVideoUrl: typeof row['Facebook_Video_URL'] === 'string' && row['Facebook_Video_URL'].trim() ? row['Facebook_Video_URL'].trim() : null,
-      tiktokVideoUrl: typeof row['Tiktok_Video_URL'] === 'string' && row['Tiktok_Video_URL'].trim() ? row['Tiktok_Video_URL'].trim() : null,
+      previewPhoto: photos[0] ?? null, photos, notes: String(row['notes'] ?? ''),
+      status: String(row['status'] ?? ''),
+      mapUrl: typeof row['map_url'] === 'string' && row['map_url'].trim() ? row['map_url'].trim() : null,
+      videoUrl: typeof row['video_url'] === 'string' && row['video_url'].trim() ? row['video_url'].trim() : null,
+      facebookVideoUrl: typeof row['fcebook_video_url'] === 'string' && row['fcebook_video_url'].trim() ? row['fcebook_video_url'].trim() : null,
+      tiktokVideoUrl: typeof row['tiktok_video_url'] === 'string' && row['tiktok_video_url'].trim() ? row['tiktok_video_url'].trim() : null,
       updatedAt: typeof row['$updatedAt'] === 'string' ? row['$updatedAt'] : undefined,
     }
-  } catch { return null }
 }
 
 interface Props { params: Promise<{ id: string }> }
@@ -78,6 +82,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const displayId = Number(id)
   if (isNaN(displayId)) return { title: 'Property Not Found – M. Liang Realty' }
   const listing = await fetchListing(displayId)
+  console.log("Datas: ",listing)
+  console.log("displayId: ",displayId)
   if (!listing) return { title: 'Property Not Found – M. Liang Realty' }
   const title = generateDetailTitle(listing.type, listing.location)
   const rawNotes = listing.notes ?? ''
@@ -239,7 +245,17 @@ export default async function PropertyDetailPage({ params }: Props) {
                 Price on request
               </p>
             )}
-
+            {listing.listingMode && (
+                <p className="text-sm" style={{ color: 'var(--est-muted)' }}>
+                  {listing.listingMode}
+                </p>
+              )
+                          }
+              {listing.title && (
+                <p className="text-lg" style={{ color: 'var(--est-subtle)' }}>
+                  {listing.title}
+                </p>
+              )}
             {/* Stats */}
             {(listing.lotArea !== null || listing.floorArea !== null || listing.bedrooms !== null || listing.bathrooms !== null) && (
               <div className="grid grid-cols-2 gap-3">

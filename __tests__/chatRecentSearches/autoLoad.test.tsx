@@ -367,7 +367,7 @@ describe('Task 12.3 — auto-load system note contains the replayed query text',
     void messageContainers // used above via document query
   })
 
-  it('the system note message appears before any property results message', async () => {
+  it('the system note message appears before any property.priceesults message', async () => {
     render(<ChatWidget />)
     await act(async () => {})
 

@@ -2,11 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Image from 'next/image'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL_GALLERY = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!
 import { X, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { supabase } from '@/app/lib/supabaseClient'
 
 interface GalleryItem {
   id: string
@@ -140,19 +137,26 @@ export default function GalleryPage() {
   useEffect(() => {
     const run = async () => {
       try {
-        const res = await databases.listDocuments(DATABASE_ID, COL_GALLERY, [
-          Query.orderDesc('$createdAt'),
-          Query.limit(200),
-        ])
-        setAllItems(res.documents.map(d => ({
-          id: d.$id,
-          title: d['title'] as string | null,
-          description: d['description'] as string | null,
-          category: d['category'] as 'property' | 'event' | 'general',
-          cloudinary_secure_url: d['cloudinary_secure_url'] as string,
-          is_featured: d['is_featured'] as boolean,
-          created_at: d['$createdAt'] as string,
-        })))
+        const { data, error } = await supabase
+          .from("gallery") // Replace with your gallery table name
+          .select("*")
+          .order("created_at", { ascending: false }) // Use your actual timestamp column
+          .limit(200);
+
+        if (error) throw error;
+
+        const res = data ?? [];
+        setAllItems(
+      (data ?? []).map((d) => ({
+        id: d.id, // or d.uuid if that's your PK
+        title: d.title as string | null,
+        description: d.description as string | null,
+        category: d.category as "property" | "event" | "general",
+        cloudinary_secure_url: d.cloudinary_secure_url as string,
+        is_featured: d.is_featured as boolean,
+        created_at: d.created_at as string,
+      }))
+    );
       } finally {
         setLoading(false)
       }

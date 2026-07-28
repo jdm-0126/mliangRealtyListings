@@ -1,12 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { ID } from 'appwrite'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { X, Plus, Minus, Upload, Eye, EyeOff } from 'lucide-react'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 
 interface PropertyDialogProps {
   property: any
@@ -108,38 +107,82 @@ export default function PropertyDialog({ property, isOpen, onClose, columns }: P
     setPasteData('')
   }
 
-  const handleCreate = async () => {
-    setLoading(true)
-    // Strip Appwrite system fields before insert
-    const { $id, $collectionId, $databaseId, $createdAt, $updatedAt, $permissions, ...clean } = formData
-    const pid = clean['property_id']
-    if (!pid || String(pid).trim() === '' || pid === 0 || pid === '0' || isNaN(Number(pid))) {
-      delete clean['property_id']
-    } else {
-      clean['property_id'] = Number(pid)
-    }
-    try {
-      await databases.createDocument(DATABASE_ID, COL, ID.unique(), clean)
-      alert('Record successfully added!')
-      onClose()
-    } catch (err: any) {
-      alert('Error: ' + (err?.message ?? String(err)))
-    }
-    setLoading(false)
+  const TABLE = "";
+
+const handleCreate = async () => {
+  setLoading(true);
+
+  // Remove Appwrite system fields
+  const {
+    $id,
+    $collectionId,
+    $databaseId,
+    $createdAt,
+    $updatedAt,
+    $permissions,
+    ...clean
+  } = formData;
+
+  // Normalize property_id
+  const pid = clean.property_id;
+
+  if (
+    !pid ||
+    String(pid).trim() === "" ||
+    pid === 0 ||
+    pid === "0" ||
+    isNaN(Number(pid))
+  ) {
+    delete clean.property_id;
+  } else {
+    clean.property_id = Number(pid);
   }
 
-  const handleUpdate = async () => {
-    setLoading(true)
-    const { $id, $collectionId, $databaseId, $createdAt, $updatedAt, $permissions, ...clean } = formData
-    try {
-      await databases.updateDocument(DATABASE_ID, COL, property['$id'], clean)
-      alert('Record successfully updated!')
-      onClose()
-    } catch (err: any) {
-      alert(`Error: ${err?.message ?? String(err)}`)
-    }
-    setLoading(false)
+  try {
+    const { error } = await supabase
+      .from(TABLE)
+      .insert(clean);
+
+    if (error) throw error;
+
+    alert("Record successfully added!");
+    onClose();
+  } catch (err: any) {
+    alert("Error: " + (err.message ?? String(err)));
+  } finally {
+    setLoading(false);
   }
+};
+
+ const handleUpdate = async () => {
+  setLoading(true);
+
+  const {
+    $id,
+    $collectionId,
+    $databaseId,
+    $createdAt,
+    $updatedAt,
+    $permissions,
+    ...clean
+  } = formData;
+
+  try {
+    const { error } = await supabase
+      .from(TABLE)
+      .update(clean)
+      .eq("id", property.id); // Replace "id" with your primary key column
+
+    if (error) throw error;
+
+    alert("Record successfully updated!");
+    onClose();
+  } catch (err: any) {
+    alert("Error: " + (err.message ?? String(err)));
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (!isOpen) return null
 

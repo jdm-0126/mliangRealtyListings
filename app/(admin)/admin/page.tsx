@@ -2,11 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
-const COL_LEADS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 import {
   Home,
   BarChart3,
@@ -97,18 +94,30 @@ export default function AdminDashboard() {
     setLoading(true)
     try {
       const [listingsRes, leadsRes] = await Promise.all([
-        databases.listDocuments(DATABASE_ID, COL_LISTINGS, [Query.orderDesc('property_id'), Query.limit(500)]),
-        databases.listDocuments(DATABASE_ID, COL_LEADS, [Query.limit(25)]),
-      ])
-      const data = listingsRes.documents as unknown as Record<string, unknown>[]
-      const leads = leadsRes.documents as unknown as { $id: string; message: string }[]
+        supabase
+          .from("listings")
+          .select("*")
+          .order("property_id", { ascending: false })
+          .limit(500),
+
+        supabase
+          .from("leads")
+          .select("*")
+          .limit(25),
+      ]);
+
+      if (listingsRes.error) throw listingsRes.error;
+      if (leadsRes.error) throw leadsRes.error;
+
+    const data = listingsRes.data ?? [];
+    const leads = leadsRes.data ?? [];
       const sellerCount = leads.filter(l => String(l.message || '').startsWith('[SELLER INQUIRY]')).length
       setAllData(data)
       setStats({
         total: data.length,
-        active: data.filter(r => String(r['Status'] || '').toLowerCase() === 'active').length,
-        draft: data.filter(r => String(r['Status'] || '').toLowerCase() === 'draft').length,
-        sold: data.filter(r => String(r['Status'] || '').toLowerCase() === 'sold').length,
+        active: data.filter(r => String(r['status'] || '').toLowerCase() === 'active').length,
+        draft: data.filter(r => String(r['status'] || '').toLowerCase() === 'draft').length,
+        sold: data.filter(r => String(r['status'] || '').toLowerCase() === 'sold').length,
         houseAndLot: data.filter(r => String(r['Type'] || '').toLowerCase().includes('house')).length,
         lotOnly: data.filter(r => ['lot only', 'lot'].includes(String(r['Type'] || '').toLowerCase())).length,
         commercial: data.filter(r => String(r['Type'] || '').toLowerCase().includes('commercial')).length,
@@ -308,7 +317,7 @@ export default function AdminDashboard() {
               recentListings.map((p: any) => {
                 const rawId = Number(p['property_id'])
                 const displayId = rawId > 2 ? rawId - 1 : rawId
-                const status = String(p.Status || '').toLowerCase()
+                const status = String(p.status || '').toLowerCase()
                 return (
                   <Link key={p.$id} href={`/properties/${displayId}`}
                     className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition-colors">
@@ -340,7 +349,7 @@ export default function AdminDashboard() {
                         status === 'sold' ? 'bg-red-100 text-red-700' :
                         'bg-gray-100 text-gray-600'
                       }`}>
-                        {p.Status || 'Draft'}
+                        {p.status || 'Draft'}
                       </span>
                     </div>
                   </Link>

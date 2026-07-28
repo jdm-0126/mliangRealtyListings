@@ -78,22 +78,24 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
   const [showMap, setShowMap] = useState(false)
 
   // Fields
-  const [type, setType]       = useState(listing.type ?? '')
-  const [notes, setNotes]     = useState(listing.notes ?? '')
-  const [photo, setPhoto]     = useState(listing.previewPhoto ?? '')
-  const [price, setPrice]     = useState(listing.price != null ? String(listing.price) : '')
+  const [type, setType] = useState(listing.type ?? '')
+  const [notes, setNotes] = useState(listing.notes ?? '')
+  const [photo, setPhoto] = useState(listing.previewPhoto ?? '')
+  const [listingAgent, setlistingAgent] = useState(listing.listingAgent ?? '')
+  const [price, setPrice] = useState(listing.price != null ? String(listing.price) : '')
   const [lotArea, setLotArea] = useState(listing.lotArea != null ? String(listing.lotArea) : '')
   const [floorArea, setFloorArea] = useState(listing.floorArea != null ? String(listing.floorArea) : '')
-  const [mapUrl, setMapUrl]   = useState(listing.mapUrl ?? '')
+  const [mapUrl, setMapUrl] = useState(listing.mapUrl ?? '')
 
-  const [saving, setSaving]   = useState(false)
-  const [saved, setSaved]     = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (open) {
       setType(listing.type ?? '')
       setNotes(listing.notes ?? '')
       setPhoto(listing.previewPhoto ?? '')
+      setlistingAgent(listing.listingAgent ?? '')
       setPrice(listing.price != null ? String(listing.price) : '')
       setLotArea(listing.lotArea != null ? String(listing.lotArea) : '')
       setFloorArea(listing.floorArea != null ? String(listing.floorArea) : '')
@@ -105,30 +107,59 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
   if (!maintenance) return null
 
   const handleSave = async () => {
-    setSaving(true)
     try {
       const { getTenantScopedClient } = await import('@/lib/supabase/browserTenantClient')
+      const { supabase, listingsTable } = await getTenantScopedClient()
+
 
       const payload: Record<string, unknown> = {
-        Type: type,
-        Notes: notes,
-        'Preview Photo': photo || null,
-        'Map URL': mapUrl || null,
+        type: type || null,
+        notes: notes || null,
+        listing_agent: listingAgent || null,
+        preview_photo: photo || null,
+        map_url: mapUrl || null,
       }
-      if (price.trim())     payload['Listing Price'] = parseFloat(price.replace(/,/g, '')) || null
-      if (lotArea.trim())   payload['Lot Area sqm']  = parseFloat(lotArea) || null
-      if (floorArea.trim()) payload['Floor Area sqm'] = parseFloat(floorArea) || null
 
-      setSaved(true)
+      if (price.trim())
+        payload.listing_price = parseFloat(price.replace(/,/g, ''))
+
+      if (lotArea.trim())
+        payload.lot_area_sqm = parseFloat(lotArea)
+
+      if (floorArea.trim())
+        payload.floor_area_sqm = parseFloat(floorArea)
+
       onUpdated?.({
         type,
         notes,
+        listingAgent,
         previewPhoto: photo || null,
         price: price.trim() ? parseFloat(price.replace(/,/g, '')) || null : listing.price,
         lotArea: lotArea.trim() ? parseFloat(lotArea) || null : listing.lotArea,
         floorArea: floorArea.trim() ? parseFloat(floorArea) || null : listing.floorArea,
         mapUrl: mapUrl || null,
       })
+      
+      console.log("Table:", listingsTable);
+      console.log("listing =", listing);
+      console.log("listing.property_id =", listing.propertyId);
+      console.log({
+      table: listingsTable,
+      propertyId: listing.propertyId,
+      id: listing.id,
+      payload});
+      const { data, error } = await supabase
+        .from(listingsTable)
+        .update(payload)
+        .eq("property_id", listing.propertyId)
+        .select();
+
+      console.log("Payload:", payload);
+      console.log("Update data:", data);
+      console.log("Update error:", error);
+
+      console.log("Updated rows:", data);
+      setSaved(true)
       setTimeout(() => { setOpen(false); setSaved(false) }, 800)
     } finally {
       setSaving(false)
@@ -274,6 +305,17 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   rows={5}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 resize-none"
+                />
+              </div>
+
+              {/* Listing Agent */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Listing Agent</label>
+                <input
+                  placeholder="Agent name, or &#10;Agent name&#10;Agent name&#10;..."
+                  value={listingAgent}
+                  onChange={e => setlistingAgent(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 resize-none"
                 />
               </div>

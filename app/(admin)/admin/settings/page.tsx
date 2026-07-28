@@ -2,12 +2,6 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL_AGENTS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_AGENTS!
-const COL_SOLD = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_SOLD_PROPERTIES!
-const COL_BROKERS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_BROKERS!
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +10,7 @@ import { User, Database, Bell, Shield, Palette, LogIn, LogOut, TrendingUp, Share
 import ThemeToggleButton from '@/app/(admin)/components/ThemeToggleButton'
 import ColorPaletteCard from '@/app/(admin)/components/ColorPaletteCard'
 import WebsiteContentEditor from '@/app/(admin)/components/WebsiteContentEditor'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 
 function CollapsibleSection({
   title,
@@ -146,17 +141,23 @@ export default function SettingsPage() {
     }
 
     // Load active agents from DB for the dropdown pool
-    databases.listDocuments(DATABASE_ID, COL_AGENTS, [
-      Query.equal('status', 'Active'),
-      Query.orderAsc('name'),
-    ]).then(res => {
-      setAgentPool(res.documents.map(d => ({
-        id: d.$id as unknown as number,
-        name: d['name'] as string,
-        phone: d['phone'] as string | null,
-        specialization: d['specialization'] as string | null,
-      })))
-    }).catch(() => {})
+    supabase
+      .from("agents") // Replace with your actual table name
+      .select("*")
+      .eq("status", "Active")
+      .order("name", { ascending: true })
+      .then(({ data, error }) => {
+        if (error) throw error;
+
+        setAgentPool(
+          (data ?? []).map((d) => ({
+            id: d.id, // Replace with your primary key if different
+            name: d.name,
+            phone: d.phone,
+            specialization: d.specialization,
+          }))
+        );
+      })
 
     setMaintenanceModeState(localStorage.getItem('maintenanceMode') === 'true')
 
@@ -318,12 +319,12 @@ export default function SettingsPage() {
 
         <div className="space-y-6">
           {/* Login/Logout Section */}
-          <CollapsibleSection title="Account Status" icon={Shield}>
+          <CollapsibleSection title="Account status" icon={Shield}>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Shield className="w-5 h-5 mr-2" />
-                  Account Status
+                  Account status
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -894,7 +895,7 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
                     Table Name
                   </label>
-                  <Input defaultValue="mlianglistings" disabled />
+                  <Input defaultValue="listings" disabled />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: '#000000' }}>
@@ -928,7 +929,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium" style={{ color: '#000000' }}>Status Updates</h3>
+                    <h3 className="font-medium" style={{ color: '#000000' }}>status Updates</h3>
                     <p className="text-sm" style={{ color: '#000000' }}>Receive updates when property status changes</p>
                   </div>
                   <input type="checkbox" className="toggle" defaultChecked />

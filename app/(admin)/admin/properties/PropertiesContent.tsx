@@ -2,10 +2,6 @@
 
 import React, { useState, useCallback, useEffect, useDeferredValue, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -15,7 +11,8 @@ import PropertyDialog from '@/components/PropertyDialog'
 import QuickAddProperty from '@/components/QuickAddProperty'
 import { Pagination } from '@/components/ui/Pagination'
 import { Tooltip } from '@/components/ui/tooltip'
-import { matchesLocationSearch } from '@/lib/appwrite/clientSearch'
+import { supabase } from '@/lib/supabase/browserTenantClient'
+import { matchesLocationSearch } from '@/lib/shared/matchesLocationSearch'
 import {
   Search,
   Filter,
@@ -95,29 +92,56 @@ export default function PropertiesContent() {
   }, [showOptionsMenu])
 
   // ── Fetch — server-side pagination + filter ───────────────────────────────
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    try {
-      const queries: string[] = [
-        Query.orderDesc('property_id'),
-        Query.limit(PAGE_SIZE),
-        Query.offset((currentPage - 1) * PAGE_SIZE),
-      ]
-      if (statusFilter !== 'all') queries.push(Query.equal('Status', statusFilter))
-      if (featuredFilter) queries.push(Query.equal('featured', true))
+ const fetchData = useCallback(async () => {
+  setLoading(true);
 
-      const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, queries)
-      const rows = (res.documents as unknown as Record<string, unknown>[])
-        .filter(row => matchesLocationSearch(row, deferredSearch))
-      setData(rows)
-      setTotalCount(res.total)
-      if (rows.length && !columns.length) setColumns(Object.keys(rows[0]))
-    } catch (e) {
-      console.error(e)
+  try {
+    let query = supabase
+      .from("listings") // Replace with your table name
+      .select("*", { count: "exact" })
+      .order("property_id", { ascending: false });
+
+    // if (statusFilter !== "all") {
+    //   query = query.eq("status", statusFilter);
+    // }
+
+    if (featuredFilter) {
+      query = query.eq("featured", true);
     }
-    setLoading(false)
-  }, [currentPage, statusFilter, featuredFilter, deferredSearch]) // eslint-disable-line react-hooks/exhaustive-deps
 
+    const {
+      data,
+      error,
+      count,
+    } = await query.range(
+      (currentPage - 1) * PAGE_SIZE,
+      currentPage * PAGE_SIZE - 1
+    );
+
+    if (error) throw error;
+
+    const rows = (data ?? []).filter((row) =>
+      matchesLocationSearch(row, deferredSearch)
+    );
+
+    setData(rows);
+    setTotalCount(count ?? 0);
+
+    if (rows.length && !columns.length) {
+      setColumns(Object.keys(rows[0]));
+    }
+  } catch (e) {
+    console.error(e);
+  } finally {
+    setLoading(false);
+  }
+}, [
+  currentPage,
+  statusFilter,
+  featuredFilter,
+  deferredSearch,
+  columns.length,
+]);
   useEffect(() => { fetchData() }, [fetchData])
 
   // Reset to page 1 when filters change (but not on page change itself)
@@ -148,14 +172,27 @@ export default function PropertiesContent() {
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleDelete = async (property: any) => {
-    if (!confirm(`Delete Property #${property['property_id']}? This cannot be undone.`)) return
-    try {
-      await databases.deleteDocument(DATABASE_ID, COL_LISTINGS, property['$id'])
-      fetchData()
-    } catch (e: any) {
-      alert('Error deleting: ' + e.message)
-    }
+  if (
+    !confirm(
+      `Delete Property #${property.property_id}? This cannot be undone.`
+    )
+  ) {
+    return;
   }
+
+  try {
+    const { error } = await supabase
+      .from("listings") // Replace with your table name
+      .delete()
+      .eq("id", property.id);
+
+    if (error) throw error;
+
+    fetchData();
+  } catch (e: any) {
+    alert("Error deleting property: " + (e.message ?? String(e)));
+  }
+};
 
   async function handleEditToggle() {
     const turningOff = showEditControls
@@ -265,7 +302,7 @@ export default function PropertiesContent() {
             {showFilters && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Status</label>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">status</label>
                   <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-black">
                     <option value="all">All</option>
                     <option value="active">Active</option>
@@ -329,7 +366,7 @@ export default function PropertiesContent() {
               )
               : displayData.map((property, index) => (
                 <PropertyCard
-                  key={`${property.property_id}-${index}`}
+                  key={`${property.id}-${index}`}
                   property={property}
                   viewMode={viewMode}
                   onEdit={showEditControls ? setEditingProperty : undefined}

@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   preferred_time      TEXT        NOT NULL,         -- e.g. "10:00 AM"
   interest_type       TEXT        NOT NULL DEFAULT 'listing'
                                   CHECK (interest_type IN ('listing', 'project')),
-  property_interest   TEXT,                         -- free-text or listing address
+  property.pricenterest   TEXT,                         -- free-text or listing address
   project_id          BIGINT      REFERENCES projects(id) ON DELETE SET NULL,
   message             TEXT        CHECK (char_length(message) <= 1000),
   status              TEXT        NOT NULL DEFAULT 'pending'

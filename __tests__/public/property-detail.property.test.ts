@@ -2,10 +2,10 @@
  * Property 9: Property detail page renders all non-null fields for any listing
  * Validates: Requirements 4.3
  *
- * Uses PropertyDetailView — a testable pure display component that accepts a
+ * Uses property.pricetailView — a testable pure display component that accepts a
  * PublicListing prop and renders all conditional fields. The Next.js server
  * component at app/(public)/listings/[id]/page.tsx cannot be rendered directly
- * in Jest because it performs async data fetching; PropertyDetailView
+ * in Jest because it performs async data fetching; property.pricetailView
  * encapsulates the display logic without any server-side concerns.
  */
 
@@ -34,7 +34,7 @@ jest.mock('next/link', () => ({
   }) => React.createElement('a', { href, ...rest }, children),
 }))
 
-import PropertyDetailView from '../../app/(public)/components/PropertyDetailView'
+import property.pricetailView from '../../app/(public)/components/property.pricetailView'
 import type { PublicListing } from '../../lib/types/public'
 
 // ---------------------------------------------------------------------------
@@ -77,13 +77,13 @@ const arbitraryListing: fc.Arbitrary<PublicListing> = fc.record<PublicListing>({
 // Property 9
 // ---------------------------------------------------------------------------
 
-describe('Property 9: PropertyDetailView renders all non-null fields for any listing', () => {
+describe('Property 9: property.pricetailView renders all non-null fields for any listing', () => {
   it('renders every non-null optional field and omits null fields without error', () => {
     fc.assert(
       fc.property(arbitraryListing, (listing) => {
         // Should not throw
         const { container } = render(
-          React.createElement(PropertyDetailView, { listing }),
+          React.createElement(property.pricetailView, { listing }),
         )
 
         const text = container.textContent ?? ''
@@ -169,7 +169,7 @@ describe('Property 9: PropertyDetailView renders all non-null fields for any lis
     fc.assert(
       fc.property(arbitraryListing, (listing) => {
         const { container } = render(
-          React.createElement(PropertyDetailView, { listing }),
+          React.createElement(property.pricetailView, { listing }),
         )
 
         const contactLink = container.querySelector('[data-testid="contact-cta"]')
@@ -181,7 +181,7 @@ describe('Property 9: PropertyDetailView renders all non-null fields for any lis
 
         // href must point to /contact with a query param
         const href = contactLink.getAttribute('href') ?? ''
-        if (!href.startsWith('/contact?property=')) return false
+        if (!href.startsWith('/contact?property.price)) return false
 
         return true
       }),
@@ -193,7 +193,7 @@ describe('Property 9: PropertyDetailView renders all non-null fields for any lis
     fc.assert(
       fc.property(arbitraryListing, (listing) => {
         const { container } = render(
-          React.createElement(PropertyDetailView, { listing }),
+          React.createElement(property.pricetailView, { listing }),
         )
 
         const contactLink = container.querySelector('[data-testid="contact-cta"]')

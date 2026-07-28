@@ -117,7 +117,7 @@ describe('Property 11: useTenantSettings merges localStorage with TENANT_DEFAULT
     )
   })
 
-  // ── Sub-property C: no field is undefined or null ──────────────────────────
+  // ── Sub-property.price: no field is undefined or null ──────────────────────────
   it('no field is ever undefined or null after merge', () => {
     fc.assert(
       fc.property(arbitraryPartialSettings, (partial) => {
@@ -149,7 +149,7 @@ describe('Property 11: useTenantSettings merges localStorage with TENANT_DEFAULT
     )
   })
 
-  // ── Sub-property E: empty object → pure TENANT_DEFAULTS ───────────────────
+  // ── Sub-property.price: empty object → pure TENANT_DEFAULTS ───────────────────
   it('empty localStorage object returns exact TENANT_DEFAULTS', () => {
     stubLocalStorage({})
 

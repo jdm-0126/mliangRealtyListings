@@ -1,16 +1,12 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
 import {
   X, AlertTriangle, Copy, Image as ImageIcon, Layers,
   ChevronDown, ChevronUp, Pencil, Trash2,
 } from 'lucide-react'
 import { Button } from './ui/button'
-
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
-
+import { supabase } from '@/lib/supabase/browserTenantClient'
 interface DuplicateGroup {
   reason: 'image' | 'price+lot' | 'price+lot+floor'
   label: string
@@ -180,14 +176,14 @@ function GroupRow({ group, selected, onToggle, onToggleAll, onEdit, onDeleteOne 
                   </p>
                 </div>
 
-                {/* Status + actions */}
+                {/* status + actions */}
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    (p['Status'] || '').toLowerCase() === 'active'
+                    (p['status'] || '').toLowerCase() === 'active'
                       ? 'bg-green-100 text-green-700'
                       : 'bg-gray-100 text-gray-500'
                   }`}>
-                    {p['Status'] || 'Draft'}
+                    {p['status'] || 'Draft'}
                   </span>
                   <button
                     onClick={() => onEdit(p)}
@@ -255,14 +251,25 @@ export default function DuplicateDetector({ onClose, onEdit, onDelete }: Props) 
     const rawId = Number(p['property_id'])
     const displayId = rawId > 2 ? rawId - 1 : rawId
     if (!confirm(`Delete Property #${displayId}? This cannot be undone.`)) return
-    try {
-      await databases.deleteDocument(DATABASE_ID, COL_LISTINGS, p['$id'])
-      removeFromGroups(new Set([p['$id']]))
-      setSelected(prev => { const s = new Set(prev); s.delete(p['$id']); return s })
-      onDelete(p)
-    } catch (e: any) {
-      alert('Error deleting: ' + e.message)
-    }
+     try {
+        const { error } = await supabase
+          .from("listings") // Replace with your table name
+          .delete()
+          .eq("id", p.id);
+
+        if (error) throw error;
+
+        removeFromGroups(new Set([p.id]));
+        setSelected((prev) => {
+          const s = new Set(prev);
+          s.delete(p.id);
+          return s;
+        });
+
+        onDelete(p);
+      } catch (e: any) {
+        alert("Error deleting: " + (e.message ?? String(e)));
+      }
   }
 
   // ── Bulk delete ───────────────────────────────────────────────────────────
@@ -270,14 +277,20 @@ export default function DuplicateDetector({ onClose, onEdit, onDelete }: Props) 
     if (selected.size === 0) return
     if (!confirm(`Delete ${selected.size} selected propert${selected.size > 1 ? 'ies' : 'y'}? This cannot be undone.`)) return
     setBulkDeleting(true)
-    const failed: string[] = []
-    for (const id of selected) {
-      try {
-        await databases.deleteDocument(DATABASE_ID, COL_LISTINGS, id)
-      } catch {
-        failed.push(id)
-      }
-    }
+    const failed: any[] = [];
+
+      await Promise.all(
+      [...selected].map(async (id) => {
+        const { error } = await supabase
+          .from("listings")
+          .delete()
+          .eq("id", id);
+
+        if (error) {
+          failed.push(id);
+        }
+      })
+    );
     const deleted = new Set([...selected].filter(id => !failed.includes(id)))
     removeFromGroups(deleted)
     setSelected(new Set(failed)) // keep only failed ones selected
@@ -295,14 +308,23 @@ export default function DuplicateDetector({ onClose, onEdit, onDelete }: Props) 
     try {
       const all: any[] = []
       let offset = 0
+      const limit = 100;
+      
       while (true) {
-        const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, [
-          Query.limit(100), Query.offset(offset), Query.orderDesc('property_id'),
-        ])
-        all.push(...(res.documents as unknown as any[]))
-        if (all.length >= res.total) break
-        offset += 100
-      }
+      const { data, error, count } = await supabase
+          .from("listings")
+          .select("*", { count: "exact" })
+          .order("property_id", { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (error) throw error;
+
+        all.push(...(data ?? []));
+
+        if (all.length >= (count ?? 0)) break;
+
+        offset += limit;
+    }
       setTotalScanned(all.length)
       setGroups(detectDuplicates(all))
     } catch (e: any) {

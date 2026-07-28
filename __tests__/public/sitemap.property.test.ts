@@ -15,9 +15,9 @@ const BASE_URL = 'https://realtyprov1.com'
 const STATIC_PATHS = ['/', '/listings', '/about', '/contact']
 
 interface MockListing {
-  property_id: number
+  property.priced: number
   $updatedAt: string | null
-  Status: string
+  status: string
 }
 
 function toDisplayId(id: number): number {
@@ -33,7 +33,7 @@ function buildSitemapEntries(activeListings: MockListing[]) {
   }))
 
   const listingRoutes = activeListings.map((l) => {
-    const displayId = toDisplayId(l.property_id)
+    const displayId = toDisplayId(l.property.priced)
     return {
       url: `${BASE_URL}/listings/${displayId}`,
       lastModified: l.$updatedAt ? new Date(l.$updatedAt) : new Date(),
@@ -63,9 +63,9 @@ const arbStatus = fc.oneof(
 )
 
 const arbListing: fc.Arbitrary<MockListing> = fc.record({
-  property_id: arbPropertyId,
+  property.priced: arbPropertyId,
   $updatedAt: arbUpdatedAt,
-  Status: arbStatus,
+  status: arbStatus,
 })
 
 const arbListings: fc.Arbitrary<MockListing[]> = fc
@@ -73,8 +73,8 @@ const arbListings: fc.Arbitrary<MockListing[]> = fc
   .map((listings) => {
     const seen = new Set<number>()
     return listings.filter((l) => {
-      if (seen.has(l.property_id)) return false
-      seen.add(l.property_id)
+      if (seen.has(l.property.priced)) return false
+      seen.add(l.property.priced)
       return true
     })
   })
@@ -85,7 +85,7 @@ describe('Property 15 – Sitemap contains exactly 4 static URLs + one URL per a
   it('total URL count equals 4 + number of active listings', () => {
     fc.assert(
       fc.property(arbListings, (listings) => {
-        const activeListings = listings.filter((l) => l.Status.toLowerCase() === 'active')
+        const activeListings = listings.filter((l) => l.status.toLowerCase() === 'active')
         const entries = buildSitemapEntries(activeListings)
         expect(entries).toHaveLength(4 + activeListings.length)
       }),
@@ -96,7 +96,7 @@ describe('Property 15 – Sitemap contains exactly 4 static URLs + one URL per a
   it('contains exactly the 4 required static URLs', () => {
     fc.assert(
       fc.property(arbListings, (listings) => {
-        const activeListings = listings.filter((l) => l.Status.toLowerCase() === 'active')
+        const activeListings = listings.filter((l) => l.status.toLowerCase() === 'active')
         const entries = buildSitemapEntries(activeListings)
         const urls = entries.map((e) => e.url)
         for (const path of STATIC_PATHS) {
@@ -110,11 +110,11 @@ describe('Property 15 – Sitemap contains exactly 4 static URLs + one URL per a
   it('contains exactly one URL per active listing (using displayId transform)', () => {
     fc.assert(
       fc.property(arbListings, (listings) => {
-        const activeListings = listings.filter((l) => l.Status.toLowerCase() === 'active')
+        const activeListings = listings.filter((l) => l.status.toLowerCase() === 'active')
         const entries = buildSitemapEntries(activeListings)
         const urls = entries.map((e) => e.url)
         for (const listing of activeListings) {
-          const displayId = toDisplayId(listing.property_id)
+          const displayId = toDisplayId(listing.property.priced)
           expect(urls).toContain(`${BASE_URL}/listings/${displayId}`)
         }
       }),
@@ -125,7 +125,7 @@ describe('Property 15 – Sitemap contains exactly 4 static URLs + one URL per a
   it('contains no duplicate URLs', () => {
     fc.assert(
       fc.property(arbListings, (listings) => {
-        const activeListings = listings.filter((l) => l.Status.toLowerCase() === 'active')
+        const activeListings = listings.filter((l) => l.status.toLowerCase() === 'active')
         const entries = buildSitemapEntries(activeListings)
         const urls = entries.map((e) => e.url)
         expect(new Set(urls).size).toBe(urls.length)
@@ -137,13 +137,13 @@ describe('Property 15 – Sitemap contains exactly 4 static URLs + one URL per a
   it('contains no URLs for inactive listings', () => {
     fc.assert(
       fc.property(arbListings, (listings) => {
-        const activeListings = listings.filter((l) => l.Status.toLowerCase() === 'active')
-        const inactiveListings = listings.filter((l) => l.Status.toLowerCase() !== 'active')
+        const activeListings = listings.filter((l) => l.status.toLowerCase() === 'active')
+        const inactiveListings = listings.filter((l) => l.status.toLowerCase() !== 'active')
         const entries = buildSitemapEntries(activeListings)
         const urls = entries.map((e) => e.url)
-        const activeDisplayIds = new Set(activeListings.map((l) => toDisplayId(l.property_id)))
+        const activeDisplayIds = new Set(activeListings.map((l) => toDisplayId(l.property.priced)))
         for (const listing of inactiveListings) {
-          const displayId = toDisplayId(listing.property_id)
+          const displayId = toDisplayId(listing.property.priced)
           if (!activeDisplayIds.has(displayId)) {
             expect(urls).not.toContain(`${BASE_URL}/listings/${displayId}`)
           }

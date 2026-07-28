@@ -3,14 +3,11 @@
 import React, { useState, useEffect, Suspense } from 'react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL_AGENTS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_AGENTS!
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { User, Mail, Phone, Award, Briefcase, Save } from 'lucide-react'
+import { supabase } from '@/app/lib/supabaseClient'
 
 function AgentProfileContent() {
   const router = useRouter()
@@ -63,12 +60,23 @@ function AgentProfileContent() {
   const fetchAgentProfile = async (email?: string, id?: number | null) => {
     setLoading(true)
     try {
-      const queries = id
-        ? [Query.equal('$id', String(id))]
-        : email ? [Query.equal('email', email)] : null
-      if (!queries) { setLoading(false); return }
-      const res = await databases.listDocuments(DATABASE_ID, COL_AGENTS, queries)
-      const data = res.documents[0]
+      let query = supabase
+        .from("agents")
+        .select("*");
+
+      if (id) {
+        query = query.eq("id", id);
+      } else if (email) {
+        query = query.eq("email", email);
+      } else {
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await query.maybeSingle();
+
+      if (error) throw error;
+
       if (data) {
         setAgentId(data.$id as unknown as number)
         setFormData({
@@ -154,7 +162,9 @@ function AgentProfileContent() {
     if (!agentId) return
     setSaving(true)
     try {
-      await databases.updateDocument(DATABASE_ID, COL_AGENTS, String(agentId), {
+      const { error } = await supabase
+        .from("agents") // Replace with your table name
+        .update({
         name: formData.name,
         phone: formData.phone,
         license_number: formData.license_number,

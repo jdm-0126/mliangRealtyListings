@@ -14,7 +14,7 @@ This feature adds a **public-facing website** — a customer-accessible section 
 - **Admin_Panel**: The internal management section relocated to `/admin/**` routes, accessible only to authenticated users (superadmin, broker, agent).
 - **Auth_Guard**: The client-side authentication check that reads `sessionStorage.brokerAdminAuth === 'authenticated'` and redirects unauthenticated users to `/` (Public_Site homepage).
 - **Visitor**: Any unauthenticated user accessing the Public_Site.
-- **Listing**: A property record stored in the Supabase `mlianglistings` table with status `'active'`.
+- **Listing**: A property.priceecord stored in the Supabase `listings` table with status `'active'`.
 - **Inquiry_Form**: The lead-capture form on the public Contact page that collects a Visitor's name, contact number, email address, property of interest (optional), and message.
 - **Lead_Record**: A row inserted into the Supabase `leads` table upon successful Inquiry_Form submission.
 - **SEO_Metadata**: Page-level HTML metadata including `<title>`, `<meta name="description">`, Open Graph tags, Twitter Card tags, and JSON-LD structured data.
@@ -49,7 +49,7 @@ This feature adds a **public-facing website** — a customer-accessible section 
 #### Acceptance Criteria
 
 1. THE Public_Site SHALL render a Hero section on the homepage (`/`) containing the brokerage name, a tagline, a primary call-to-action button linking to `/listings`, and a secondary call-to-action button linking to `/contact`.
-2. THE Public_Site SHALL render a Featured Listings section on the homepage displaying up to 6 Listings where the `status` field equals `"active"` (case-insensitive), fetched from the Supabase `mlianglistings` table and ordered by `property_id` descending (newest first).
+2. THE Public_Site SHALL render a Featured Listings section on the homepage displaying up to 6 Listings where the `status` field equals `"active"` (case-insensitive), fetched from the Supabase `listings` table and ordered by `property.priced` descending (newest first).
 3. IF the Supabase query for active Listings returns 0 records, THEN THE Public_Site SHALL display a "No listings available at the moment" placeholder in the Featured Listings section instead of an empty grid.
 4. IF the Supabase query for active Listings returns an error, THEN THE Public_Site SHALL display an "Unable to load listings at this time" message in the Featured Listings section and SHALL NOT render a broken or empty grid.
 5. THE Public_Site SHALL render a Services section on the homepage that includes at minimum three content blocks describing: (1) property sales (house and lot, commercial), (2) rental properties, and (3) lot sales — each with a heading and a short descriptive paragraph.
@@ -64,7 +64,7 @@ This feature adds a **public-facing website** — a customer-accessible section 
 
 #### Acceptance Criteria
 
-1. THE Public_Site SHALL render a Listings page at `/listings` that fetches and displays all Listings where `status = 'active'` (case-insensitive) from the `mlianglistings` table.
+1. THE Public_Site SHALL render a Listings page at `/listings` that fetches and displays all Listings where `status = 'active'` (case-insensitive) from the `listings` table.
 2. THE Public_Site SHALL display each Listing as a card showing: preview photo (or a placeholder image if none), property type, location, listing price formatted as Philippine Peso (₱), lot area, and a "View Details" link to `/listings/[id]`.
 3. THE Public_Site SHALL provide filter controls on the Listings page for: property type (All, House & Lot, Lot Only, Commercial), location keyword search (text input, case-insensitive substring match against the Location/Address field), and price range (All, Under ₱2M, ₱2M–₱5M, ₱5M–₱10M, Above ₱10M).
 4. WHEN a Visitor changes any filter control, THE Public_Site SHALL update the displayed Listing cards without a full page reload, reflecting only Listings that match all active filters simultaneously, and SHALL reset the current page to page 1.
@@ -77,12 +77,12 @@ This feature adds a **public-facing website** — a customer-accessible section 
 
 ### Requirement 4: Public Property Detail Page
 
-**User Story:** As a Visitor, I want to view full details for a specific property including photos and a contact prompt, so that I can evaluate whether to inquire about it.
+**User Story:** As a Visitor, I want to view full details for a specific property.pricencluding photos and a contact prompt, so that I can evaluate whether to inquire about it.
 
 #### Acceptance Criteria
 
-1. THE Public_Site SHALL render a Property Detail page at `/listings/[id]` that fetches the single Listing matching the given `id` from the `mlianglistings` table.
-2. IF the requested `id` does not match any record in `mlianglistings`, THEN THE Public_Site SHALL display a "Property not found" message and a link back to `/listings`.
+1. THE Public_Site SHALL render a Property Detail page at `/listings/[id]` that fetches the single Listing matching the given `id` from the `listings` table.
+2. IF the requested `id` does not match any record in `listings`, THEN THE Public_Site SHALL display a "Property not found" message and a link back to `/listings`.
 3. THE Public_Site SHALL display on the Property Detail page: all available photos (in a scrollable gallery or carousel), property type, location/address, listing price in Philippine Peso, lot area, floor area (if available), number of bedrooms (if available), number of bathrooms (if available), and the full property notes/description.
 4. THE Public_Site SHALL render an inquiry call-to-action on the Property Detail page with a "Contact About This Property" button that links to `/contact` with the property address pre-filled as the property of interest query parameter.
 5. THE Public_Site SHALL include SEO_Metadata on each Property Detail page with a title formatted as "{Property_Type} in {Location} – M. Liang Realty", a meta description derived from the property notes (truncated to 160 characters), `og:image` set to the property's preview photo URL, and JSON-LD structured data using the `RealEstateListing` schema type.

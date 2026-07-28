@@ -2,20 +2,16 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query, ID } from 'appwrite'
 import { uploadManyToCloudinary } from '@/lib/cloudinary'
-import { matchesLocationSearch } from '@/lib/appwrite/clientSearch'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { matchesLocationSearch } from "@/lib/shared/matchesLocationSearch";
 import {
   Upload, Trash2, Star, StarOff, ImageIcon, X, CheckCircle2, Loader2, Link2,
 } from 'lucide-react'
-
-const COL_GALLERY  = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
-const TENANT_ID    = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ?? '81b78be3-db0c-41f3-8f6f-e3989114eacf'
+import { supabase } from '@/lib/supabase/browserTenantClient'
+const TENANT_ID = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ?? '81b78be3-db0c-41f3-8f6f-e3989114eacf'
 
 type GalleryCategory = 'property' | 'event' | 'general'
 
@@ -42,14 +38,14 @@ interface Listing {
 
 const CATEGORY_LABELS: Record<GalleryCategory, string> = {
   property: 'Property Photo',
-  event:    'Event / News',
-  general:  'General',
+  event: 'Event / News',
+  general: 'General',
 }
 
 const CATEGORY_COLORS: Record<GalleryCategory, string> = {
   property: 'bg-blue-100 text-blue-800',
-  event:    'bg-purple-100 text-purple-800',
-  general:  'bg-gray-100 text-gray-700',
+  event: 'bg-purple-100 text-purple-800',
+  general: 'bg-gray-100 text-gray-700',
 }
 
 // ── Listing picker modal ──────────────────────────────────────────────────────
@@ -69,28 +65,41 @@ function ListingPickerModal({
     const run = async () => {
       setLoading(true)
       try {
-        const queries = [Query.orderDesc('property_id'), Query.limit(500)]
-        const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, queries)
-        const filtered: Listing[] = (res.documents as Record<string, unknown>[])
-          .filter((d: Record<string, unknown>) => matchesLocationSearch(d, search))
-          .map((d: Record<string, unknown>) => {
-            const rawId = d['property_id']
-            const id = typeof rawId === 'number'
-              ? rawId
-              : typeof rawId === 'string' && rawId.trim() !== ''
-                ? Number(rawId)
-                : 0
+  setLoading(true);
 
-            return {
-              id: Number.isFinite(id) ? id : 0,
-              location: String(d['Location'] ?? ''),
-              title: String(d['Title'] ?? ''),
-            }
-          })
-        setListings(filtered)
-      } finally {
-        setLoading(false)
-      }
+  const { data, error } = await supabase
+    .from("listings") // Replace with your table name
+    .select("*")
+    .order("property_id", { ascending: false })
+    .limit(500);
+
+  if (error) throw error;
+
+  const filtered: Listing[] = (data ?? [])
+    .filter((d) => matchesLocationSearch(d, search))
+    .map((d) => {
+      const rawId = d.property_id;
+
+      const id =
+        typeof rawId === "number"
+          ? rawId
+          : typeof rawId === "string" && rawId.trim() !== ""
+          ? Number(rawId)
+          : 0;
+
+      return {
+        id: Number.isFinite(id) ? id : 0,
+        location: String(d.Location ?? ""),
+        title: String(d.Title ?? ""),
+      };
+    });
+
+  setListings(filtered);
+} catch (e) {
+  console.error(e);
+} finally {
+  setLoading(false);
+}
     }
     run()
   }, [search])
@@ -165,11 +174,25 @@ export default function GalleryPage() {
   const fetchItems = useCallback(async () => {
     setLoading(true)
     try {
-      const queries: any[] = [Query.orderDesc('$createdAt')]
-      if (filterCategory !== 'all') queries.push(Query.equal('category', filterCategory))
-      if (filterFeatured) queries.push(Query.equal('is_featured', true))
-      const res = await databases.listDocuments(DATABASE_ID, COL_GALLERY, queries)
-      setItems(res.documents.map((d: any) => ({
+      let query = supabase
+        .from("gallery") // Replace with your gallery table name
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (filterCategory !== "all") {
+        query = query.eq("category", filterCategory);
+      }
+
+      if (filterFeatured) {
+        query = query.eq("is_featured", true);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const res = data ?? [];
+      setItems(data.map((d: any) => ({
         id: d.$id,
         title: d.title ?? null,
         description: d.description ?? null,
@@ -213,23 +236,22 @@ export default function GalleryPage() {
       const secureUrl = url.replace('http://', 'https://')
       const publicId = extractPublicId(url)
       const row = {
-        tenant_id:             TENANT_ID,
-        category:              uploadCategory,
-        title:                 uploadTitle || null,
-        cloudinary_public_id:  publicId,
-        cloudinary_url:        secureUrl,
+        tenant_id: TENANT_ID,
+        category: uploadCategory,
+        title: uploadTitle || null,
+        cloudinary_public_id: publicId,
+        cloudinary_url: secureUrl,
         cloudinary_secure_url: secureUrl,
-        listing_id:            uploadCategory === 'property' ? (uploadListing?.id ?? null) : null,
-        is_featured:           uploadCategory === 'event',
+        listing_id: uploadCategory === 'property' ? (uploadListing?.id ?? null) : null,
+        is_featured: uploadCategory === 'event',
       }
-      await databases.createDocument(DATABASE_ID, COL_GALLERY, ID.unique(), row)
+      // await databases.createDocument(DATABASE_ID, COL_GALLERY, ID.unique(), row)
+      await supabase.from("gallery").insert(row)
 
-      if (uploadCategory === 'property' && uploadListing) {
-        await databases.updateDocument(DATABASE_ID, COL_LISTINGS,
-          await getListingDocId(uploadListing.id),
-          { Preview_Photo: secureUrl }
-        )
-      }
+      await supabase
+        .from("listings")
+        .update({ Preview_Photo: secureUrl })
+        .eq("property_id", uploadListing!.id)
 
       setUploadDone(true)
       setUrlInput('')
@@ -256,27 +278,34 @@ export default function GalleryPage() {
       )
 
       for (const r of results) {
-        await databases.createDocument(DATABASE_ID, COL_GALLERY, ID.unique(), {
-          tenant_id:             TENANT_ID,
-          category:              uploadCategory,
-          title:                 uploadTitle || null,
-          cloudinary_public_id:  r.public_id,
-          cloudinary_url:        r.url,
+        const { error } = await supabase
+          .from("gallery") // Replace with your actual table name
+          .insert({
+          tenant_id: TENANT_ID,
+          category: uploadCategory,
+          title: uploadTitle || null,
+          cloudinary_public_id: r.public_id,
+          cloudinary_url: r.url,
           cloudinary_secure_url: r.secure_url,
-          width:                 r.width,
-          height:                r.height,
-          format:                r.format,
-          bytes:                 r.bytes,
-          listing_id:            uploadCategory === 'property' ? (uploadListing?.id ?? null) : null,
-          is_featured:           uploadCategory === 'event',
+          width: r.width,
+          height: r.height,
+          format: r.format,
+          bytes: r.bytes,
+          listing_id: uploadCategory === 'property' ? (uploadListing?.id ?? null) : null,
+          is_featured: uploadCategory === 'event',
         })
+        if (error) throw error;
       }
 
-      if (uploadCategory === 'property' && uploadListing && results.length > 0) {
-        await databases.updateDocument(DATABASE_ID, COL_LISTINGS,
-          await getListingDocId(uploadListing.id),
-          { Preview_Photo: results[0].secure_url }
-        )
+      if (uploadCategory === "property" && uploadListing && results.length > 0) {
+        const { error } = await supabase
+          .from("listings")
+          .update({
+            Preview_Photo: results[0].secure_url,
+          })
+          .eq("property_id", uploadListing.id);
+
+        if (error) throw error;
       }
 
       setUploadDone(true)
@@ -294,40 +323,111 @@ export default function GalleryPage() {
 
   // Helper: get Appwrite document $id from property_id
   const getListingDocId = async (propertyId: number): Promise<string> => {
-    const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, [
-      Query.equal('property_id', propertyId),
-      Query.limit(1),
-    ])
-    if (!res.documents.length) throw new Error(`Listing #${propertyId} not found`)
-    return res.documents[0].$id
+    const { data, error } = await supabase
+      .from("listings")
+      .select("id")
+      .eq("property_id", propertyId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) throw new Error(`Listing #${propertyId} not found`);
+
+    return data.id;
   }
 
   // ── Assign existing gallery image to a listing ────────────────────────────
 
   const handleAssign = async (item: GalleryItem, listing: Listing) => {
-    await databases.updateDocument(DATABASE_ID, COL_GALLERY, item.id, { listing_id: listing.id })
-    const docId = await getListingDocId(listing.id)
-    await databases.updateDocument(DATABASE_ID, COL_LISTINGS, docId, { Preview_Photo: item.cloudinary_secure_url })
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, listing_id: listing.id } : i))
-    setAssigningItem(null)
-    alert(`Photo assigned to Property #${listing.id} — ${listing.location}`)
+    // Update gallery
+    const { error: galleryError } = await supabase
+      .from("gallery")
+      .update({
+        listing_id: listing.id,
+      })
+      .eq("id", item.id);
+
+    if (galleryError) throw galleryError;
+
+    // Update listing preview photo
+    const { error: listingError } = await supabase
+      .from("listings")
+      .update({
+        Preview_Photo: item.cloudinary_secure_url,
+      })
+      .eq("property_id", listing.id);
+
+    if (listingError) throw listingError;
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === item.id
+          ? { ...i, listing_id: listing.id }
+          : i
+      )
+    );
+
+    setAssigningItem(null);
+
+    alert(`Photo assigned to Property #${listing.id} — ${listing.location}`);
   }
 
   const toggleFeatured = async (item: GalleryItem) => {
-    await databases.updateDocument(DATABASE_ID, COL_GALLERY, item.id, { is_featured: !item.is_featured })
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_featured: !i.is_featured } : i))
+    const { error } = await supabase
+      .from("gallery")
+      .update({
+        is_featured: !item.is_featured,
+      })
+      .eq("id", item.id);
+
+    if (error) throw error;
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === item.id
+          ? { ...i, is_featured: !i.is_featured }
+          : i
+      )
+    );
   }
 
   const deleteItem = async (item: GalleryItem) => {
-    if (!confirm(`Delete "${item.title ?? 'this image'}"? This cannot be undone.`)) return
-    await databases.deleteDocument(DATABASE_ID, COL_GALLERY, item.id)
-    setItems(prev => prev.filter(i => i.id !== item.id))
+    if (!confirm(`Delete "${item.title ?? "this image"}"? This cannot be undone.`))
+      return;
+
+    const { error } = await supabase
+      .from("gallery")
+      .delete()
+      .eq("id", item.id);
+
+    if (error) throw error;
+
+    setItems((prev) => prev.filter((i) => i.id !== item.id));
   }
 
   const saveEdit = async (id: string) => {
-    await databases.updateDocument(DATABASE_ID, COL_GALLERY, id, { title: editTitle || null, description: editDescription || null })
-    setItems(prev => prev.map(i => i.id === id ? { ...i, title: editTitle || null, description: editDescription || null } : i))
-    setEditingId(null)
+    const { error } = await supabase
+      .from("gallery")
+      .update({
+        title: editTitle || null,
+        description: editDescription || null,
+      })
+      .eq("id", id);
+
+    if (error) throw error;
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? {
+            ...i,
+            title: editTitle || null,
+            description: editDescription || null,
+          }
+          : i
+      )
+    );
+
+    setEditingId(null);
   }
 
   const filtered = items.filter(i => {
@@ -357,17 +457,15 @@ export default function GalleryPage() {
               <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
                 <button
                   onClick={() => { setUploadMode('file'); setUploadDone(false) }}
-                  className={`px-4 py-1.5 font-medium transition-colors flex items-center gap-1.5 ${
-                    uploadMode === 'file' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className={`px-4 py-1.5 font-medium transition-colors flex items-center gap-1.5 ${uploadMode === 'file' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
                 >
                   <Upload className="w-3.5 h-3.5" /> Upload File
                 </button>
                 <button
                   onClick={() => { setUploadMode('url'); setUploadDone(false) }}
-                  className={`px-4 py-1.5 font-medium transition-colors flex items-center gap-1.5 ${
-                    uploadMode === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className={`px-4 py-1.5 font-medium transition-colors flex items-center gap-1.5 ${uploadMode === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
                 >
                   <Link2 className="w-3.5 h-3.5" /> Paste URL
                 </button>
@@ -571,7 +669,6 @@ export default function GalleryPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {filtered.map(item => (
               <div
-                key={item.id}
                 className="group relative rounded-xl overflow-hidden bg-gray-100 flex flex-col"
               >
                 <div className="relative" style={{ aspectRatio: '4/3' }}>

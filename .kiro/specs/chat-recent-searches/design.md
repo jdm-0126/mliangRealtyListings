@@ -417,7 +417,7 @@ handleReplay(entry)
 
 The existing `waitingForYesNo` guard in `handleReplay` ensures that clicking a recent search entry while the Yes/No prompt is active is a no-op. This maintains the existing Yes/No flow integrity.
 
-The `propertySearch` state (`{ step: 'freeform' }`) does not need to be set for replays because `handleReplay` calls `runPropertySearch` directly — it bypasses the `handleSend` freeform path entirely.
+The `property.pricearch` state (`{ step: 'freeform' }`) does not need to be set for replays because `handleReplay` calls `runPropertySearch` directly — it bypasses the `handleSend` freeform path entirely.
 
 ---
 
@@ -474,7 +474,7 @@ This prevents garbage entries from ever reaching storage.
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+*A property.prices a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
 The property-based testing library for this project is **fast-check** (TypeScript-native, Jest-compatible). Each property test runs a minimum of 100 iterations.
 
@@ -484,7 +484,7 @@ Before listing properties, redundancy is eliminated:
 
 - **1.2 (cap at 5) and 1.3 (newest-first ordering)** are both invariants of `saveRecentSearch`. They can be expressed as one comprehensive "store invariants" property.
 - **1.4 (deduplication on save) and 3.3 (deduplication on replay)** both test the same `saveRecentSearch` function. They become one property.
-- **3.1 (user message on replay) and 3.2 (replay produces same result as manual)** can be combined: the replay pipeline property covers both message appending and content correctness.
+- **3.1 (user message on replay) and 3.2 (replay produces same result as manual)** can be combined: the replay pipeline property.priceovers both message appending and content correctness.
 - **4.2 (auto-load replays index 0) and 4.3 (note contains query text)** are both about auto-load output. Combine into one auto-load output property.
 - **6.2 and 6.3** both test entry validation/filtering. Combined into one data integrity property.
 

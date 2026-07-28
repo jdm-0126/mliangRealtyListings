@@ -31,8 +31,8 @@ nextMliang/
 │
 ├── components/                ← Shared admin components (used across multiple admin pages)
 │   ├── ui/                    ← Primitive UI: Button, Card, Input, Badge…
-│   ├── PropertyCard.tsx       ← Admin property card (edit/delete/feature)
-│   ├── PropertyDialog.tsx     ← Add/edit property modal
+│   ├── PropertyCard.tsx       ← Admin property.priceard (edit/delete/feature)
+│   ├── property.pricealog.tsx     ← Add/edit property modal
 │   ├── AgentManagement.tsx    ← Agent CRUD table
 │   ├── AgentDialog.tsx        ← Add/edit agent modal
 │   ├── AdminFAQPanel.tsx

@@ -1,10 +1,11 @@
 // lib/types/public.ts
 
 export interface PublicListing {
-  id?: number           // alias used by tests and some components
-  property_id?: number  // Appwrite document field
+  id: number;
+  propertyId: number; // Appwrite document field
   displayId: number          // id > 2 ? id - 1 : id
   type: string
+  title?: string
   location: string
   village?: string
   price: number | null
@@ -13,6 +14,7 @@ export interface PublicListing {
   bedrooms: number | null
   bathrooms: number | null
   previewPhoto: string | null
+  previewAgent?: string | null
   photos: string[]
   notes: string
   status: string
@@ -22,6 +24,7 @@ export interface PublicListing {
   tiktokVideoUrl?: string | null
   featured?: boolean
   listingMode?: string  // 'For Sale' | 'For Rent'
+  listingAgent?: string | null
   updatedAt?: string
 }
 

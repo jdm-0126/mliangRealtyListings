@@ -2,14 +2,14 @@
 
 ## Introduction
 
-MliangRealty currently embeds Facebook and TikTok videos on property pages, which pulls visitors away from the website. This feature introduces a **self-hosted property video and reels system** that keeps visitors on-site by streaming videos via a dedicated hosting platform (Cloudflare Stream, Mux, or Bunny Stream). It covers:
+MliangRealty currently embeds Facebook and TikTok videos on property.priceages, which pulls visitors away from the website. This feature introduces a **self-hosted property video and reels system** that keeps visitors on-site by streaming videos via a dedicated hosting platform (Cloudflare Stream, Mux, or Bunny Stream). It covers:
 
 - Per-property hero videos (landscape MP4) and short vertical reels
 - A public-facing "Featured Reels" feed with a TikTok-style vertical player
 - Admin CMS video upload and management integrated with the existing Supabase-based admin panel
 - Enhanced property detail pages with video, map, SEO content, and CTA
-- Social media post automation that links back to the property page
-- SEO-optimized property pages with Schema.org structured data
+- Social media post automation that links back to the property.priceage
+- SEO-optimized property.priceages with Schema.org structured data
 - An AI-powered property assistant on each listing page
 
 The system targets foreign investors, OFWs, retirees, and expats searching for properties in Pampanga (Clark, Angeles City, Porac, Batangas).
@@ -19,17 +19,17 @@ The system targets foreign investors, OFWs, retirees, and expats searching for p
 ## Glossary
 
 - **Video_Hosting_Provider**: The third-party streaming service (Cloudflare Stream, Mux, or Bunny Stream) used to store and deliver video assets.
-- **Hero_Video**: A landscape-oriented MP4 video (16:9 aspect ratio) associated with a property listing, stored as a non-null `videoUrl` in the `mlianglistings` table and served via the Video_Hosting_Provider.
-- **Reel**: A short vertical video (9:16 aspect ratio, ≤ 60 seconds) associated with a property listing, stored in the `reel_url` column of `mlianglistings` and served via the Video_Hosting_Provider.
+- **Hero_Video**: A landscape-oriented MP4 video (16:9 aspect ratio) associated with a property listing, stored as a non-null `videoUrl` in the `listings` table and served via the Video_Hosting_Provider.
+- **Reel**: A short vertical video (9:16 aspect ratio, ≤ 60 seconds) associated with a property listing, stored in the `reel_url` column of `listings` and served via the Video_Hosting_Provider.
 - **Reels_Feed**: A publicly accessible page section that displays all available Reels in a scrollable vertical feed.
-- **Video_Player**: The embedded player component used on property pages and in the Reels modal, powered by the Video_Hosting_Provider's embed API.
+- **Video_Player**: The embedded player component used on property.priceages and in the Reels modal, powered by the Video_Hosting_Provider's embed API.
 - **CMS**: The existing admin panel located at `/admin` within the Next.js application, backed by Supabase.
 - **Admin**: An authenticated user of the CMS (broker or superadmin role).
 - **Property_Detail_Page**: The public page at `/listings/[id]` that displays a single property listing.
-- **Property_Card**: The summary card for a listing shown in the `/listings` grid.
+- **property.priceard**: The summary card for a listing shown in the `/listings` grid.
 - **Automation_Webhook**: An HTTP endpoint (consumed by n8n or equivalent) that triggers social media publishing after a video is attached to a listing.
 - **AI_Assistant**: The on-page conversational widget that answers buyer questions without navigating away from the Property_Detail_Page.
-- **Schema_Markup**: JSON-LD structured data embedded in property pages following the `RealEstateListing` schema from Schema.org.
+- **Schema_Markup**: JSON-LD structured data embedded in property.priceages following the `RealEstateListing` schema from Schema.org.
 - **Nearby_Landmark**: A named point of interest (school, hospital, mall, airport) from a static per-location data set stored in the application.
 - **WhatsApp_CTA**: A click-to-chat button that opens a pre-filled WhatsApp conversation with the broker.
 - **Supabase**: The existing PostgreSQL-backed backend used for listing data and storage.
@@ -48,14 +48,14 @@ The system targets foreign investors, OFWs, retirees, and expats searching for p
 2. IF an uploaded file is not in MP4 format, THEN THE CMS SHALL reject the file before transmission and display an error message stating "Only MP4 video files are accepted."
 3. WHEN a video upload completes, THE Video_Hosting_Provider SHALL return a unique video identifier and a signed embed URL for use by the Video_Player.
 4. WHILE a video is being served by the Video_Hosting_Provider, THE Video_Player SHALL play the video without requiring the visitor to manually select a quality level.
-5. WHEN the Video_Hosting_Provider returns an embed URL, THE CMS SHALL store the embed URL and video identifier in the `mlianglistings` Supabase table against the corresponding property record.
+5. WHEN the Video_Hosting_Provider returns an embed URL, THE CMS SHALL store the embed URL and video identifier in the `listings` Supabase table against the corresponding property.priceecord.
 6. IF the Video_Hosting_Provider upload fails or does not complete within 300 seconds, THEN THE CMS SHALL display an error message describing the failure; for first-time uploads the video fields SHALL remain null, and for replacements the previously saved URL SHALL be retained.
 
 ---
 
 ### Requirement 2: Per-Property Hero Video and Reel
 
-**User Story:** As an Admin, I want to attach a hero video and a short vertical reel to each property listing, so that buyers see rich media immediately when they visit a property page.
+**User Story:** As an Admin, I want to attach a hero video and a short vertical reel to each property listing, so that buyers see rich media immediately when they visit a property.priceage.
 
 #### Acceptance Criteria
 
@@ -69,9 +69,9 @@ The system targets foreign investors, OFWs, retirees, and expats searching for p
 
 ---
 
-### Requirement 3: Property Reels Feed (Public)
+### Requirement 3: property.priceeels Feed (Public)
 
-**User Story:** As a website visitor, I want to browse a vertical video feed of property reels, so that I can quickly discover properties through short videos without leaving the MliangRealty website.
+**User Story:** As a website visitor, I want to browse a vertical video feed of property.priceeels, so that I can quickly discover properties through short videos without leaving the MliangRealty website.
 
 #### Acceptance Criteria
 
@@ -107,23 +107,23 @@ The system targets foreign investors, OFWs, retirees, and expats searching for p
 
 #### Acceptance Criteria
 
-1. THE CMS SHALL provide a video upload interface within the existing property edit dialog at `/admin/properties`.
+1. THE CMS SHALL provide a video upload interface within the existing property.pricedit dialog at `/admin/properties`.
 2. THE CMS SHALL only accept video files of type `video/mp4` with a maximum size of 2 GB; IF a selected file does not meet these constraints, THEN THE CMS SHALL reject it before upload and display the specific constraint that was violated.
 3. WHEN an Admin selects a valid video file for upload, THE CMS SHALL display an upload progress indicator showing percentage completion.
-4. WHEN a video upload completes successfully, THE CMS SHALL display a thumbnail preview of the uploaded video within the property edit dialog.
+4. WHEN a video upload completes successfully, THE CMS SHALL display a thumbnail preview of the uploaded video within the property.pricedit dialog.
 5. WHEN an Admin initiates a replacement upload, THE previous video SHALL be deleted from the Video_Hosting_Provider only after the new upload completes successfully; IF the new upload fails, THEN the previous video SHALL be retained.
-6. WHILE a video is uploading, THE CMS SHALL prevent the Admin from navigating away from the property edit dialog without a confirmation prompt.
-7. THE CMS SHALL display the current Hero_Video and Reel status (attached/not attached) for each property in the property listing grid.
+6. WHILE a video is uploading, THE CMS SHALL prevent the Admin from navigating away from the property.pricedit dialog without a confirmation prompt.
+7. THE CMS SHALL display the current Hero_Video and Reel status (attached/not attached) for each property.pricen the property listing grid.
 
 ---
 
 ### Requirement 6: Social Media Automation
 
-**User Story:** As an Admin, I want new property videos to be automatically shared to Facebook, Instagram, and TikTok with a link back to the property page, so that social media followers are driven to the website rather than kept on third-party platforms.
+**User Story:** As an Admin, I want new property videos to be automatically shared to Facebook, Instagram, and TikTok with a link back to the property.priceage, so that social media followers are driven to the website rather than kept on third-party platforms.
 
 #### Acceptance Criteria
 
-1. WHEN the `videoUrl` or `reel_url` field of a property record transitions from null/empty to a non-null/non-empty value and is persisted to Supabase, THE CMS SHALL trigger the Automation_Webhook.
+1. WHEN the `videoUrl` or `reel_url` field of a property.priceecord transitions from null/empty to a non-null/non-empty value and is persisted to Supabase, THE CMS SHALL trigger the Automation_Webhook.
 2. THE Automation_Webhook endpoint SHALL accept HTTP POST requests with a JSON body containing `propertyId` (string), `videoUrl` (string or null), `reelUrl` (string or null), and `propertyPageUrl` (string) fields.
 3. THE `propertyPageUrl` field in the webhook payload SHALL be the canonical Property_Detail_Page URL constructed using the `buildCanonicalUrl` utility so that every social post links back to the MliangRealty website.
 4. IF the Automation_Webhook call fails (non-2xx response or network error), THEN THE CMS SHALL log the error server-side and display a non-blocking warning banner to the Admin; the video attachment SHALL remain intact.
@@ -133,7 +133,7 @@ The system targets foreign investors, OFWs, retirees, and expats searching for p
 
 ### Requirement 7: SEO-Optimized Property Detail Pages
 
-**User Story:** As a property seeker using a search engine, I want to find detailed, descriptive property pages with local context, so that I can evaluate a property from the search results page before visiting the site.
+**User Story:** As a property seeker using a search engine, I want to find detailed, descriptive property.priceages with local context, so that I can evaluate a property from the search results page before visiting the site.
 
 #### Acceptance Criteria
 
@@ -164,7 +164,7 @@ The system targets foreign investors, OFWs, retirees, and expats searching for p
 
 ### Requirement 9: AI-Powered Property Assistant
 
-**User Story:** As a property buyer, I want to ask questions about a listing and receive instant, contextual answers, so that I can make an informed decision without leaving the property page.
+**User Story:** As a property buyer, I want to ask questions about a listing and receive instant, contextual answers, so that I can make an informed decision without leaving the property.priceage.
 
 #### Acceptance Criteria
 
@@ -186,11 +186,11 @@ The system targets foreign investors, OFWs, retirees, and expats searching for p
 
 #### Acceptance Criteria
 
-1. THE Supabase `mlianglistings` table SHALL contain a column `hero_video_url` of type TEXT (nullable) that stores the Video_Hosting_Provider embed URL for the Hero_Video.
-2. THE Supabase `mlianglistings` table SHALL contain a column `reel_url` of type TEXT (nullable) that stores the Video_Hosting_Provider embed URL for the Reel.
-3. THE Supabase `mlianglistings` table SHALL contain a column `hero_video_id` of type TEXT (nullable) that stores the Video_Hosting_Provider's unique asset identifier for the Hero_Video.
-4. THE Supabase `mlianglistings` table SHALL contain a column `reel_id` of type TEXT (nullable) that stores the Video_Hosting_Provider's unique asset identifier for the Reel.
-5. THE Supabase `mlianglistings` table SHALL contain a column `reel_thumbnail_url` of type TEXT (nullable) that stores a static image URL for use as the Reel preview in the Reels_Feed.
-6. IF the `mlianglistings` table does not already have an `updated_at` column, THEN THE migration SHALL add it as `TIMESTAMPTZ NOT NULL DEFAULT now()`.
+1. THE Supabase `listings` table SHALL contain a column `hero_video_url` of type TEXT (nullable) that stores the Video_Hosting_Provider embed URL for the Hero_Video.
+2. THE Supabase `listings` table SHALL contain a column `reel_url` of type TEXT (nullable) that stores the Video_Hosting_Provider embed URL for the Reel.
+3. THE Supabase `listings` table SHALL contain a column `hero_video_id` of type TEXT (nullable) that stores the Video_Hosting_Provider's unique asset identifier for the Hero_Video.
+4. THE Supabase `listings` table SHALL contain a column `reel_id` of type TEXT (nullable) that stores the Video_Hosting_Provider's unique asset identifier for the Reel.
+5. THE Supabase `listings` table SHALL contain a column `reel_thumbnail_url` of type TEXT (nullable) that stores a static image URL for use as the Reel preview in the Reels_Feed.
+6. IF the `listings` table does not already have an `updated_at` column, THEN THE migration SHALL add it as `TIMESTAMPTZ NOT NULL DEFAULT now()`.
 7. WHEN any of the five video columns (`hero_video_url`, `reel_url`, `hero_video_id`, `reel_id`, `reel_thumbnail_url`) are updated via an SQL UPDATE statement, a Supabase database trigger SHALL set the `updated_at` column to the current UTC timestamp.
 8. THE database migration adding these columns SHALL use `ADD COLUMN IF NOT EXISTS` for all new columns so that it is idempotent and can be re-run safely in any environment.

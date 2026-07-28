@@ -68,6 +68,7 @@ export default function ListingCard({ listing: initialListing, priority = false,
   const [imageLoaded, setImageLoaded] = useState(false)
   const [inView, setInView] = useState(false)
   const imageRef = useRef<HTMLDivElement | null>(null)
+  
   const locationText = [listing.village, listing.location].filter(Boolean).join(', ')
   const href = `/listings/${listing.displayId}`
   const FALLBACK_IMG = 'https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png'

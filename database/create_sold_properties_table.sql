@@ -1,7 +1,7 @@
 -- Create sold_properties table for commission tracking
 CREATE TABLE IF NOT EXISTS sold_properties (
     id BIGSERIAL PRIMARY KEY,
-    property_id INTEGER,
+    property.priced INTEGER,
     property_title TEXT NOT NULL,
     property_location TEXT,
     sale_price NUMERIC NOT NULL,
@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_sold_properties_agent ON sold_properties(agent_na
 
 -- Insert sample data
 INSERT INTO sold_properties (
-    property_id, property_title, property_location, sale_price, 
+    property.priced, property_title, property_location, sale_price, 
     commission_amount, commission_percentage, date_sold, 
     date_commission_received, agent_name, broker_name, status
 ) VALUES

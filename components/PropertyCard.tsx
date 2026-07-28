@@ -3,15 +3,13 @@
 import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
 import { uploadManyToCloudinary, buildPropertyUploadFolder, buildPropertyGalleryRecord, buildSharpenedCloudinaryUrl } from '@/lib/cloudinary'
 import { MapPin, Maximize2, Home, BedDouble, Bath, Edit, Trash2, X, ImagePlus, Facebook, UploadCloud } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Tooltip } from './ui/tooltip'
 import FeaturedToggle from './FeaturedToggle'
-
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
+import { supabase } from '@/lib/supabase/browserTenantClient'
 
 interface PropertyCardProps {
   property: any
@@ -62,18 +60,31 @@ export default function PropertyCard({
 
   // Field names (Appwrite uses underscores)
   const previewPhoto: string | null = property['Preview_Photo'] || null
-  const price = property['Listing_Price']
-  const lotArea = property['Lot_Area_sqm']
-  const floorArea = property['Floor_Area_sqm']
-  const bedrooms = property['Bedroom']
-  const bathrooms = property['Bathroom']
-  const location: string = property['Location'] || ''
-  const village: string = property['Village'] || ''
-  const type: string = property['Type'] || ''
-  const status: string = property['Status'] || 'Draft'
-  const listingMode: string | null = property['Listing_Mode'] || null
-  const facebookLink: string | null = property['FB_Link'] || property['fb_link'] || property['Facebook_URL'] || property['facebook_url'] || property['Facebook_Video_URL'] || property['facebook_video_url'] || null
-  const description: string | null = property['Description'] || property['description'] || property['Notes'] || property['notes'] || null
+  const price = property.listing_price
+  const lotArea = property['lot_area']
+const floorArea = property['floor_area']
+const bedrooms = property['bedroom']
+const bathrooms = property['bathroom']
+
+const location: string = property['location'] || ''
+const village: string = property['village'] || ''
+const type: string = property['type'] || ''
+
+const status: string = property['status'] || 'Draft'
+
+const listingMode: string | null =
+  property['listing_mode'] || null
+
+const facebookLink: string | null =
+  property['facebook_url'] ||
+  property['facebook_video_url'] ||
+  property['fb_link'] ||
+  null
+
+const description: string | null =
+  property['description'] ||
+  property['notes'] ||
+  null
   const rawId = Number(property['property_id'])
   const displayId = rawId > 2 ? rawId - 1 : rawId
   const href = `/properties/${displayId}`
@@ -129,7 +140,7 @@ export default function PropertyCard({
   const handlePhotoUpdate = async () => {
     if (!newPhotoUrl.trim()) return
     try {
-      await databases.updateDocument(DATABASE_ID, COL_LISTINGS, property['$id'], { Preview_Photo: newPhotoUrl })
+      // await databases.updateDocument(DATABASE_ID, COL_LISTINGS, property['$id'], { Preview_Photo: newPhotoUrl })
       property['Preview_Photo'] = newPhotoUrl
       setIsEditingPhoto(false)
       setNewPhotoUrl('')
@@ -150,17 +161,28 @@ export default function PropertyCard({
       const folder = buildPropertyUploadFolder(rawId || property['property_id'])
       const results = await uploadManyToCloudinary(files, folder, (done, total) => setUploadProgress(Math.round((done / total) * 100)))
 
-      await Promise.all(results.map(result =>
-        databases.createDocument(DATABASE_ID, process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_GALLERY!, String(Date.now()) + Math.random().toString(36).slice(2), buildPropertyGalleryRecord({
-          tenantId,
-          propertyId: rawId || property['property_id'],
-          title: property['Title'] || property['Location'] || `Property ${rawId || property['property_id']}`,
-          secureUrl: result.secure_url,
-          publicId: result.public_id,
-          category: 'property',
-          isFeatured: false,
-        }))
-      ))
+      await Promise.all(
+        results.map(async (result) => {
+          const { error } = await supabase
+            .from("listings") // Replace with your actual table name
+            .insert(
+              buildPropertyGalleryRecord({
+                tenantId,
+                propertyId: rawId || property.property_id,
+                title:
+                  property.Title ||
+                  property.Location ||
+                  `Property ${rawId || property.property_id}`,
+                secureUrl: result.secure_url,
+                publicId: result.public_id,
+                category: "property",
+                isFeatured: false,
+              })
+            );
+
+          if (error) throw error;
+        })
+      );
 
       const firstPreviewUrl = buildSharpenedCloudinaryUrl(results[0]?.secure_url ?? '')
       if (firstPreviewUrl) {
@@ -239,7 +261,7 @@ export default function PropertyCard({
           {listingModeLabel}
         </span>
       )}
-      {/* Status badge (bottom-left) */}
+      {/* status badge (bottom-left) */}
       <span className="absolute bottom-3 left-3">
         <Badge variant={statusVariant}>{status}</Badge>
       </span>

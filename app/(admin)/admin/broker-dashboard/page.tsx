@@ -4,11 +4,6 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL_SOLD = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_SOLD_PROPERTIES!
-const COL_AGENTS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_AGENTS!
 import { 
   DollarSign, 
   TrendingUp, 
@@ -17,6 +12,7 @@ import {
   Award,
   Briefcase
 } from 'lucide-react'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
 
@@ -73,16 +69,27 @@ export default function BrokerDashboard() {
     const fetchDashboardData = async () => {
       setLoading(true)
       try {
-        const [soldRes, agentsRes] = await Promise.all([
-          databases.listDocuments(DATABASE_ID, COL_SOLD, [Query.orderDesc('date_sold')]),
-          databases.listDocuments(DATABASE_ID, COL_AGENTS, [Query.equal('status', 'Active'), Query.orderDesc('$createdAt')]),
-        ])
+        const [soldResult, agentsResult] = await Promise.all([
+        supabase
+          .from("sold") // Replace with your sold table name
+          .select("*")
+          .order("date_sold", { ascending: false }),
 
-        const soldData = soldRes.documents as unknown as SoldProperty[]
+        supabase
+          .from("agents") // Replace with your agents table name
+          .select("*")
+          .eq("status", "Active")
+          .order("created_at", { ascending: false }), // Replace with your timestamp column
+      ]);
+
+      if (soldResult.error) throw soldResult.error;
+      if (agentsResult.error) throw agentsResult.error;
+
+        const soldData = soldResult as unknown as SoldProperty[]
         setSoldProperties(soldData)
         setTotalCommission(soldData.reduce((s, p) => p.status === 'Paid' ? s + p.commission_amount : s, 0))
         setPendingCommission(soldData.reduce((s, p) => p.status === 'Pending' ? s + p.commission_amount : s, 0))
-        setAgents(agentsRes.documents as unknown as Agent[])
+        setAgents(agentsResult as unknown as Agent[])
       } catch (e) { console.error(e) }
       setLoading(false)
     }

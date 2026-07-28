@@ -2,10 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useDeferredValue } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 
-const COL_LISTINGS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS!
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -71,11 +69,16 @@ export default function RentalsContent() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await databases.listDocuments(DATABASE_ID, COL_LISTINGS, [
-        Query.orderDesc('property_id'),
-        Query.limit(100),
-      ])
-      const rentals = (res.documents as unknown as Record<string, unknown>[]).filter((row) =>
+      const { data, error } = await supabase
+        .from("listings") // Replace with your table name
+        .select("*")
+        .order("property_id", { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      const res = data ?? [];
+      const rentals = (data as unknown as Record<string, unknown>[]).filter((row) =>
         row['Listing_Mode'] === 'For Rent' ||
         String(row['Notes'] || '').startsWith('[FOR RENT]')
       )
@@ -156,13 +159,27 @@ export default function RentalsContent() {
   }, [data, deferredSearch, typeFilter, locationFilter, priceFilter, sizeFilter, sortBy])
 
   const handleDelete = async (property: any) => {
-    const docId = property['$id']
-    if (!confirm(`Delete Property #${property['property_id']}? This cannot be undone.`)) return
-    try {
-      await databases.deleteDocument(DATABASE_ID, COL_LISTINGS, docId)
-      fetchData()
-    } catch (e: any) { alert('Error deleting property: ' + e.message) }
+  if (
+    !confirm(
+      `Delete Property #${property.property_id}? This cannot be undone.`
+    )
+  ) {
+    return;
   }
+
+  try {
+    const { error } = await supabase
+      .from("listings") // Replace with your table name
+      .delete()
+      .eq("id", property.id);
+
+    if (error) throw error;
+
+    fetchData();
+  } catch (e: any) {
+    alert("Error deleting property: " + (e.message ?? String(e)));
+  }
+};
 
   if (loading) {
     return (
@@ -401,7 +418,7 @@ export default function RentalsContent() {
                 .slice((currentPage - 1) * pageSize, currentPage * pageSize)
                 .map(property => (
                   <PropertyCard
-                    // key={property['property_id']}
+                    // key={property.priceproperty_id']}
                     key={property.uuid}
                     property={property}
                     viewMode={viewMode}

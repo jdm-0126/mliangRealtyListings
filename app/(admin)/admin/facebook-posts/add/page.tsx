@@ -1,14 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { ID } from 'appwrite'
-
-const COL = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_FACEBOOK_POSTS!
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowLeft, Save, Wand2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 
 export default function AddFacebookPostPage() {
   const [messengerName, setMessengerName] = useState('')
@@ -120,7 +117,11 @@ export default function AddFacebookPostPage() {
       if (facebookUrl) payload.facebook_url = facebookUrl
       if (messengerUrl) payload.messenger_url = messengerUrl
 
-      await databases.createDocument(DATABASE_ID, COL, ID.unique(), payload)
+      const { error } = await supabase
+        .from("listings") // Replace with your table name
+        .insert(payload);
+
+      if (error) throw error;
       alert('Facebook post saved successfully!')
       window.location.href = '/facebook-posts'
     } catch (error: any) {

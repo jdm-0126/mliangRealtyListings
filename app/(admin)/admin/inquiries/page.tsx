@@ -4,11 +4,8 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
-
-const COL_LEADS = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADS!
 import { MessageSquare, Home, Phone, Mail, Calendar, Search, X, Tag } from 'lucide-react'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 
 interface Lead {
   id: number
@@ -48,11 +45,15 @@ export default function InquiriesPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await databases.listDocuments(DATABASE_ID, COL_LEADS, [
-          Query.orderDesc('$createdAt'),
-          Query.limit(50),
-        ])
-        setLeads(res.documents.map(d => ({
+        const { data, error } = await supabase
+        .from("leads") // Replace with your actual table name
+        .select("*")
+        .order("created_at", { ascending: false }) // Use your timestamp column
+        .limit(50);
+
+      if (error) throw error;
+
+        setLeads(data.map(d => ({
           id: d.$id as unknown as number,
           full_name: d['full_name'] as string,
           contact_number: d['contact_number'] as string,

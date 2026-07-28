@@ -75,11 +75,11 @@ graph TD
 
     PageContent --> |"/"| HomePage["HomePage<br/>(Hero, Featured Listings, Services)"]
     PageContent --> |"/listings"| ListingsPage["ListingsPage<br/>(filter, paginate, cards)"]
-    PageContent --> |"/listings/[id]"| DetailPage["PropertyDetailPage<br/>(gallery, fields, CTA)"]
+    PageContent --> |"/listings/[id]"| DetailPage["property.pricetailPage<br/>(gallery, fields, CTA)"]
     PageContent --> |"/about"| AboutPage["AboutPage<br/>(broker info, social links)"]
     PageContent --> |"/contact"| ContactPage["ContactPage<br/>(InquiryForm → Supabase leads)"]
 
-    HomePage --> |"fetch active listings (limit 6)"| Supabase[(Supabase<br/>mlianglistings)]
+    HomePage --> |"fetch active listings (limit 6)"| Supabase[(Supabase<br/>listings)]
     ListingsPage --> |"fetch active listings"| Supabase
     DetailPage --> |"fetch by id"| Supabase
     ContactPage --> |"insert lead"| SupabaseLeads[(Supabase<br/>leads)]
@@ -191,7 +191,7 @@ interface ListingCardProps {
 
 interface ImageGalleryProps {
   photos: string[]       // array of photo URLs
-  alt: string            // base alt text (indexed: "Property photo 1 of N")
+  alt: string            // base alt text (indexed: "property.pricehoto 1 of N")
 }
 
 // State: activeIndex: number
@@ -296,14 +296,14 @@ interface JsonLdProps {
 
 ### Supabase Tables
 
-#### `mlianglistings` (existing — read-only from public site)
+#### `listings` (existing — read-only from public site)
 
 The existing table uses inconsistent column naming (spaces, mixed case). The public site reads via the existing Supabase client and normalises at the component level. Key columns accessed:
 
 | Column Name | Type | Notes |
 |---|---|---|
-| `property_id` | number | Primary key; used for routing (displayId = id > 2 ? id-1 : id) |
-| `Status` | string | Filter: `=== 'active'` (case-insensitive) |
+| `property.priced` | number | Primary key; used for routing (displayId = id > 2 ? id-1 : id) |
+| `status` | string | Filter: `=== 'active'` (case-insensitive) |
 | `Type` | string | Property type (residential, lot, commercial) |
 | `Location` | string | City/area |
 | `Village` | string | Subdivision name |
@@ -408,10 +408,10 @@ export interface SocialConfig {
   ├── getTenantSettingsServer()          ← reads TENANT_DEFAULTS (no localStorage on server)
   │                                        localStorage is client-only; SSR uses hardcoded defaults
   │
-  └── supabase.from('mlianglistings')
+  └── supabase.from('listings')
         .select('*')
-        .ilike('Status', 'active')       ← case-insensitive match
-        .order('property_id', { ascending: false })
+        .ilike('status', 'active')       ← case-insensitive match
+        .order('property.priced', { ascending: false })
         .limit(6)
       → listings[]  → <ListingCard> × min(6, listings.length)
 ```
@@ -421,10 +421,10 @@ export interface SocialConfig {
 ```
 (public)/listings/page.tsx  [Server Component — initial render]
   │
-  └── supabase.from('mlianglistings')
+  └── supabase.from('listings')
         .select('*')
-        .ilike('Status', 'active')
-        .order('property_id', { ascending: false })
+        .ilike('status', 'active')
+        .order('property.priced', { ascending: false })
       → allListings[]  → passed to ListingsClientWrapper
 
 ListingsClientWrapper  [Client Component]
@@ -445,9 +445,9 @@ ListingsClientWrapper  [Client Component]
   │
   ├── params.id → displayId (number)
   ├── internalId = displayId >= 2 ? displayId + 1 : displayId  (reverse of admin logic)
-  └── supabase.from('mlianglistings')
+  └── supabase.from('listings')
         .select('*')
-        .eq('property_id', internalId)
+        .eq('property.priced', internalId)
         .single()
       → listing | null
       → null: render "Property not found" + link to /listings
@@ -531,9 +531,9 @@ import type { MetadataRoute } from 'next'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: listings } = await supabase
-    .from('mlianglistings')
-    .select('property_id, updated_at')
-    .ilike('Status', 'active')
+    .from('listings')
+    .select('property.priced, updated_at')
+    .ilike('status', 'active')
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: 'https://realtyprov1.com/',         lastModified: new Date(), changeFrequency: 'weekly', priority: 1.0 },
@@ -543,7 +543,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   const listingRoutes = (listings ?? []).map(l => {
-    const displayId = l['property_id'] > 2 ? l['property_id'] - 1 : l['property_id']
+    const displayId = l['property.priced'] > 2 ? l['property.priced'] - 1 : l['property.priced']
     return {
       url: `https://realtyprov1.com/listings/${displayId}`,
       lastModified: l.updated_at ? new Date(l.updated_at) : new Date(),
@@ -687,7 +687,7 @@ export function useTenantSettings(): TenantSettings {
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+*A property.prices a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
 ---
 
@@ -709,7 +709,7 @@ export function useTenantSettings(): TenantSettings {
 
 ### Property 3: Featured listings obey the "up to 6, newest first" invariant
 
-*For any* dataset of N active listings, the homepage Featured Listings section SHALL display exactly `min(N, 6)` listing cards, and the displayed listings SHALL be the ones with the N highest `property_id` values (i.e., the newest). If N = 0, the placeholder message SHALL be shown.
+*For any* dataset of N active listings, the homepage Featured Listings section SHALL display exactly `min(N, 6)` listing cards, and the displayed listings SHALL be the ones with the N highest `property.priced` values (i.e., the newest). If N = 0, the placeholder message SHALL be shown.
 
 **Validates: Requirements 2.2, 2.3**
 
@@ -757,7 +757,7 @@ export function useTenantSettings(): TenantSettings {
 
 ### Property 9: Property detail page renders all non-null fields for any listing
 
-*For any* listing record fetched from `mlianglistings`, the detail page SHALL display each field that is non-null/non-empty (type, location, price, lot area, floor area, bedrooms, bathrooms, notes, photos). Fields that are null or empty SHALL be omitted without causing a render error.
+*For any* listing record fetched from `listings`, the detail page SHALL display each field that is non-null/non-empty (type, location, price, lot area, floor area, bedrooms, bathrooms, notes, photos). Fields that are null or empty SHALL be omitted without causing a render error.
 
 **Validates: Requirements 4.3**
 
@@ -843,7 +843,7 @@ export function useTenantSettings(): TenantSettings {
 All Supabase reads on public pages use a consistent pattern:
 
 ```typescript
-const { data, error } = await supabase.from('mlianglistings')...
+const { data, error } = await supabase.from('listings')...
 
 if (error) {
   // Log server-side (never expose error details to browser)
@@ -964,7 +964,7 @@ Key property tests and their targets:
 
 ### Integration / Smoke Tests
 
-- Smoke: Verify Supabase connection reaches `mlianglistings` table (1 query)
+- Smoke: Verify Supabase connection reaches `listings` table (1 query)
 - Smoke: Verify `leads` table exists and allows anon insert
 - Integration: Submit InquiryForm end-to-end with test data, verify row in leads table, then delete
 

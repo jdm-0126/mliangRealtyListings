@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { MessageCircle, X, Send } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { databases, DATABASE_ID } from '@/lib/appwrite/client'
-import { Query } from 'appwrite'
+import { supabase } from '@/lib/supabase/browserTenantClient'
 import {
   RecentSearchEntry,
   loadRecentSearches,
@@ -43,7 +42,7 @@ const FAQ_DATABASE: { [key: string]: string } = {
   'pagibig': 'Pag-IBIG Fund offers affordable housing loans: Maximum ₱6,000,000 loan, interest rate 5.5-6.5% (lower than banks), up to 30 years to pay, requires Pag-IBIG membership (at least 24 monthly contributions). Can finance house and lot, condominium, or lot only.',
   'pag-ibig': 'Pag-IBIG Fund offers affordable housing loans: Maximum ₱6,000,000 loan, interest rate 5.5-6.5% (lower than banks), up to 30 years to pay, requires Pag-IBIG membership (at least 24 monthly contributions). Can finance house and lot, condominium, or lot only.',
   'mortgage': 'A mortgage is a loan from a bank to purchase property. You typically need 20% down payment and can finance 80%. Interest rates range from 6-10% annually. Loan terms usually 5-20 years for banks, up to 30 years for Pag-IBIG.',
-  'down payment': 'Down payment requirements: Bank - 20% of property price, Pag-IBIG - 20% for loans over ₱3M, can be as low as 10% for lower amounts, In-house - 10-20% depending on developer. This is your equity in the property.',
+  'down payment': 'Down payment requirements: Bank - 20% of, Pag-IBIG - 20% for loans over ₱3M, can be as low as 10% for lower amounts, In-house - 10-20% depending on developer. This is your equity in the property.',
   'loan requirements': '1) Valid IDs (2 government-issued), 2) Proof of income (payslips, ITR, bank statements), 3) Employment certificate or business permit, 4) TIN number, 5) Property documents (title, tax declaration), 6) Marriage certificate if married, 7) Proof of billing address.',
   'bank loan': 'Bank housing loans: BDO, BPI, Metrobank, Security Bank offer 80% financing, 6-10% interest rates, 5-20 years terms. Submit: income proof, IDs, employment certificate. Processing 2-4 weeks. Monthly amortization includes principal + interest.',
   'pag-ibig requirements': 'Pag-IBIG requirements: 1) At least 24 monthly contributions, 2) Age 18-65 years old, 3) Proof of income, 4) Valid IDs, 5) Property documents, 6) Marriage certificate if married. Advantages: Lower interest (5.5-6.5%), longer term (30 years), higher loan amount (₱6M).',
@@ -170,20 +169,23 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
   }, [isOpen]);
 
   const fetchRealProperties = async () => {
-    const col = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LISTINGS
-    if (!col) return
+    if (!supabase) return
     try {
-      const res = await databases.listDocuments(DATABASE_ID, col, [
-        Query.equal('Status', 'active'),
-        Query.orderDesc('property_id'),
-        Query.limit(200),
-      ])
-      setRealProperties(res.documents as unknown as any[])
-      setPropertiesLoaded(true)
+      const { data, error } = await supabase
+        .from('listings')
+        .select('*')
+        .ilike('status', 'active')
+        .order('Property ID', { ascending: false })
+        .limit(200)
+      if (!error) {
+        setRealProperties(data || [])
+        setPropertiesLoaded(true)
+      }
     } catch (err) {
       console.error('Error fetching properties:', err)
     }
   }
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -393,7 +395,7 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
   }
 
   // --- Yes / No handler ---
-  const handleYesNo = (response: string) => {
+ const handleYesNo = (response: string) => {
     const userMessage: Message = {
       id: messages.length + 1,
       text: response,

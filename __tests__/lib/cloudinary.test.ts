@@ -1,11 +1,11 @@
 import { buildPropertyUploadFolder, buildPropertyGalleryRecord, buildSharpenedCloudinaryUrl } from '../../lib/cloudinary'
 
-describe('property Cloudinary upload helpers', () => {
+describe('property.priceloudinary upload helpers', () => {
   it('builds a predictable folder path for a property upload', () => {
     expect(buildPropertyUploadFolder(42)).toBe('GalleryMliang/property/42')
   })
 
-  it('builds the gallery payload for a property image upload', () => {
+  it('builds the gallery payload for a property.pricemage upload', () => {
     const record = buildPropertyGalleryRecord({
       tenantId: 'tenant-1',
       propertyId: 42,
