@@ -3,6 +3,7 @@ import { getTenantSettingsServer } from '@/lib/tenantServer'
 import PublicHeader from './components/PublicHeader'
 import PublicFooter from './components/PublicFooter'
 import SocialTopBar from '@/app/(public)/components/SocialTopBar'
+// import { Toaster } from "@/components/ui/sonner";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const settings = getTenantSettingsServer()
@@ -17,7 +18,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
       <PublicHeader businessName={settings.businessName} />
 
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">{children}
+        {/* <Toaster richColors /> */}
+      </main>
 
       <PublicFooter settings={settings} />
     </div>

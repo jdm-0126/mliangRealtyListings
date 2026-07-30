@@ -12,7 +12,7 @@
 import * as fc from 'fast-check'
 import { renderHook, act } from '@testing-library/react'
 import { useTenantSettings } from '../../lib/tenant'
-import { TENANT_DEFAULTS, TenantSettings } from '../../lib/types/public'
+import { TENANT_DEFAULTS, TenantSettings } from '../../lib/shared/types/public'
 
 // All keys of TenantSettings
 const SETTINGS_KEYS: (keyof TenantSettings)[] = [

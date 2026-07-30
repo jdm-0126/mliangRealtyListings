@@ -276,9 +276,9 @@ export default function AdminDashboard() {
                     return (
                       <Link key={p.$id} href={`/properties/${displayId}`}
                         className="flex items-start gap-3 border border-gray-100 rounded-lg p-3 hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                        {p['Preview_Photo'] ? (
+                        {p['preview_photo'] ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p['Preview_Photo']} alt="" className="w-14 h-14 object-cover rounded flex-shrink-0" loading="lazy" decoding="async" />
+                          <img src={p['preview_photo']} alt="" className="w-14 h-14 object-cover rounded flex-shrink-0" loading="lazy" decoding="async" />
                         ) : (
                           <div className="w-14 h-14 bg-gray-100 rounded flex-shrink-0 flex items-center justify-center">
                             <Home className="w-5 h-5 text-gray-300" />
@@ -319,11 +319,11 @@ export default function AdminDashboard() {
                 const displayId = rawId > 2 ? rawId - 1 : rawId
                 const status = String(p.status || '').toLowerCase()
                 return (
-                  <Link key={p.$id} href={`/properties/${displayId}`}
+                  <Link key={p.id} href={`/properties/${displayId}`}
                     className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition-colors">
-                    {p['Preview_Photo'] ? (
+                    {p['preview_photo'] ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p['Preview_Photo']} alt="" className="w-12 h-12 object-cover rounded-lg flex-shrink-0" loading="lazy" decoding="async" />
+                      <img src={p['preview_photo']} alt="" className="w-12 h-12 object-cover rounded-lg flex-shrink-0" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
                         <Home className="w-5 h-5 text-gray-300" />

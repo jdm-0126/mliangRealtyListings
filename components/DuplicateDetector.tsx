@@ -33,7 +33,7 @@ function detectDuplicates(rows: any[]): DuplicateGroup[] {
 
   const byImage = new Map<string, any[]>()
   for (const r of rows) {
-    const img = norm(r['Preview_Photo'])
+    const img = norm(r['preview_photo'])
     if (!img || img.length < 10) continue
     if (!byImage.has(img)) byImage.set(img, [])
     byImage.get(img)!.push(r)
@@ -140,7 +140,7 @@ function GroupRow({ group, selected, onToggle, onToggleAll, onEdit, onDeleteOne 
             const location = [p['Village'], p['Location']].filter(Boolean).join(', ') || '—'
             const lot = numVal(p['Lot_Area_sqm'])
             const floor = numVal(p['Floor_Area_sqm'])
-            const img = p['Preview_Photo']
+            const img = p['preview_photo']
             const isSelected = selected.has(p['$id'])
 
             return (

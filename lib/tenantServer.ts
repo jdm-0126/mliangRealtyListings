@@ -2,7 +2,7 @@
 // Server-only helper — NO 'use client' directive.
 // Safe to import from Server Components and Server Actions.
 
-import { TenantSettings, TENANT_DEFAULTS } from './types/public'
+import { TenantSettings, TENANT_DEFAULTS } from '@/lib/shared/types/public'
 
 /**
  * Returns hardcoded tenant defaults for use during SSR.

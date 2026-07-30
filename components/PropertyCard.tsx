@@ -59,7 +59,7 @@ export default function PropertyCard({
   const editMode = !!(onEdit && onDelete)
 
   // Field names (Appwrite uses underscores)
-  const previewPhoto: string | null = property['Preview_Photo'] || null
+  const previewPhoto: string | null = property['preview_photo'] || null
   const price = property.listing_price
   const lotArea = property['lot_area']
 const floorArea = property['floor_area']
@@ -140,8 +140,8 @@ const description: string | null =
   const handlePhotoUpdate = async () => {
     if (!newPhotoUrl.trim()) return
     try {
-      // await databases.updateDocument(DATABASE_ID, COL_LISTINGS, property['$id'], { Preview_Photo: newPhotoUrl })
-      property['Preview_Photo'] = newPhotoUrl
+      // await databases.updateDocument(DATABASE_ID, COL_LISTINGS, property['$id'], { preview_photo: newPhotoUrl })
+      property['preview_photo'] = newPhotoUrl
       setIsEditingPhoto(false)
       setNewPhotoUrl('')
     } catch (e: any) {

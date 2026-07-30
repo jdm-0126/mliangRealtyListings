@@ -6,11 +6,12 @@ import { uploadManyToCloudinary } from '@/lib/cloudinary'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { matchesLocationSearch } from "@/lib/shared/matchesLocationSearch";
+import { matchesLocationSearch } from "@/lib/shared/matchesLocationSearch"
 import {
   Upload, Trash2, Star, StarOff, ImageIcon, X, CheckCircle2, Loader2, Link2,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/browserTenantClient'
+
 const TENANT_ID = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ?? '81b78be3-db0c-41f3-8f6f-e3989114eacf'
 
 type GalleryCategory = 'property' | 'event' | 'general'
@@ -65,41 +66,38 @@ function ListingPickerModal({
     const run = async () => {
       setLoading(true)
       try {
-  setLoading(true);
+        const { data, error } = await supabase
+          .from("listings")
+          .select("*")
+          .order("property_id", { ascending: false })
+          .limit(500)
 
-  const { data, error } = await supabase
-    .from("listings") // Replace with your table name
-    .select("*")
-    .order("property_id", { ascending: false })
-    .limit(500);
+        if (error) throw error
 
-  if (error) throw error;
+        const filtered: Listing[] = (data ?? [])
+          .filter((d) => matchesLocationSearch(d, search))
+          .map((d) => {
+            const rawId = d.property_id
+            const id =
+              typeof rawId === "number"
+                ? rawId
+                : typeof rawId === "string" && rawId.trim() !== ""
+                ? Number(rawId)
+                : 0
 
-  const filtered: Listing[] = (data ?? [])
-    .filter((d) => matchesLocationSearch(d, search))
-    .map((d) => {
-      const rawId = d.property_id;
+            return {
+              id: Number.isFinite(id) ? id : 0,
+              location: String(d.Location ?? ""),
+              title: String(d.Title ?? ""),
+            }
+          })
 
-      const id =
-        typeof rawId === "number"
-          ? rawId
-          : typeof rawId === "string" && rawId.trim() !== ""
-          ? Number(rawId)
-          : 0;
-
-      return {
-        id: Number.isFinite(id) ? id : 0,
-        location: String(d.Location ?? ""),
-        title: String(d.Title ?? ""),
-      };
-    });
-
-  setListings(filtered);
-} catch (e) {
-  console.error(e);
-} finally {
-  setLoading(false);
-}
+        setListings(filtered)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
     }
     run()
   }, [search])
@@ -163,7 +161,7 @@ export default function GalleryPage() {
   const [uploadDone, setUploadDone] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Assign-to-listing state (for existing gallery items)
+  // Assign-to-listing state
   const [assigningItem, setAssigningItem] = useState<GalleryItem | null>(null)
 
   // Edit state
@@ -175,25 +173,24 @@ export default function GalleryPage() {
     setLoading(true)
     try {
       let query = supabase
-        .from("gallery") // Replace with your gallery table name
+        .from("gallery")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
 
       if (filterCategory !== "all") {
-        query = query.eq("category", filterCategory);
+        query = query.eq("category", filterCategory)
       }
 
       if (filterFeatured) {
-        query = query.eq("is_featured", true);
+        query = query.eq("is_featured", true)
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query
 
-      if (error) throw error;
+      if (error) throw error
 
-      const res = data ?? [];
-      setItems(data.map((d: any) => ({
-        id: d.$id,
+      setItems((data ?? []).map((d: any) => ({
+        id: String(d.id),
         title: d.title ?? null,
         description: d.description ?? null,
         category: d.category,
@@ -204,8 +201,10 @@ export default function GalleryPage() {
         is_featured: d.is_featured ?? false,
         display_order: d.display_order ?? 0,
         listing_id: d.listing_id ?? null,
-        created_at: d.$createdAt,
+        created_at: d.created_at,
       })))
+    } catch (e) {
+      console.error(e)
     } finally {
       setLoading(false)
     }
@@ -213,74 +212,84 @@ export default function GalleryPage() {
 
   useEffect(() => { fetchItems() }, [fetchItems])
 
-  // ── Upload ──────────────────────────────────────────────────────────────────
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).filter(f => f.type.startsWith('image/'))
     setUploadFiles(files)
     setUploadDone(false)
   }
 
-  // Extract public_id from a Cloudinary URL
   const extractPublicId = (url: string): string => {
     const match = url.match(/\/upload\/(?:[^/]+\/)*v\d+\/(.+?)(?:\.[a-z]+)?$/i)
       ?? url.match(/\/upload\/(.+?)(?:\.[a-z]+)?$/i)
     return match ? match[1] : url
   }
 
-  const handleUrlSave = async () => {
-    const url = urlInput.trim()
-    if (!url || !url.startsWith('http')) { alert('Enter a valid Cloudinary URL'); return }
-    setUploading(true)
-    try {
-      const secureUrl = url.replace('http://', 'https://')
-      const publicId = extractPublicId(url)
-      const row = {
-        tenant_id: TENANT_ID,
-        category: uploadCategory,
-        title: uploadTitle || null,
-        cloudinary_public_id: publicId,
-        cloudinary_url: secureUrl,
-        cloudinary_secure_url: secureUrl,
-        listing_id: uploadCategory === 'property' ? (uploadListing?.id ?? null) : null,
-        is_featured: uploadCategory === 'event',
-      }
-      // await databases.createDocument(DATABASE_ID, COL_GALLERY, ID.unique(), row)
-      await supabase.from("gallery").insert(row)
+  // ── Handle Single URL Save ──────────────────────────────────────────────────
+const handleUrlSave = async () => {
+  const url = urlInput.trim()
+  if (!url || !url.startsWith('http')) { alert('Enter a valid Cloudinary URL'); return }
+  setUploading(true)
+  try {
+    const secureUrl = url.replace('http://', 'https://')
+    const publicId = extractPublicId(url)
+    
+    const targetListingId = uploadCategory === 'property' && uploadListing ? uploadListing.id : null
 
-      await supabase
+    // 1. Insert ONLY gallery-related fields into 'gallery'
+    const { error: galleryError } = await supabase.from("gallery").insert({
+      tenant_id: TENANT_ID,
+      category: uploadCategory,
+      title: uploadTitle || null,
+      cloudinary_public_id: publicId,
+      cloudinary_url: secureUrl,
+      cloudinary_secure_url: secureUrl,
+      listing_id: targetListingId,
+      is_featured: uploadCategory === 'event',
+    })
+    if (galleryError) throw galleryError
+
+    // 2. Update ONLY preview_photo on 'listings' (if property category)
+    if (uploadCategory === 'property' && targetListingId) {
+      const { error: listingError } = await supabase
         .from("listings")
-        .update({ Preview_Photo: secureUrl })
-        .eq("property_id", uploadListing!.id)
+        .update({ preview_photo: secureUrl }) // strictly ONLY preview_photo
+        .eq("property_id", targetListingId)
 
-      setUploadDone(true)
-      setUrlInput('')
-      setUploadTitle('')
-      setUploadListing(null)
-      fetchItems()
-    } catch (err: any) {
-      alert('Failed: ' + (err?.message ?? String(err)))
-    } finally {
-      setUploading(false)
+      if (listingError) throw listingError
     }
+
+    setUploadDone(true)
+    setUrlInput('')
+    setUploadTitle('')
+    setUploadListing(null)
+    fetchItems()
+  } catch (err: any) {
+    alert('Failed: ' + (err?.message ?? String(err)))
+  } finally {
+    setUploading(false)
   }
+}
 
-  const handleUpload = async () => {
-    if (uploadFiles.length === 0) return
-    setUploading(true)
-    setUploadProgress(0)
-    try {
-      const folder = `GalleryMliang/${uploadCategory}`
-      const results = await uploadManyToCloudinary(
-        uploadFiles,
-        folder,
-        (done, total) => setUploadProgress(Math.round((done / total) * 100))
-      )
+// ── Handle Multiple File Upload ─────────────────────────────────────────────
+const handleUpload = async () => {
+  if (uploadFiles.length === 0) return
+  setUploading(true)
+  setUploadProgress(0)
+  try {
+    const folder = `GalleryMliang/${uploadCategory}`
+    const results = await uploadManyToCloudinary(
+      uploadFiles,
+      folder,
+      (done, total) => setUploadProgress(Math.round((done / total) * 100))
+    )
 
-      for (const r of results) {
-        const { error } = await supabase
-          .from("gallery") // Replace with your actual table name
-          .insert({
+    const targetListingId = uploadCategory === 'property' && uploadListing ? uploadListing.id : null
+
+    // 1. Insert each photo into 'gallery'
+    for (const r of results) {
+      const { error } = await supabase
+        .from("gallery")
+        .insert({
           tenant_id: TENANT_ID,
           category: uploadCategory,
           title: uploadTitle || null,
@@ -291,117 +300,86 @@ export default function GalleryPage() {
           height: r.height,
           format: r.format,
           bytes: r.bytes,
-          listing_id: uploadCategory === 'property' ? (uploadListing?.id ?? null) : null,
+          listing_id: targetListingId,
           is_featured: uploadCategory === 'event',
         })
-        if (error) throw error;
-      }
-
-      if (uploadCategory === "property" && uploadListing && results.length > 0) {
-        const { error } = await supabase
-          .from("listings")
-          .update({
-            Preview_Photo: results[0].secure_url,
-          })
-          .eq("property_id", uploadListing.id);
-
-        if (error) throw error;
-      }
-
-      setUploadDone(true)
-      setUploadFiles([])
-      setUploadTitle('')
-      setUploadListing(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-      fetchItems()
-    } catch (err: any) {
-      alert('Upload failed: ' + (err?.message ?? String(err)))
-    } finally {
-      setUploading(false)
+      if (error) throw error
     }
+
+    // 2. Update ONLY preview_photo on 'listings' using the first photo URL
+    if (uploadCategory === "property" && targetListingId && results.length > 0) {
+      const { error } = await supabase
+        .from("listings")
+        .update({ preview_photo: results[0].secure_url }) // strictly ONLY preview_photo
+        .eq("property_id", targetListingId)
+
+      if (error) throw error
+    }
+
+    setUploadDone(true)
+    setUploadFiles([])
+    setUploadTitle('')
+    setUploadListing(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    fetchItems()
+  } catch (err: any) {
+    alert('Upload failed: ' + (err?.message ?? String(err)))
+  } finally {
+    setUploading(false)
   }
-
-  // Helper: get Appwrite document $id from property_id
-  const getListingDocId = async (propertyId: number): Promise<string> => {
-    const { data, error } = await supabase
-      .from("listings")
-      .select("id")
-      .eq("property_id", propertyId)
-      .maybeSingle();
-
-    if (error) throw error;
-    if (!data) throw new Error(`Listing #${propertyId} not found`);
-
-    return data.id;
-  }
-
-  // ── Assign existing gallery image to a listing ────────────────────────────
+}
 
   const handleAssign = async (item: GalleryItem, listing: Listing) => {
-    // Update gallery
     const { error: galleryError } = await supabase
       .from("gallery")
-      .update({
-        listing_id: listing.id,
-      })
-      .eq("id", item.id);
+      .update({ listing_id: listing.id })
+      .eq("id", item.id)
 
-    if (galleryError) throw galleryError;
+    if (galleryError) throw galleryError
 
-    // Update listing preview photo
     const { error: listingError } = await supabase
       .from("listings")
-      .update({
-        Preview_Photo: item.cloudinary_secure_url,
-      })
-      .eq("property_id", listing.id);
+      .update({ preview_photo: item.cloudinary_secure_url })
+      .eq("property_id", listing.id)
 
-    if (listingError) throw listingError;
+    if (listingError) throw listingError
 
     setItems((prev) =>
       prev.map((i) =>
-        i.id === item.id
-          ? { ...i, listing_id: listing.id }
-          : i
+        i.id === item.id ? { ...i, listing_id: listing.id } : i
       )
-    );
+    )
 
-    setAssigningItem(null);
-
-    alert(`Photo assigned to Property #${listing.id} — ${listing.location}`);
+    setAssigningItem(null)
+    alert(`Photo assigned to Property #${listing.id} — ${listing.location}`)
   }
 
   const toggleFeatured = async (item: GalleryItem) => {
     const { error } = await supabase
       .from("gallery")
-      .update({
-        is_featured: !item.is_featured,
-      })
-      .eq("id", item.id);
+      .update({ is_featured: !item.is_featured })
+      .eq("id", item.id)
 
-    if (error) throw error;
+    if (error) throw error
 
     setItems((prev) =>
       prev.map((i) =>
-        i.id === item.id
-          ? { ...i, is_featured: !i.is_featured }
-          : i
+        i.id === item.id ? { ...i, is_featured: !i.is_featured } : i
       )
-    );
+    )
   }
 
   const deleteItem = async (item: GalleryItem) => {
-    if (!confirm(`Delete "${item.title ?? "this image"}"? This cannot be undone.`))
-      return;
+    if (!confirm(`Delete "${item.title ?? "this image"}"? This cannot be undone.`)) return
 
     const { error } = await supabase
       .from("gallery")
       .delete()
-      .eq("id", item.id);
+      .eq("id", item.id)
 
-    if (error) throw error;
+    if (error) throw error
 
-    setItems((prev) => prev.filter((i) => i.id !== item.id));
+    setItems((prev) => prev.filter((i) => i.id !== item.id))
   }
 
   const saveEdit = async (id: string) => {
@@ -411,23 +389,17 @@ export default function GalleryPage() {
         title: editTitle || null,
         description: editDescription || null,
       })
-      .eq("id", id);
+      .eq("id", id)
 
-    if (error) throw error;
+    if (error) throw error
 
     setItems((prev) =>
       prev.map((i) =>
-        i.id === id
-          ? {
-            ...i,
-            title: editTitle || null,
-            description: editDescription || null,
-          }
-          : i
+        i.id === id ? { ...i, title: editTitle || null, description: editDescription || null } : i
       )
-    );
+    )
 
-    setEditingId(null);
+    setEditingId(null)
   }
 
   const filtered = items.filter(i => {
@@ -440,7 +412,6 @@ export default function GalleryPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-        {/* ── Header ── */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gallery Management</h1>
           <p className="text-gray-500 mt-1">
@@ -448,24 +419,21 @@ export default function GalleryPage() {
           </p>
         </div>
 
-        {/* ── Upload Panel ── */}
+        {/* Upload Panel */}
         <Card>
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Add Images</h2>
-              {/* Mode tabs */}
               <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
                 <button
                   onClick={() => { setUploadMode('file'); setUploadDone(false) }}
-                  className={`px-4 py-1.5 font-medium transition-colors flex items-center gap-1.5 ${uploadMode === 'file' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
+                  className={`px-4 py-1.5 font-medium transition-colors flex items-center gap-1.5 ${uploadMode === 'file' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                 >
                   <Upload className="w-3.5 h-3.5" /> Upload File
                 </button>
                 <button
                   onClick={() => { setUploadMode('url'); setUploadDone(false) }}
-                  className={`px-4 py-1.5 font-medium transition-colors flex items-center gap-1.5 ${uploadMode === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
+                  className={`px-4 py-1.5 font-medium transition-colors flex items-center gap-1.5 ${uploadMode === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                 >
                   <Link2 className="w-3.5 h-3.5" /> Paste URL
                 </button>
@@ -495,7 +463,6 @@ export default function GalleryPage() {
               </div>
             </div>
 
-            {/* Listing picker — only for property category */}
             {uploadCategory === 'property' && (
               <div className="p-4 rounded-xl border-2 border-blue-200 bg-blue-50 space-y-2">
                 <p className="text-sm font-medium text-blue-900">
@@ -526,7 +493,6 @@ export default function GalleryPage() {
               </div>
             )}
 
-            {/* ── URL mode ── */}
             {uploadMode === 'url' && (
               <div className="space-y-3">
                 <div>
@@ -547,7 +513,6 @@ export default function GalleryPage() {
               </div>
             )}
 
-            {/* ── File mode ── */}
             {uploadMode === 'file' && (
               <div className="space-y-3">
                 <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
@@ -630,7 +595,7 @@ export default function GalleryPage() {
           </CardContent>
         </Card>
 
-        {/* ── Filter bar ── */}
+        {/* Filter Bar */}
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
             {(['all', 'event', 'property', 'general'] as const).map(c => (
@@ -655,7 +620,7 @@ export default function GalleryPage() {
           <span className="text-sm text-gray-500 ml-auto">{filtered.length} image{filtered.length !== 1 ? 's' : ''}</span>
         </div>
 
-        {/* ── Grid ── */}
+        {/* Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -667,9 +632,10 @@ export default function GalleryPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {filtered.map(item => (
+            {filtered.map((item, index) => (
               <div
-                className="group relative rounded-xl overflow-hidden bg-gray-100 flex flex-col"
+                key={item.id ? `${item.id}-${index}` : index}
+                className="group relative rounded-xl overflow-hidden bg-gray-100"
               >
                 <div className="relative" style={{ aspectRatio: '4/3' }}>
                   <Image
@@ -681,9 +647,7 @@ export default function GalleryPage() {
                     loading="lazy"
                   />
 
-                  {/* Overlay on hover */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex flex-col justify-between p-2">
-                    {/* Top badges */}
                     <div className="flex items-start justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_COLORS[item.category]}`}>
                         {CATEGORY_LABELS[item.category]}
@@ -693,7 +657,6 @@ export default function GalleryPage() {
                       )}
                     </div>
 
-                    {/* Bottom actions */}
                     <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       {item.category !== 'property' && (
                         <button
@@ -724,7 +687,6 @@ export default function GalleryPage() {
                   </div>
                 </div>
 
-                {/* Property photo footer — assign to listing */}
                 {item.category === 'property' && (
                   <div className="bg-white border-t border-gray-100 px-2 py-1.5">
                     {item.listing_id ? (
@@ -751,7 +713,6 @@ export default function GalleryPage() {
                   </div>
                 )}
 
-                {/* Title overlay */}
                 {item.title && item.category !== 'property' && (
                   <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <p className="text-xs text-white truncate">{item.title}</p>
@@ -763,7 +724,6 @@ export default function GalleryPage() {
         )}
       </div>
 
-      {/* ── Listing picker for upload ── */}
       {showListingPicker && (
         <ListingPickerModal
           onSelect={l => { setUploadListing(l); setShowListingPicker(false) }}
@@ -771,7 +731,6 @@ export default function GalleryPage() {
         />
       )}
 
-      {/* ── Listing picker for assign ── */}
       {assigningItem && (
         <ListingPickerModal
           onSelect={l => handleAssign(assigningItem, l)}
@@ -779,7 +738,6 @@ export default function GalleryPage() {
         />
       )}
 
-      {/* ── Edit Modal ── */}
       {editingId && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setEditingId(null)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4" onClick={e => e.stopPropagation()}>

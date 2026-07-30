@@ -35,7 +35,7 @@ jest.mock('next/link', () => ({
 }))
 
 import property.pricetailView from '../../app/(public)/components/property.pricetailView'
-import type { PublicListing } from '../../lib/types/public'
+import type { PublicListing } from '../../lib/shared/types/public'
 
 // ---------------------------------------------------------------------------
 // Arbitraries

@@ -1,11 +1,11 @@
 // app/(public)/listings/page.tsx
 import type { Metadata } from 'next'
-import { PublicListing } from '@/lib/types/public'
+import { Property } from '@/lib/shared/types/public'
 import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
 import FeaturedSearchSection from '@/app/(public)/components/FeaturedSearchSection'
 import FeaturedVideoSection from '@/app/(public)/components/FeaturedVideoSection'
 import BookingCTASection from '@/app/(public)/components/BookingCTASection'
-import { getFeaturedListings } from '@/lib/listings/publicListings'
+import { getFeaturedProperties } from '@/lib/shared/service/PropertyService'
 
 export const dynamic = 'force-static'
 export const revalidate = 60
@@ -19,13 +19,13 @@ export const metadata: Metadata = {
 }
 
 export default async function ListingsPage() {
-  let featuredListings: PublicListing[] = []
+  let featuredListings: Property[] = []
   let fetchError = false
 
   try {
     // Dedicated query — only fetches flagged featured rows (uses partial index)
     // Falls back to newest 6 if none are flagged
-    featuredListings = await getFeaturedListings()
+    featuredListings = await getFeaturedProperties()
   } catch {
     fetchError = true
   }

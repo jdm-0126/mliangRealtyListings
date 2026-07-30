@@ -2,10 +2,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { PublicListing } from '@/lib/types/public'
+import { Property } from '@/lib/shared/types/public'
 import ListingsClientWrapper from '@/app/(public)/components/ListingsClientWrapper'
 import MaintenanceBanner from '@/app/(public)/components/MaintenanceBanner'
-import { getSlimPublicListings } from '@/lib/listings/publicListings'
+import {getProperties} from '@/lib/shared/service/PropertyService'
 
 export const revalidate = 60
 
@@ -22,11 +22,11 @@ interface Props {
 
 export default async function ForRentPage({ searchParams }: Props) {
   const { type, location, price } = await searchParams
-  let listings: PublicListing[] = []
+  let listings: Property[] = []
   let fetchError = false
 
   try {
-    const all = await getSlimPublicListings()
+    const all = await getProperties()
     listings = all.filter(l =>
       l.listingMode?.toLowerCase().includes('rent')
     )

@@ -1,4 +1,4 @@
-// app/(public)/components/property.pricetailView.tsx
+// app/(public)/components/PropertyDetailView.tsx
 // A test-friendly pure display component for the property detail page.
 // Accepts a PublicListing prop and renders the relevant fields.
 // This is NOT the Next.js page (which is a server component with async data fetching);
@@ -6,8 +6,8 @@
 
 import React from 'react'
 import Link from 'next/link'
-import type { PublicListing } from '@/lib/types/public'
-import ImageGallery from './ImageGallery'
+import type { Property } from '@/lib/shared/types/public'
+import ImageGallery from '../../../components/ImageGallery'
 
 // ---------------------------------------------------------------------------
 // Helpers (mirrored from the server page — kept pure so tests can import them)
@@ -35,14 +35,14 @@ function formatListingType(type?: string | null): string {
 // Component
 // ---------------------------------------------------------------------------
 
-interface property.pricetailViewProps {
-  listing: PublicListing
+interface PropertyDetailViewProps {
+  listing: Property
 }
 
-export default function property.pricetailView({ listing }: property.pricetailViewProps) {
+export default function PropertyDetailView({ listing }: PropertyDetailViewProps) {
   const addressParts = [listing.village, listing.location].filter(Boolean)
   const address = addressParts.join(', ') || listing.location
-  const contactHref = `/contact?property=${encodeURIComponent(address)}`
+  const contactHref = `/contact?property=${encodeURIComponent(String(address))}`
   const displayType = formatListingType(listing.type)
 
   return (
@@ -55,7 +55,7 @@ export default function property.pricetailView({ listing }: property.pricetailVi
       <div>
         {/* ── Left: photo gallery ── */}
         <ImageGallery
-          photos={listing.photos}
+          photos={listing.photos ?? []}
           alt={`${listing.type} in ${listing.location}`}
         />
 
@@ -73,23 +73,23 @@ export default function property.pricetailView({ listing }: property.pricetailVi
           <span data-testid="property-location">{address}</span>
 
           {/* Price */}
-          {listing.price !== null ? (
-            <p data-testid="property.pricerice">{formatPrice(listing.price)}</p>
+          {listing.listingPrice !== null ? (
+            <p data-testid="property-price">{formatPrice(Number(listing.listingPrice))}</p>
           ) : (
-            <p data-testid="property.pricerice-on-request">Price on request</p>
+            <p data-testid="property-price-on-request">Price on request</p>
           )}
 
           {/* Lot area */}
           {listing.lotArea !== null && (
             <span data-testid="property-lot-area">
-              {listing.lotArea.toLocaleString()} sqm lot
+              {Number(listing.lotArea).toLocaleString()} sqm lot
             </span>
           )}
 
           {/* Floor area */}
           {listing.floorArea !== null && (
             <span data-testid="property-floor-area">
-              {listing.floorArea.toLocaleString()} sqm floor
+              {Number(listing.floorArea).toLocaleString()} sqm floor
             </span>
           )}
 

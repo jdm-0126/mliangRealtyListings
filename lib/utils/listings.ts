@@ -4,7 +4,7 @@
 // These are intentionally framework-free so they can be unit/property-tested
 // without setting up Next.js server-component infrastructure.
 
-import { PublicListing } from '@/lib/types/public'
+import { Property } from '@/lib/shared/types/public'
 
 /**
  * selectFeaturedListings
@@ -21,13 +21,13 @@ import { PublicListing } from '@/lib/types/public'
  * Validates: Requirements 2.2, 2.3
  */
 export function selectFeaturedListings(
-  listings: PublicListing[],
+  listings: Property[],
   maxCount = 6,
-): PublicListing[] {
+): Property[] {
   if (listings.length === 0) return []
 
   // Sort by id descending, then take the first maxCount
   return [...listings]
-    .sort((a, b) => (b.id ?? b.property_id ?? 0) - (a.id ?? a.property_id ?? 0))
+    .sort((a, b) => (b.id ?? b.propertyId ?? 0) - (a.id ?? a.propertyId ?? 0))
     .slice(0, maxCount)
 }

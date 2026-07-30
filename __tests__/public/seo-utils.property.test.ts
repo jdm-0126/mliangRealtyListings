@@ -13,7 +13,7 @@ import {
   buildCanonicalUrl,
   buildLocalBusinessJsonLd,
 } from '../../lib/seo/jsonld'
-import type { TenantSettings } from '../../lib/types/public'
+import type { TenantSettings } from '../../lib/shared/types/public'
 
 // ---------------------------------------------------------------------------
 // Property 10: Detail page title format

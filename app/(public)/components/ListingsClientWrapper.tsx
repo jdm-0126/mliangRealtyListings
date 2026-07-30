@@ -1,17 +1,15 @@
 'use client'
 
 import { useMemo, useState, useEffect, useDeferredValue } from 'react'
-import { PublicListing } from '@/lib/types/public'
+import { Property } from '@/lib/shared/types/public'
 import ListingCard from './ListingCard'
 import { SlidersHorizontal, X, LayoutList, LayoutGrid } from 'lucide-react'
+import PropertyDialog from "@/lib/shared/components/property/PropertyDialog"
+import { saveProperty} from "@/lib/shared/service/PropertyService"
+import { getChangedFields } from "@/lib/utils/property"
+import { FIELD_LABELS } from "@/lib/shared/constants"
+import { ListingsClientWrapperProps } from "@/lib/shared/types/public"
 
-interface ListingsClientWrapperProps {
-  allListings: PublicListing[]
-  initialType?: string
-  initialLocation?: string
-  initialPrice?: string
-  initialMode?: string
-}
 
 const PAGE_SIZE = 12
 
@@ -31,7 +29,7 @@ function normalizeListingType(type?: string | null): string {
   return type?.trim() || ''
 }
 
-function getSearchableLocation(listing: PublicListing): string {
+function getSearchableLocation(listing: Property): string {
   return [listing.location, listing.village].filter(Boolean).join(' ').trim().toLowerCase()
 }
 
@@ -75,10 +73,13 @@ const labelStyle: React.CSSProperties = {
   color: 'var(--est-muted)',
 }
 
+
 export default function ListingsClientWrapper({ allListings, initialType, initialLocation, initialPrice, initialMode }: ListingsClientWrapperProps) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(
     TYPE_OPTIONS.includes(initialType as TypeFilter) ? (initialType as TypeFilter) : 'All'
   )
+  const [selectedProperty, setSelectedProperty] =
+    useState<Property | null>(null)
   const [locationQuery, setLocationQuery] = useState(initialLocation ?? '')
   const deferredLocation = useDeferredValue(locationQuery)
   const [priceRange, setPriceRange] = useState<PriceRange>(
@@ -89,6 +90,28 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
   )
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
+  
+
+  const [showDialog, setShowDialog] =
+      useState(false)
+
+  const [properties, setProperties] =
+      useState(allListings)
+
+  const handleSaveProperty = async (property: Property) => {
+    const updated = await saveProperty(property)
+    setProperties(prev =>
+        prev.map(p => p.id === updated.id ? updated : p)
+    )
+
+    setSelectedProperty(updated)
+    setShowDialog(false)
+  }
+    const columns = useMemo(() => {
+    if (!properties.length) return []
+
+    return Object.keys(properties[0])
+}, [properties])
 
   // Read view mode preference after hydration (localStorage is client-only)
   useEffect(() => {
@@ -106,12 +129,12 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
     // Use the non-deferred value for initial render (prop-driven), deferred for typing
     const locationToFilter = deferredLocation || locationQuery
     const normalizedQuery = locationToFilter.trim().toLowerCase()
-
+    
     return (allListings ?? []).filter(listing => {
       const normalizedType = normalizeListingType(listing.type)
       if (typeFilter !== 'All' && normalizedType !== typeFilter) return false
       if (normalizedQuery && !getSearchableLocation(listing).includes(normalizedQuery)) return false
-      const price = listing.price ?? 0
+      const price = listing.listingPrice ?? 0
       if (priceRange === 'Under ₱2M' && price >= 2_000_000) return false
       if (priceRange === '₱2M–₱5M' && (price < 2_000_000 || price >= 5_000_000)) return false
       if (priceRange === '₱5M–₱10M' && (price < 5_000_000 || price >= 10_000_000)) return false
@@ -122,6 +145,7 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
     })
   }, [allListings, typeFilter, deferredLocation, locationQuery, priceRange, modeFilter])
 
+  
   const paginatedListings = filteredListings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
   const totalPages = Math.ceil(filteredListings.length / PAGE_SIZE)
   const showPagination = filteredListings.length > PAGE_SIZE
@@ -146,10 +170,18 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
     items.push(totalPages)
     return items
   }
-
+  
   return (
     <div>
       {/* Filter bar */}
+      <PropertyDialog
+        property={selectedProperty}
+        open={showDialog}
+        onClose={() => setShowDialog(false)}
+        columns={columns}
+        onSave={handleSaveProperty}
+
+    />
       <div
         className="rounded-2xl p-5 mb-6 flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end"
         style={{ background: 'var(--est-surface)', border: '1px solid var(--est-border)' }}
@@ -297,19 +329,29 @@ export default function ListingsClientWrapper({ allListings, initialType, initia
       {/* Listings — list or grid */}
       {filteredListings.length > 0 && (
         viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-            {paginatedListings.map((listing, idx) => (
-              <ListingCard key={`${listing.id}-${idx}`} listing={listing} viewMode="grid" priority={idx === 0} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+                {paginatedListings.map((listing, idx) => (
+                  <ListingCard key={`${listing.propertyId}-${idx}`} listing={listing} 
+                  viewMode="grid" priority={idx === 0}
+                  onEdit={() => {
+                    setSelectedProperty(listing as Property)
+                    setShowDialog(true)
+                }}
+              />
             ))}
           </div>
         ) : (
           <div className="flex flex-col gap-4 mb-10">
             {paginatedListings.map((listing, idx) => (
               <ListingCard
-                key={`${listing.id}-${idx}`}
+                key={`${listing.propertyId}-${idx}`}
                 listing={listing}
                 viewMode="list"
                 priority={idx === 0}
+                onEdit={() => {
+                setSelectedProperty(listing as Property)
+                setShowDialog(true)
+            }}
               />
             ))}
           </div>

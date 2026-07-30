@@ -10,15 +10,15 @@ const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
 
 const navigation = [
   { name: 'Dashboard',        href: '/admin',               icon: Home,      roles: ['superadmin', 'broker', 'agent'] },
-  { name: 'Broker Dashboard', href: '/admin/broker-dashboard', icon: BarChart3, roles: ['superadmin', 'broker'] },
+  // { name: 'Broker Dashboard', href: '/admin/broker-dashboard', icon: BarChart3, roles: ['superadmin', 'broker'] },
   { name: 'Properties',       href: '/admin/properties',    icon: BarChart3, roles: ['superadmin', 'broker', 'agent'] },
   { name: 'Rentals',          href: '/admin/rentals',       icon: KeyRound,  roles: ['superadmin', 'broker', 'agent'] },
   { name: 'Gallery',          href: '/admin/gallery',       icon: Upload,    roles: ['superadmin', 'broker'] },
   { name: 'Featured Video',   href: '/admin/featured-video', icon: Video,          roles: ['superadmin', 'broker'] },
   { name: 'Inquiries',        href: '/admin/inquiries',      icon: MessageSquare,  roles: ['superadmin', 'broker'] },
-  { name: 'Brokers',          href: '/admin/brokers',       icon: Users,     roles: ['superadmin'] },
-  { name: 'Agents',           href: '/admin/agents',        icon: Users,     roles: ['superadmin', 'broker'] },
-  { name: 'My Profile',       href: '/admin/agent-profile', icon: Settings,  roles: ['agent'] },
+  // { name: 'Brokers',          href: '/admin/brokers',       icon: Users,     roles: ['superadmin'] },
+  // { name: 'Agents',           href: '/admin/agents',        icon: Users,     roles: ['superadmin', 'broker'] },
+  // { name: 'My Profile',       href: '/admin/agent-profile', icon: Settings,  roles: ['agent'] },
   { name: 'Settings',         href: '/admin/settings',      icon: Settings,  roles: ['superadmin', 'broker'] },
   { name: 'Tenant Management', href: '/admin/tenant-management', icon: Database,  roles: ['superadmin'] },
 ]

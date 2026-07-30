@@ -36,7 +36,7 @@ jest.mock('../../app/(public)/components/ListingCard', () => ({
 // ---------------------------------------------------------------------------
 
 import ListingsClientWrapper from '../../app/(public)/components/ListingsClientWrapper'
-import { PublicListing } from '../../lib/types/public'
+import { Property } from '../../lib/shared/types/public'
 
 // ---------------------------------------------------------------------------
 // Pure pagination logic (mirrors ListingsClientWrapper internals)
@@ -56,10 +56,12 @@ function pageCount(totalMatchingListings: number): number {
 // Helper: create N listings that pass all filters (type=All, location='', price=All)
 // ---------------------------------------------------------------------------
 
-function makeListings(n: number): PublicListing[] {
+function makeListings(n: number): Property[] {
   return Array.from({ length: n }, (_, i) => ({
     id: i + 1,
-    displayId: i + 1,
+    userId: 1,
+    propertyId: 123,
+    displayId: String(i + 1,),
     type: 'House & Lot',
     location: 'San Fernando',
     village: undefined,
@@ -72,7 +74,6 @@ function makeListings(n: number): PublicListing[] {
     photos: [],
     notes: '',
     status: 'active',
-    updatedAt: undefined,
   }))
 }
 

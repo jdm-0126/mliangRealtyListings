@@ -7,7 +7,7 @@
 
 import * as fc from 'fast-check'
 import { selectFeaturedListings } from '@/lib/utils/listings'
-import { PublicListing } from '@/lib/types/public'
+import { PublicListing } from '@/lib/shared/types/public'
 
 const arbListing = fc.record<PublicListing>({
   id: fc.integer({ min: 1, max: 100_000 }),

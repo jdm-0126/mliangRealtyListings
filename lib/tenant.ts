@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { TenantSettings, TENANT_DEFAULTS } from './types/public'
+import { TenantSettings, TENANT_DEFAULTS } from './shared/types/public'
 
 /**
  * Client-side hook for reading tenantSettings from localStorage.

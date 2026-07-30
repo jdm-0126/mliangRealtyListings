@@ -1,18 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { PublicListing } from '@/lib/types/public'
+import { useEffect, useState, useMemo } from 'react'
+import { Property } from '@/lib/shared/types/public'
 import { Pencil, X, Check, Loader2, MapPin } from 'lucide-react'
+import PropertyDialog from "@/lib/shared/components/property/PropertyDialog"
+import { saveProperty} from "@/lib/shared/service/PropertyService"
 
 interface Props {
-  listing: PublicListing
-  onUpdated?: (updated: Partial<PublicListing>) => void
+  listing: Property
+  onEdit?: (listing: Property) => void
+  onUpdated?: (updated: Partial<Property>) => void
 }
 
 const TYPES = ['Residential', 'House and Lot', 'Lot only', 'Commercial', 'Condo']
 
 export function useMaintenanceMode() {
   const [on, setOn] = useState(false)
+    
   useEffect(() => {
     const sync = () => setOn(localStorage.getItem('maintenanceMode') === 'true')
     sync()
@@ -82,27 +86,38 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
   const [notes, setNotes] = useState(listing.notes ?? '')
   const [photo, setPhoto] = useState(listing.previewPhoto ?? '')
   const [listingAgent, setlistingAgent] = useState(listing.listingAgent ?? '')
-  const [price, setPrice] = useState(listing.price != null ? String(listing.price) : '')
+  const [price, setPrice] = useState(listing.listingPrice != null ? String(listing.listingPrice) : '')
   const [lotArea, setLotArea] = useState(listing.lotArea != null ? String(listing.lotArea) : '')
   const [floorArea, setFloorArea] = useState(listing.floorArea != null ? String(listing.floorArea) : '')
   const [mapUrl, setMapUrl] = useState(listing.mapUrl ?? '')
-
+  const [title, setTitle] = useState(listing.title ?? '')
+  const [location, setLocation] = useState(listing.location ?? '')
+  const [status, setStatus] = useState(listing.status ?? '')
+  const [listingMode, setListingMode] = useState(listing.listingMode ?? '')
+  const [form, setForm] = useState({...listing,})
+  const [bedrooms, setBedrooms] = useState(
+    listing.bedrooms != null ? String(listing.bedrooms) : ''
+  )
+  const [bathrooms, setBathrooms] = useState(
+    listing.bathrooms != null ? String(listing.bathrooms) : ''
+  )
+  const [videoUrl, setVideoUrl] = useState(listing.videoUrl ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-
+  const [selectedProperty, setSelectedProperty] =
+      useState<Property | null>(null)
+    const [showDialog, setShowDialog] =
+      useState(false)
+      
   useEffect(() => {
-    if (open) {
-      setType(listing.type ?? '')
-      setNotes(listing.notes ?? '')
-      setPhoto(listing.previewPhoto ?? '')
-      setlistingAgent(listing.listingAgent ?? '')
-      setPrice(listing.price != null ? String(listing.price) : '')
-      setLotArea(listing.lotArea != null ? String(listing.lotArea) : '')
-      setFloorArea(listing.floorArea != null ? String(listing.floorArea) : '')
-      setMapUrl(listing.mapUrl ?? '')
-      setSaved(false)
-    }
-  }, [open, listing])
+    if (!open) return
+
+    setForm({
+        ...listing,
+    })
+
+    setSaved(false)
+}, [listing, open])
 
   if (!maintenance) return null
 
@@ -112,13 +127,30 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
       const { supabase, listingsTable } = await getTenantScopedClient()
 
 
-      const payload: Record<string, unknown> = {
-        type: type || null,
-        notes: notes || null,
-        listing_agent: listingAgent || null,
-        preview_photo: photo || null,
-        map_url: mapUrl || null,
-      }
+      const payload = {
+        title: form.title,
+        location: form.location,
+        type: form.type,
+        listing_mode: form.listingMode,
+        status: form.status,
+
+        listing_price: form.listingPrice,
+        lot_area_sqm: form.lotArea,
+        floor_area_sqm: form.floorArea,
+
+        bedroom: form.bedrooms,
+        bathroom: form.bathrooms,
+
+        preview_photo: form.previewPhoto,
+
+        notes: form.notes,
+
+        listing_agent: form.listingAgent,
+
+        map_url: form.mapUrl,
+
+        video_url: form.videoUrl,
+    }
 
       if (price.trim())
         payload.listing_price = parseFloat(price.replace(/,/g, ''))
@@ -132,12 +164,13 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
       onUpdated?.({
         type,
         notes,
+        title,
         listingAgent,
-        previewPhoto: photo || null,
-        price: price.trim() ? parseFloat(price.replace(/,/g, '')) || null : listing.price,
-        lotArea: lotArea.trim() ? parseFloat(lotArea) || null : listing.lotArea,
-        floorArea: floorArea.trim() ? parseFloat(floorArea) || null : listing.floorArea,
-        mapUrl: mapUrl || null,
+        previewPhoto: photo,
+        listingPrice: price.trim() ? parseFloat(price.replace(/,/g, '')) : listing.listingPrice,
+        lotArea: lotArea.trim() ? parseFloat(lotArea) : listing.lotArea,
+        floorArea: floorArea.trim() ? parseFloat(floorArea) : listing.floorArea,
+        mapUrl: mapUrl,
       })
       
       console.log("Table:", listingsTable);
@@ -148,24 +181,44 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
       propertyId: listing.propertyId,
       id: listing.id,
       payload});
-      const { data, error } = await supabase
+
+      const { error } = await supabase
         .from(listingsTable)
         .update(payload)
         .eq("property_id", listing.propertyId)
-        .select();
+
+    if (error) {
+        console.error(error)
+        return
+    }
 
       console.log("Payload:", payload);
-      console.log("Update data:", data);
-      console.log("Update error:", error);
-
-      console.log("Updated rows:", data);
       setSaved(true)
       setTimeout(() => { setOpen(false); setSaved(false) }, 800)
     } finally {
       setSaving(false)
     }
   }
+  const [properties, setProperties] =
+      useState(listing)
 
+const handleSaveProperty = async (property: Property) => {
+    const [selectedProperty, setSelectedProperty] =
+      useState<Property | null>(null)
+    const [showDialog, setShowDialog] =
+      useState(false)
+    const [properties, setProperties] =
+      useState(listing)
+    const updated = await saveProperty(property)
+    
+
+    setSelectedProperty(updated)
+    setShowDialog(false)
+  }
+  const columns = useMemo(() => {
+  if (!properties) return []
+    return Object.keys(properties)
+  }, [properties])
   return (
     <>
       {/* Edit button */}
@@ -180,167 +233,14 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
 
       {/* Edit modal */}
       {open && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[92vh]"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
-              <div>
-                <h3 className="font-semibold text-gray-900">Edit Listing #{listing.displayId}</h3>
-                <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{listing.location}</p>
-              </div>
-              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-700">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Scrollable fields */}
-            <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
-
-              {/* Type */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Type</label>
-                <select
-                  value={type}
-                  onChange={e => setType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
-                >
-                  {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  {!TYPES.includes(type) && type && <option value={type}>{type}</option>}
-                </select>
-              </div>
-
-              {/* Price / Lot / Floor — 3 cols */}
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                    Price <span className="text-gray-300 font-normal normal-case">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={price}
-                    onChange={e => setPrice(e.target.value)}
-                    placeholder="e.g. 3500000"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                    Lot Area <span className="text-gray-300 font-normal normal-case">(sqm)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={lotArea}
-                    onChange={e => setLotArea(e.target.value)}
-                    placeholder="e.g. 120"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                    Floor Area <span className="text-gray-300 font-normal normal-case">(sqm)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={floorArea}
-                    onChange={e => setFloorArea(e.target.value)}
-                    placeholder="e.g. 80"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
-                  />
-                </div>
-              </div>
-
-              {/* Preview Photo */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Preview Photo URL</label>
-                <input
-                  type="text"
-                  value={photo}
-                  onChange={e => setPhoto(e.target.value)}
-                  placeholder="https://res.cloudinary.com/..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-mono"
-                />
-                {photo && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photo} alt="preview" className="mt-2 h-24 w-full object-cover rounded-lg border border-gray-200" onError={e => (e.currentTarget.style.display = 'none')} />
-                )}
-              </div>
-
-              {/* Map URL */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  Map Link <span className="text-gray-300 font-normal normal-case">(Google Maps URL — optional)</span>
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={mapUrl}
-                    onChange={e => setMapUrl(e.target.value)}
-                    placeholder="https://maps.app.goo.gl/..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-mono"
-                  />
-                  {mapUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setShowMap(true)}
-                      className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold text-white shrink-0"
-                      style={{ background: '#16a34a' }}
-                    >
-                      <MapPin className="w-3.5 h-3.5" /> Preview
-                    </button>
-                  )}
-                </div>
-                <p className="text-xs text-gray-400 mt-1">Paste a Google Maps share link. Visitors can view the map without leaving the page.</p>
-              </div>
-
-              {/* Description / Notes */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Description / Notes</label>
-                <textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  rows={5}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 resize-none"
-                />
-              </div>
-
-              {/* Listing Agent */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Listing Agent</label>
-                <input
-                  placeholder="Agent name, or &#10;Agent name&#10;Agent name&#10;..."
-                  value={listingAgent}
-                  onChange={e => setlistingAgent(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 resize-none"
-                />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t flex gap-3 shrink-0">
-              <button
-                onClick={handleSave}
-                disabled={saving || saved}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-70"
-                style={{ background: saved ? '#16a34a' : 'hsl(var(--primary))' }}
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Changes'}
-              </button>
-              <button
-                onClick={() => setOpen(false)}
-                className="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-700 border border-gray-300 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <PropertyDialog
+          property={listing}
+          open={showDialog}
+          onClose={() => setShowDialog(false)}
+          columns={columns}
+          onSave={handleSaveProperty}
+  
+      />
       )}
 
       {/* Map preview modal */}

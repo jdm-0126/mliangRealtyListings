@@ -1,6 +1,6 @@
 // lib/seo/jsonld.ts
 
-import { TenantSettings, PublicListing } from '../types/public'
+import { TenantSettings, Property } from '../shared/types/public'
 
 /**
  * Generates the canonical detail page title for a property.
@@ -54,7 +54,7 @@ export function buildLocalBusinessJsonLd(settings: TenantSettings): Record<strin
  * Builds a JSON-LD object for the RealEstateListing schema.
  * Used on individual property detail pages to satisfy requirement 4.5.
  */
-export function buildRealEstateListingJsonLd(listing: PublicListing): Record<string, unknown> {
+export function buildRealEstateListingJsonLd(listing: Property): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'RealEstateListing',
@@ -64,7 +64,7 @@ export function buildRealEstateListingJsonLd(listing: PublicListing): Record<str
     image: listing.previewPhoto ?? undefined,
     offers: {
       '@type': 'Offer',
-      price: listing.price ?? undefined,
+      price: listing.listingPrice ?? undefined,
       priceCurrency: 'PHP',
       availability: 'https://schema.org/InStock',
     },

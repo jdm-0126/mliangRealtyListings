@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { Urbanist } from "next/font/google";
+import { Urbanist, Inter } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 import { BRAND_COLOR_STORAGE_KEY, DEFAULT_BRAND_COLOR, isValidBrandColor } from '@/lib/theme/brandColor'
 import BrandColorInitializer from '@/app/(admin)/components/BrandColorInitializer'
+import { cn } from "@/lib/utils";
+import Script from "next/script"
+
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+
 
 // Only load Urbanist — the single font actually used across the UI.
 // Removing Geist/Geist_Mono eliminates two extra font file round-trips.
@@ -31,14 +36,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable)}>
       <head>
         {/* Admin theme: inject before hydration to prevent flash */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('adminTheme');if(t==='dark')document.documentElement.setAttribute('data-admin-theme','dark');}catch(e){}try{var c=localStorage.getItem('${BRAND_COLOR_STORAGE_KEY}');var d='${DEFAULT_BRAND_COLOR}';if(c&&${isValidBrandColor(DEFAULT_BRAND_COLOR).toString()}){if(/^#[0-9a-f]{3,6}$/i.test(c)){document.documentElement.style.setProperty('--est-purple',c);document.documentElement.style.setProperty('--est-purple-h',c);}}else{document.documentElement.style.setProperty('--est-purple',d);document.documentElement.style.setProperty('--est-purple-h',d);}}catch(e){}})();`,
+        <Script
+        dangerouslySetInnerHTML={{
+                  __html: `(function(){try{var t=localStorage.getItem('adminTheme');if(t==='dark')document.documentElement.setAttribute('data-admin-theme','dark');}catch(e){}try{var c=localStorage.getItem('${BRAND_COLOR_STORAGE_KEY}');var d='${DEFAULT_BRAND_COLOR}';if(c&&${isValidBrandColor(DEFAULT_BRAND_COLOR).toString()}){if(/^#[0-9a-f]{3,6}$/i.test(c)){document.documentElement.style.setProperty('--est-purple',c);document.documentElement.style.setProperty('--est-purple-h',c);}}else{document.documentElement.style.setProperty('--est-purple',d);document.documentElement.style.setProperty('--est-purple-h',d);}}catch(e){}})();`,
           }}
-        />
+/>
       </head>
       <body
         className={`${urbanist.variable} antialiased`}

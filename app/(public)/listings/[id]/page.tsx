@@ -1,153 +1,267 @@
 // app/(public)/listings/[id]/page.tsx — Estatein dark theme
-import type { Metadata } from 'next'
-import Link from 'next/link'
-import { supabase } from '@/lib/supabase/browserTenantClient'
+import type { ElementType } from "react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import Script from "next/script";
+import { server } from "@/lib/supabase/server";
+import { getPropertyGallery } from "@/lib/shared/gallery/getPropertyGallery";
+import type { Property } from "@/lib/shared/types/public";
+import {
+  buildRealEstateListingJsonLd,
+  generateDetailTitle,
+  buildCanonicalUrl,
+} from "@/lib/seo/jsonld";
+import ImageGallery from "@/components/ImageGallery";
+import { formatPropertyDescription } from "@/lib/shared/components/property/formatPropertyDescription"
+import JsonLd from "@/app/(public)/components/JsonLd";
+import {
+  MapPin,
+  Maximize2,
+  Home,
+  BedDouble,
+  Bath,
+  Mail,
+  ArrowLeft,
+  Map,
+} from "lucide-react";
 
-import type { PublicListing } from '@/lib/types/public'
-import { buildRealEstateListingJsonLd, generateDetailTitle, buildCanonicalUrl } from '@/lib/seo/jsonld'
-import ImageGallery from '@/app/(public)/components/ImageGallery'
-import JsonLd from '@/app/(public)/components/JsonLd'
-import { MapPin, Maximize2, Home, BedDouble, Bath, Mail, ArrowLeft, Map } from 'lucide-react'
-
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export const dynamic = "force-dynamic";
 
 function parseNum(raw: unknown): number | null {
-  if (raw === null || raw === undefined || raw === '') return null
-  const n = typeof raw === 'number' ? raw : Number(String(raw).replace(/[^\d.]/g, ''))
-  return isNaN(n) || n <= 0 ? null : n
+  if (raw === null || raw === undefined || raw === "") return null;
+  const n =
+    typeof raw === "number"
+      ? raw
+      : Number(String(raw).replace(/[^\d.]/g, ""));
+  return isNaN(n) || n <= 0 ? null : n;
 }
 
 function formatPrice(price: number): string {
-  return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(price)
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    maximumFractionDigits: 0,
+  }).format(price);
 }
 
 function formatListingType(type?: string | null): string {
-  const value = (type ?? '').trim().toLowerCase()
-  if (!value) return ''
-  if (value.includes('commercial')) return 'Commercial'
-  if (value.includes('house') || value.includes('residential')) return 'House and Lot'
-  if (value.includes('lot only') || value === 'lot') return 'Lot only'
-  if (value.includes('lot')) return 'Lot only'
-  return type?.trim() || ''
+  const value = (type ?? "").trim().toLowerCase();
+  if (!value) return "";
+  if (value.includes("commercial")) return "Commercial";
+  if (value.includes("house") || value.includes("residential"))
+    return "House and Lot";
+  if (value.includes("lot only") || value === "lot") return "Lot only";
+  if (value.includes("lot")) return "Lot only";
+  return type?.trim() || "";
 }
 
-async function fetchListing(displayId: number): Promise<PublicListing | null> {
-  const internalId = displayId >= 2 ? displayId + 1 : displayId;
-  const { data, error } = await supabase
+async function fetchListing(propertyId: number): Promise<Property | null> {
+  console.log("Looking for property", propertyId);
+
+  try {
+    const { data, error } = await server
       .from("listings")
       .select("*")
-      .eq("property_id", internalId)
-      .limit(1);
+      .eq("property_id", propertyId)
+      .single();
 
-    if (error) throw error;
+    if (error || !data) return null;
 
-    if (!data || data.length === 0) return null;
-
-    const row = data[0] as Record<string, unknown>;
-    const statusRaw = String(row['status'] ?? '').toLowerCase()
-    if (statusRaw !== 'active') return null
-    const id = Number(row['property_id'])
-    const photos: string[] = []
-    const previewRaw = row['preview_photo']
-    if (typeof previewRaw === 'string' && previewRaw.trim()) photos.push(previewRaw.trim())
-    const extraPhotos = Array.isArray(row['photos']) ? row['photos'] as string[] : []
-    for (const p of extraPhotos) { if (p && !photos.includes(p)) photos.push(p) }
-    return {
-      propertyId: Number(row["property_id"]),
-      id,
-      displayId,
-      type: String(row['Type'] ?? ''), 
-      title: String(row['title'] ?? ''),
-      location: String(row['location'] ?? ''),
-      village: typeof row['village'] === 'string' && row['village'].trim() ? row['village'].trim() : undefined,
-      price: parseNum(row['listing_price']),
-      lotArea: parseNum(row['lot_area_sqm']),
-      floorArea: parseNum(row['floor_area_sqm']),
-      bedrooms: parseNum(row['Bedroom']), bathrooms: parseNum(row['Bathroom']),
-      previewPhoto: photos[0] ?? null, photos, notes: String(row['notes'] ?? ''),
-      status: String(row['status'] ?? ''),
-      mapUrl: typeof row['map_url'] === 'string' && row['map_url'].trim() ? row['map_url'].trim() : null,
-      videoUrl: typeof row['video_url'] === 'string' && row['video_url'].trim() ? row['video_url'].trim() : null,
-      facebookVideoUrl: typeof row['fcebook_video_url'] === 'string' && row['fcebook_video_url'].trim() ? row['fcebook_video_url'].trim() : null,
-      tiktokVideoUrl: typeof row['tiktok_video_url'] === 'string' && row['tiktok_video_url'].trim() ? row['tiktok_video_url'].trim() : null,
-      updatedAt: typeof row['$updatedAt'] === 'string' ? row['$updatedAt'] : undefined,
+    const row = data;
+    const statusRaw = String(row.status ?? "").toLowerCase();
+    if (statusRaw !== "active") return null;
+const extraPhotos = Array.isArray(row.photos) ? (row.photos as string[]) : [];
+    for (const p of extraPhotos) {
+      if (p && !row.photos.includes(p)) row.photos.push(p);
     }
-}
 
-interface Props { params: Promise<{ id: string }> }
+    const id = Number(row.property_id);
+    const gallery = await getPropertyGallery(id);
+  // const extraPhotos = Array.isArray(row.photos) ? (row.photos as string[]) : [];
+  const previewRaw = typeof row.preview_photo === "string" ? row.preview_photo.trim() : "";
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params
-  const displayId = Number(id)
-  if (isNaN(displayId)) return { title: 'Property Not Found – M. Liang Realty' }
-  const listing = await fetchListing(displayId)
-  console.log("Datas: ",listing)
-  console.log("displayId: ",displayId)
-  if (!listing) return { title: 'Property Not Found – M. Liang Realty' }
-  const title = generateDetailTitle(listing.type, listing.location)
-  const rawNotes = listing.notes ?? ''
-  const description = rawNotes.length > 157 ? rawNotes.slice(0, 157) + '...' : rawNotes || title
-  const canonicalUrl = buildCanonicalUrl('https://realtyprov1.com', `/listings/${listing.displayId}`)
-  return {
-    title, description,
-    openGraph: { title, description, images: listing.previewPhoto ? [{ url: listing.previewPhoto }] : [], url: canonicalUrl, type: 'website' },
-    twitter: { card: 'summary_large_image', title, description, images: listing.previewPhoto ? [listing.previewPhoto] : [] },
-    alternates: { canonical: canonicalUrl },
+  const rawPhotoList = [
+    ...(previewRaw ? [previewRaw] : []),
+    ...gallery,
+    ...extraPhotos,
+  ].filter(Boolean);
+
+  // Deduplicate after assembling all potential sources
+  const uniquePhotos = Array.from(new Set(rawPhotoList));
+
+    
+    return {
+      id: row.id,
+      propertyId: id,
+      userId: String(row.user_id ?? ""),
+      title: String(row.title ?? `Property ${propertyId}`),
+      displayId: row.id,
+      type: String(row.type ?? ""),
+      location: String(row.location ?? ""),
+      village:
+        typeof row.village === "string" && row.village.trim()
+          ? row.village.trim()
+          : undefined,
+      listingPrice: parseNum(row.listing_price),
+      lotArea: parseNum(row.lot_area_sqm),
+      floorArea: parseNum(row.floor_area_sqm),
+      notes: String(row.notes ?? ""),
+      bedrooms: parseNum(row.bedroom),
+      bathrooms: parseNum(row.bathroom),
+      previewPhoto: uniquePhotos[0] ?? null,
+      photos: uniquePhotos,
+      status: String(row.status ?? ""),
+      mapUrl:
+        typeof row.map_url === "string" && row.map_url.trim()
+          ? row.map_url.trim()
+          : null,
+      videoUrl:
+        typeof row.video_url === "string" && row.video_url.trim()
+          ? row.video_url.trim()
+          : null,
+      facebookVideoUrl:
+        typeof row.facebook_video_url === "string" &&
+        row.facebook_video_url.trim()
+          ? row.facebook_video_url.trim()
+          : null,
+      tiktokVideoUrl:
+        typeof row.tiktok_video_url === "string" &&
+        row.tiktok_video_url.trim()
+          ? row.tiktok_video_url.trim()
+          : null,
+    };
+  } catch {
+    return null;
   }
 }
 
-// Not-found shared fragment
+interface Props {
+  params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const propertyId = Number(id);
+  if (isNaN(propertyId)) return { title: "Property Not Found – M. Liang Realty" };
+
+  const listing = await fetchListing(propertyId);
+  if (!listing) return { title: "Property Not Found – M. Liang Realty" };
+
+  const title = generateDetailTitle(String(listing.type), String(listing.location));
+  const rawNotes = listing.notes ?? "";
+  const description =
+    rawNotes.length > 157 ? rawNotes.slice(0, 157) + "..." : rawNotes || title;
+  const SITE_URL =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "https://realtyprov1-jdm0126s-projects.vercel.app";
+
+  const canonicalUrl = buildCanonicalUrl(
+    SITE_URL,
+    `/listings/${listing.displayId}`
+  );
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: listing.previewPhoto ? [{ url: listing.previewPhoto }] : [],
+      url: canonicalUrl,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: listing.previewPhoto ? [listing.previewPhoto] : [],
+    },
+    alternates: { canonical: canonicalUrl },
+  };
+}
+
 function NotFound() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-28 text-center">
       <div
         className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
-        style={{ background: 'var(--est-elevated)', border: '1px solid var(--est-border)' }}
+        style={{
+          background: "var(--est-elevated)",
+          border: "1px solid var(--est-border)",
+        }}
       >
-        <svg className="w-10 h-10" style={{ color: 'var(--est-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+        <svg
+          className="w-10 h-10"
+          style={{ color: "var(--est-muted)" }}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+          />
         </svg>
       </div>
-      <h1 className="text-2xl font-bold mb-3" style={{ color: 'var(--est-text)' }}>Property not found</h1>
-      <p className="mb-8 text-sm" style={{ color: 'var(--est-muted)' }}>
+      <h1
+        className="text-2xl font-bold mb-3"
+        style={{ color: "var(--est-text)" }}
+      >
+        Property not found
+      </h1>
+      <p className="mb-8 text-sm" style={{ color: "var(--est-muted)" }}>
         This listing may have been removed or is no longer available.
       </p>
       <Link
         href="/listings"
         className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
-        style={{ background: 'var(--est-purple)', color: '#fff' }}
+        style={{ background: "var(--est-purple)", color: "#fff" }}
       >
         <ArrowLeft className="w-4 h-4" /> Back to Listings
       </Link>
     </main>
-  )
+  );
 }
 
-// Stat pill component
-function StatPill({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
+function StatPill({
+  icon: Icon,
+  label,
+}: {
+  icon: ElementType;
+  label: string;
+}) {
   return (
     <div
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
-      style={{ background: 'var(--est-elevated)', border: '1px solid var(--est-border)', color: 'var(--est-subtle)' }}
+      style={{
+        background: "var(--est-elevated)",
+        border: "1px solid var(--est-border)",
+        color: "var(--est-subtle)",
+      }}
     >
-      <Icon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--est-purple)' }} />
+      <Icon
+        className="w-4 h-4 flex-shrink-0"
+        style={{ color: "var(--est-purple)" }}
+      />
       <span>{label}</span>
     </div>
-  )
+  );
 }
 
 export default async function PropertyDetailPage({ params }: Props) {
-  const { id } = await params
-  const displayId = Number(id)
-  if (isNaN(displayId)) return <NotFound />
-  const listing = await fetchListing(displayId)
-  if (!listing) return <NotFound />
+  const { id } = await params;
+  const propertyId = Number(id)
+  if (isNaN(propertyId)) return <NotFound />;
 
-  const addressParts = [listing.village, listing.location].filter(Boolean)
-  const address = addressParts.join(', ') || listing.location
-  const contactHref = `/contact?property=${encodeURIComponent(address)}`
-  const displayType = formatListingType(listing.type)
+  const listing = await fetchListing(propertyId);
+  if (!listing) return <NotFound />;
+
+  const addressParts = [listing.village, listing.location].filter(Boolean);
+  const address = addressParts.join(", ") || listing.location;
+  const contactHref = `/contact?property=${encodeURIComponent(String(address))}`;
+  const displayType = formatListingType(listing.type);
 
   return (
     <>
@@ -158,60 +272,12 @@ export default async function PropertyDetailPage({ params }: Props) {
         <Link
           href="/listings"
           className="inline-flex items-center gap-2 text-sm mb-8 transition-colors hover:opacity-70"
-          style={{ color: 'var(--est-muted)' }}
+          style={{ color: "var(--est-muted)" }}
         >
           <ArrowLeft className="w-4 h-4" /> Back to Listings
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {/* Gallery */}
-          <div>
-            <ImageGallery photos={listing.photos} alt={`${listing.type} in ${listing.location}`} />
-
-            {/* Video */}
-            {(listing.videoUrl || listing.facebookVideoUrl || listing.tiktokVideoUrl) && (
-              <div className="mt-4">
-                <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--est-muted)' }}>
-                  Property Video
-                </h2>
-                {listing.videoUrl ? (
-                  <video
-                    controls
-                    className="w-full rounded-xl"
-                    style={{ border: '1px solid var(--est-border)' }}
-                  >
-                    <source src={listing.videoUrl} type="video/mp4" />
-                    Your browser does not support video playback.
-                  </video>
-                ) : listing.tiktokVideoUrl ? (
-                  <div className="flex justify-center">
-                    <blockquote
-                      className="tiktok-embed"
-                      cite={listing.tiktokVideoUrl}
-                      data-video-id={listing.tiktokVideoUrl.match(/video\/(\d+)/)?.[1] ?? ''}
-                      style={{ maxWidth: 605, minWidth: 325 }}
-                    >
-                      <section />
-                    </blockquote>
-                    {/* TikTok embed script — loaded once per page */}
-                    {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-                    <script async src="https://www.tiktok.com/embed.js" />
-                  </div>
-                ) : listing.facebookVideoUrl ? (
-                  <div className="relative w-full overflow-hidden rounded-xl" style={{ paddingBottom: '56.25%', border: '1px solid var(--est-border)' }}>
-                    <iframe
-                      src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(listing.facebookVideoUrl)}&show_text=false&autoplay=false`}
-                      className="absolute inset-0 w-full h-full"
-                      style={{ border: 'none' }}
-                      allowFullScreen
-                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                    />
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </div>
-
           {/* Details */}
           <div className="flex flex-col gap-5">
             {/* Type badge + id */}
@@ -219,65 +285,100 @@ export default async function PropertyDetailPage({ params }: Props) {
               {displayType && (
                 <span
                   className="text-xs font-semibold px-3 py-1 rounded-full"
-                  style={{ background: 'var(--est-purple)', color: '#fff' }}
+                  style={{ background: "var(--est-purple)", color: "#fff" }}
                 >
                   {displayType}
                 </span>
               )}
-              <span className="text-xs" style={{ color: 'var(--est-muted)' }}>
+              <span className="text-xs" style={{ color: "var(--est-muted)" }}>
                 Property #{listing.displayId}
               </span>
             </div>
 
             {/* Location */}
             <div className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--est-purple)' }} />
-              <span className="text-sm" style={{ color: 'var(--est-muted)' }}>{address}</span>
+              <MapPin
+                className="w-4 h-4 mt-0.5 flex-shrink-0"
+                style={{ color: "var(--est-purple)" }}
+              />
+              <span className="text-sm" style={{ color: "var(--est-muted)" }}>
+                {address}
+              </span>
             </div>
 
             {/* Price */}
-            {listing.price !== null ? (
-              <p className="text-3xl font-bold" style={{ color: 'var(--est-text)' }}>
-                {formatPrice(listing.price)}
+            {listing.listingPrice !== null ? (
+              <p
+                className="text-3xl font-bold"
+                style={{ color: "var(--est-text)" }}
+              >
+                {formatPrice(Number(listing.listingPrice))}
               </p>
             ) : (
-              <p className="text-xl font-semibold italic" style={{ color: 'var(--est-muted)' }}>
+              <p
+                className="text-xl font-semibold italic"
+                style={{ color: "var(--est-muted)" }}
+              >
                 Price on request
               </p>
             )}
-            {listing.listingMode && (
-                <p className="text-sm" style={{ color: 'var(--est-muted)' }}>
-                  {listing.listingMode}
-                </p>
-              )
-                          }
-              {listing.title && (
-                <p className="text-lg" style={{ color: 'var(--est-subtle)' }}>
-                  {listing.title}
-                </p>
-              )}
+
             {/* Stats */}
-            {(listing.lotArea !== null || listing.floorArea !== null || listing.bedrooms !== null || listing.bathrooms !== null) && (
+            {(listing.lotArea !== null ||
+              listing.floorArea !== null ||
+              listing.bedrooms !== null ||
+              listing.bathrooms !== null) && (
               <div className="grid grid-cols-2 gap-3">
-                {listing.lotArea !== null && <StatPill icon={Maximize2} label={`${listing.lotArea.toLocaleString()} sqm lot`} />}
-                {listing.floorArea !== null && <StatPill icon={Home} label={`${listing.floorArea.toLocaleString()} sqm floor`} />}
-                {listing.bedrooms !== null && <StatPill icon={BedDouble} label={`${listing.bedrooms} bedroom${listing.bedrooms !== 1 ? 's' : ''}`} />}
-                {listing.bathrooms !== null && <StatPill icon={Bath} label={`${listing.bathrooms} bathroom${listing.bathrooms !== 1 ? 's' : ''}`} />}
+                {listing.lotArea !== null && (
+                  <StatPill
+                    icon={Maximize2}
+                    label={`${String(listing.lotArea).toLocaleString()} sqm lot`}
+                  />
+                )}
+                {listing.floorArea !== null && (
+                  <StatPill
+                    icon={Home}
+                    label={`${String(listing.floorArea).toLocaleString()} sqm floor`}
+                  />
+                )}
+                {listing.bedrooms !== null && (
+                  <StatPill
+                    icon={BedDouble}
+                    label={`${listing.bedrooms} bedroom${
+                      listing.bedrooms !== 1 ? "s" : ""
+                    }`}
+                  />
+                )}
+                {listing.bathrooms !== null && (
+                  <StatPill
+                    icon={Bath}
+                    label={`${listing.bathrooms} bathroom${
+                      listing.bathrooms !== 1 ? "s" : ""
+                    }`}
+                  />
+                )}
               </div>
             )}
 
             {/* Divider */}
-            <div style={{ borderTop: '1px solid var(--est-border)' }} />
+            <div style={{ borderTop: "1px solid var(--est-border)" }} />
 
             {/* Notes */}
             {listing.notes && (
               <div>
-                <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--est-muted)' }}>
+                <h2
+                  className="text-xs font-bold uppercase tracking-widest mb-3"
+                  style={{ color: "var(--est-muted)" }}
+                >
                   Description
                 </h2>
-                <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--est-subtle)' }}>
-                  {listing.notes}
-                </p>
+
+                <div
+                  className="text-sm leading-relaxed"
+                  style={{ color: "var(--est-subtle)" }}
+                >
+                  {formatPropertyDescription(listing.notes)}
+                </div>
               </div>
             )}
 
@@ -288,9 +389,16 @@ export default async function PropertyDetailPage({ params }: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
-                style={{ background: 'var(--est-elevated)', border: '1px solid var(--est-border)', color: 'var(--est-subtle)' }}
+                style={{
+                  background: "var(--est-elevated)",
+                  border: "1px solid var(--est-border)",
+                  color: "var(--est-subtle)",
+                }}
               >
-                <Map className="w-4 h-4" style={{ color: 'var(--est-purple)' }} />
+                <Map
+                  className="w-4 h-4"
+                  style={{ color: "var(--est-purple)" }}
+                />
                 View on Map
               </a>
             )}
@@ -300,7 +408,7 @@ export default async function PropertyDetailPage({ params }: Props) {
               <Link
                 href={contactHref}
                 className="flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
-                style={{ background: 'var(--est-purple)', color: '#fff' }}
+                style={{ background: "var(--est-purple)", color: "#fff" }}
                 data-testid="contact-cta"
               >
                 <Mail className="w-4 h-4" />
@@ -308,8 +416,75 @@ export default async function PropertyDetailPage({ params }: Props) {
               </Link>
             </div>
           </div>
+
+          {/* Gallery */}
+          <div>
+            <ImageGallery
+              photos={listing.photos ?? []}
+              alt={`${listing.type} in ${listing.location}`}
+            />
+
+            {/* Video */}
+            {(listing.videoUrl ||
+              listing.facebookVideoUrl ||
+              listing.tiktokVideoUrl) && (
+              <div className="mt-4">
+                <h2
+                  className="text-xs font-semibold uppercase tracking-widest mb-3"
+                  style={{ color: "var(--est-muted)" }}
+                >
+                  Property Video
+                </h2>
+                {listing.videoUrl ? (
+                  <video
+                    controls
+                    className="w-full rounded-xl"
+                    style={{ border: "1px solid var(--est-border)" }}
+                  >
+                    <source src={listing.videoUrl} type="video/mp4" />
+                    Your browser does not support video playback.
+                  </video>
+                ) : listing.tiktokVideoUrl ? (
+                  <div className="flex justify-center flex-col items-center">
+                    <blockquote
+                      className="tiktok-embed"
+                      cite={listing.tiktokVideoUrl}
+                      data-video-id={
+                        listing.tiktokVideoUrl.match(/video\/(\d+)/)?.[1] ?? ""
+                      }
+                      style={{ maxWidth: 605, minWidth: 325 }}
+                    >
+                      <section />
+                    </blockquote>
+                    <Script
+                      src="https://www.tiktok.com/embed.js"
+                      strategy="lazyOnload"
+                    />
+                  </div>
+                ) : listing.facebookVideoUrl ? (
+                  <div
+                    className="relative w-full overflow-hidden rounded-xl"
+                    style={{
+                      paddingBottom: "56.25%",
+                      border: "1px solid var(--est-border)",
+                    }}
+                  >
+                    <iframe
+                      src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(
+                        listing.facebookVideoUrl
+                      )}&show_text=false&autoplay=false`}
+                      className="absolute inset-0 w-full h-full"
+                      style={{ border: "none" }}
+                      allowFullScreen
+                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </>
-  )
+  );
 }

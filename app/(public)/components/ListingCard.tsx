@@ -3,14 +3,15 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { PublicListing } from '@/lib/types/public'
+import { Property } from '@/lib/shared/types/public'
 import { MapPin, Maximize2, Home, X, BedDouble, Bath } from 'lucide-react'
 import MaintenanceEditBar from './MaintenanceEditBar'
 
 interface ListingCardProps {
-  listing: PublicListing
+  listing: Property
   priority?: boolean     // pass true for the first card to preload as LCP image
   viewMode?: 'grid' | 'list'  // default 'grid' for backwards compat with featured section
+  onEdit?: (listing: Property) => void
 }
 
 function formatPrice(price: number | null): string {
@@ -23,6 +24,7 @@ function formatPrice(price: number | null): string {
 }
 
 function MapModal({ url, onClose }: { url: string; onClose: () => void }) {
+  
   const embedUrl = url.includes('maps/embed')
     ? url
     : `https://maps.google.com/maps?q=${encodeURIComponent(url)}&output=embed`
@@ -59,7 +61,7 @@ function MapModal({ url, onClose }: { url: string; onClose: () => void }) {
   )
 }
 
-export default function ListingCard({ listing: initialListing, priority = false, viewMode = 'grid' }: ListingCardProps) {
+export default function ListingCard({ listing: initialListing, priority = false, viewMode = 'grid', onEdit, }: ListingCardProps) {
   const [listing, setListing] = useState(initialListing)
   const [showMap, setShowMap] = useState(false)
   // Always start as false so server and first client render agree (no mismatch).
@@ -70,7 +72,7 @@ export default function ListingCard({ listing: initialListing, priority = false,
   const imageRef = useRef<HTMLDivElement | null>(null)
   
   const locationText = [listing.village, listing.location].filter(Boolean).join(', ')
-  const href = `/listings/${listing.displayId}`
+  const href = `/listings/${listing.propertyId}`
   const FALLBACK_IMG = 'https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png'
   const OPTIMIZABLE = /(supabase\.co|cloudinary\.com|fbcdn\.net|googleusercontent\.com|drive\.google\.com)$/
   function isOptimizable(url: string): boolean {
@@ -86,7 +88,7 @@ export default function ListingCard({ listing: initialListing, priority = false,
 
   // Show image once it's either in-view (lazy) or priority
   const showImage = priority || inView
-
+  
   function formatListingType(type?: string | null): string {
     const value = (type ?? '').trim().toLowerCase()
     if (!value) return ''
@@ -129,6 +131,7 @@ export default function ListingCard({ listing: initialListing, priority = false,
     <div className="relative group">
       <MaintenanceEditBar
         listing={listing}
+        onEdit={() => onEdit?.(listing)}
         onUpdated={updated => setListing(prev => ({ ...prev, ...updated }))}
       />
 
@@ -200,8 +203,8 @@ export default function ListingCard({ listing: initialListing, priority = false,
           {/* Details */}
           <div className="flex flex-col justify-between flex-1 p-4 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-1">
-              <p className="text-base font-bold leading-tight" style={{ color: listing.price ? 'var(--est-text)' : 'var(--est-muted)' }}>
-                {formatPrice(listing.price)}
+              <p className="text-base font-bold leading-tight" style={{ color: listing.listingPrice ? 'var(--est-text)' : 'var(--est-muted)' }}>
+                {formatPrice(Number(listing.listingPrice))}
               </p>
               {listing.mapUrl && (
                 <button
@@ -225,13 +228,13 @@ export default function ListingCard({ listing: initialListing, priority = false,
                 {listing.floorArea !== null && (
                   <span className="flex items-center gap-1">
                     <Home className="w-3 h-3" style={{ color: 'var(--est-purple)' }} />
-                    {listing.floorArea.toLocaleString()} sqm floor
+                    {(listing.floorArea ?? 0).toLocaleString()} sqm lot
                   </span>
                 )}
                 {listing.lotArea !== null && (
                   <span className="flex items-center gap-1">
                     <Maximize2 className="w-3 h-3" style={{ color: 'var(--est-purple)' }} />
-                    {listing.lotArea.toLocaleString()} sqm lot
+                    {(listing.lotArea ?? 0).toLocaleString()} sqm lot
                   </span>
                 )}
                 {listing.bedrooms !== null && (
@@ -329,8 +332,8 @@ export default function ListingCard({ listing: initialListing, priority = false,
               )}
             </div>
 
-            <p className="text-lg font-bold mb-4" style={{ color: listing.price ? 'var(--est-text)' : 'var(--est-muted)' }}>
-              {formatPrice(listing.price)}
+            <p className="text-lg font-bold mb-4" style={{ color: listing.listingPrice ? 'var(--est-text)' : 'var(--est-muted)' }}>
+              {formatPrice(Number(listing.listingPrice))}
             </p>
 
             {(listing.lotArea !== null || listing.floorArea !== null) && (
@@ -338,13 +341,13 @@ export default function ListingCard({ listing: initialListing, priority = false,
                 {listing.floorArea !== null && (
                   <span className="flex items-center gap-1">
                     <Home className="w-3.5 h-3.5" style={{ color: 'var(--est-purple)' }} />
-                    {listing.floorArea.toLocaleString()} sqm
+                    {(listing.floorArea ?? 0).toLocaleString()} sqm lot
                   </span>
                 )}
                 {listing.lotArea !== null && (
                   <span className="flex items-center gap-1">
                     <Maximize2 className="w-3.5 h-3.5" style={{ color: 'var(--est-purple)' }} />
-                    {listing.lotArea.toLocaleString()} sqm lot
+                    {(listing.lotArea ?? 0).toLocaleString()} sqm lot
                   </span>
                 )}
               </div>
@@ -352,6 +355,17 @@ export default function ListingCard({ listing: initialListing, priority = false,
           </div>
         </Link>
       )}
+      <button
+          type="button"
+          onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onEdit?.(listing)
+          }}
+          className="absolute top-3 left-3 z-30 rounded bg-blue-600 px-3 py-1 text-white"
+      >
+          Edit
+      </button>
 
       {/* Map modal — outside the Link so it doesn't navigate */}
       {showMap && listing.mapUrl && (

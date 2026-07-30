@@ -1,14 +1,15 @@
 'use client'
 // app/(public)/components/FeaturedSearchSection.tsx
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowRight, SlidersHorizontal, Search } from 'lucide-react'
-import { PublicListing } from '@/lib/types/public'
 import ListingCard from './ListingCard'
+import { Property } from '@/lib/shared/types/public'
+import PropertyDialog from '@/lib/shared/components/property/PropertyDialog'
 
 interface FeaturedSearchSectionProps {
-  featuredListings: PublicListing[]
+  featuredListings: Property[]
 }
 
 const TYPE_OPTIONS = ['All', 'House and Lot', 'Lot only', 'Commercial'] as const
@@ -51,11 +52,17 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function FeaturedSearchSection({ featuredListings = [] }: FeaturedSearchSectionProps) {
+  const [selectedProperty, setSelectedProperty] =
+    useState<Property | null>(null)
+
+  const [showDialog, setShowDialog] =
+      useState(false)
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('All')
   const [locationQuery, setLocationQuery] = useState('')
   const [priceRange, setPriceRange] = useState<PriceRange>('All')
   const [modeFilter, setModeFilter] = useState<'All' | 'For Sale' | 'For Rent'>('All')
-
+  const [columns, setColumns] = useState<string[]>([])
+  
   function buildSearchUrl() {
     const params = new URLSearchParams()
     if (typeFilter !== 'All') params.set('type', typeFilter)
@@ -65,10 +72,16 @@ export default function FeaturedSearchSection({ featuredListings = [] }: Feature
     const qs = params.toString()
     return `/listings/all${qs ? `?${qs}` : ''}`
   }
+const handleSaveProperty = async (property: Property) => {
 
+  // update your list here if needed
+
+  setShowDialog(false)
+}
   return (
     <>
       {/* ── Search bar — GET form navigates to /listings/all ── */}
+   
       <div
         className="rounded-2xl p-5 mb-10 flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end"
         style={{ background: 'var(--est-surface)', border: '1px solid var(--est-border)' }}
@@ -177,7 +190,10 @@ export default function FeaturedSearchSection({ featuredListings = [] }: Feature
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {(featuredListings ?? []).map((listing, idx) => (
-              <ListingCard key={listing.id} listing={listing} viewMode="grid" priority={idx === 0} />
+              <ListingCard  key={listing.propertyId}
+                listing={listing}
+                viewMode="grid"
+                priority={idx === 0}/>
             ))}
           </div>
         )}
