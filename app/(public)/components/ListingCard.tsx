@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Property } from '@/lib/shared/types/public'
 import { MapPin, Maximize2, Home, X, BedDouble, Bath } from 'lucide-react'
 import MaintenanceEditBar from './MaintenanceEditBar'
+import { supabase } from '@/lib/supabase/browserTenantClient' // Adjust to your Supabase client path
 
 interface ListingCardProps {
   listing: Property
@@ -24,7 +25,6 @@ function formatPrice(price: number | null): string {
 }
 
 function MapModal({ url, onClose }: { url: string; onClose: () => void }) {
-  
   const embedUrl = url.includes('maps/embed')
     ? url
     : `https://maps.google.com/maps?q=${encodeURIComponent(url)}&output=embed`
@@ -61,34 +61,63 @@ function MapModal({ url, onClose }: { url: string; onClose: () => void }) {
   )
 }
 
-export default function ListingCard({ listing: initialListing, priority = false, viewMode = 'grid', onEdit, }: ListingCardProps) {
+export default function ListingCard({ listing: initialListing, priority = false, viewMode = 'grid', onEdit }: ListingCardProps) {
   const [listing, setListing] = useState(initialListing)
   const [showMap, setShowMap] = useState(false)
-  // Always start as false so server and first client render agree (no mismatch).
-  // For priority cards the image loads eagerly anyway; the skeleton fades out
-  // once the image fires onLoad.
   const [imageLoaded, setImageLoaded] = useState(false)
   const [inView, setInView] = useState(false)
+  const [galleryPhotoUrl, setGalleryPhotoUrl] = useState<string | null>(null)
   const imageRef = useRef<HTMLDivElement | null>(null)
-  
+
   const locationText = [listing.village, listing.location].filter(Boolean).join(', ')
   const href = `/listings/${listing.propertyId}`
+  
+  // High-res remote fallback to eliminate local static 404 errors
   const FALLBACK_IMG = 'https://res.cloudinary.com/https-www-uplift-management-com/image/upload/c_thumb,w_200,g_face/v1783475294/GalleryMliang/26c4084b-c28f-4f24-9585-feb1b7c199e6_jk4jdd.png'
+  
   const OPTIMIZABLE = /(supabase\.co|cloudinary\.com|fbcdn\.net|googleusercontent\.com|drive\.google\.com)$/
   function isOptimizable(url: string): boolean {
     if (url.startsWith('data:')) return false
     try { return OPTIMIZABLE.test(new URL(url).hostname) } catch { return false }
   }
-  const imageSrc = listing.previewPhoto || FALLBACK_IMG
+
+  // 1. Fetch latest image from gallery table if preview_photo is missing
+  useEffect(() => {
+  async function fetchFirstGalleryPhoto() {
+    // Skip if preview_photo exists or propertyId is missing
+    if (listing.preview_photo?.trim() || !listing.propertyId) return
+    
+    // Select the first uploaded image (created_at ascending)
+    const { data, error } = await supabase
+      .from('gallery')
+      .select('url')
+      .eq('property_id', listing.propertyId)
+      .order('created_at', { ascending: true }) // First uploaded photo
+      .limit(1)
+      .maybeSingle()
+
+    if (!error && data?.url) {
+      setGalleryPhotoUrl(data.url)
+    }
+  }
+
+  fetchFirstGalleryPhoto()
+}, [listing.propertyId, listing.preview_photo])
+
+  // 2. Derive image source prioritized: preview_photo -> latest gallery photo -> fallback
+  const imageSrc =
+    listing.preview_photo?.trim() ||
+    galleryPhotoUrl ||
+    FALLBACK_IMG
+
   const useNextImage = isOptimizable(imageSrc)
   const displayType = formatListingType(listing.type)
   const listingMode = listing.listingMode?.toLowerCase().includes('rent') ? 'For Rent'
     : listing.listingMode?.toLowerCase().includes('sale') ? 'For Sale'
     : null
 
-  // Show image once it's either in-view (lazy) or priority
   const showImage = priority || inView
-  
+
   function formatListingType(type?: string | null): string {
     const value = (type ?? '').trim().toLowerCase()
     if (!value) return ''
@@ -107,7 +136,6 @@ export default function ListingCard({ listing: initialListing, priority = false,
     const node = imageRef.current
     if (!node) return
 
-    // If already in viewport (e.g. above-the-fold featured cards), show immediately
     const rect = node.getBoundingClientRect()
     if (rect.top < window.innerHeight + 200) {
       setInView(true)
@@ -142,7 +170,6 @@ export default function ListingCard({ listing: initialListing, priority = false,
           className="flex items-stretch gap-0 rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5"
           style={{ background: 'var(--est-card)', border: '1px solid var(--est-border)' }}
         >
-          {/* Thumbnail */}
           <div
             ref={imageRef}
             className="relative flex-shrink-0 w-36 sm:w-48 overflow-hidden"
@@ -162,7 +189,7 @@ export default function ListingCard({ listing: initialListing, priority = false,
               useNextImage ? (
                 <Image
                   src={imageSrc}
-                  alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
+                  alt={`${listing.type || 'Property'} in ${listing.location || 'Location'}`}
                   fill
                   className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
                   loading={priority ? 'eager' : 'lazy'}
@@ -174,7 +201,7 @@ export default function ListingCard({ listing: initialListing, priority = false,
               ) : (
                 <img
                   src={imageSrc}
-                  alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
+                  alt={`${listing.type || 'Property'} in ${listing.location || 'Location'}`}
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                   loading={priority ? 'eager' : 'lazy'}
                   onLoad={() => setImageLoaded(true)}
@@ -200,7 +227,6 @@ export default function ListingCard({ listing: initialListing, priority = false,
             )}
           </div>
 
-          {/* Details */}
           <div className="flex flex-col justify-between flex-1 p-4 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-1">
               <p className="text-base font-bold leading-tight" style={{ color: listing.listingPrice ? 'var(--est-text)' : 'var(--est-muted)' }}>
@@ -261,7 +287,6 @@ export default function ListingCard({ listing: initialListing, priority = false,
           className="block rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5"
           style={{ background: 'var(--est-card)', border: '1px solid var(--est-border)' }}
         >
-          {/* Photo — shimmer only in image area, not over text */}
           <div ref={imageRef} className="relative h-52 overflow-hidden" style={{ background: 'var(--est-elevated)' }}>
             <div
               className="absolute inset-0 animate-pulse"
@@ -277,7 +302,7 @@ export default function ListingCard({ listing: initialListing, priority = false,
               useNextImage ? (
                 <Image
                   src={imageSrc}
-                  alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
+                  alt={`${listing.type || 'Property'} in ${listing.location || 'Location'}`}
                   fill
                   className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
                   loading={priority ? 'eager' : 'lazy'}
@@ -289,7 +314,7 @@ export default function ListingCard({ listing: initialListing, priority = false,
               ) : (
                 <img
                   src={imageSrc}
-                  alt={listing.previewPhoto ? `${listing.type} in ${listing.location}` : 'No photo available'}
+                  alt={`${listing.type || 'Property'} in ${listing.location || 'Location'}`}
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                   loading={priority ? 'eager' : 'lazy'}
                   onLoad={() => setImageLoaded(true)}
@@ -315,7 +340,6 @@ export default function ListingCard({ listing: initialListing, priority = false,
             )}
           </div>
 
-          {/* Card body — text renders immediately, no skeleton */}
           <div className="p-5">
             <div className="flex items-center gap-1.5 mb-2">
               <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--est-purple)' }} />
@@ -355,19 +379,19 @@ export default function ListingCard({ listing: initialListing, priority = false,
           </div>
         </Link>
       )}
-      <button
-          type="button"
-          onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              onEdit?.(listing)
-          }}
-          className="absolute top-3 left-3 z-30 rounded bg-blue-600 px-3 py-1 text-white"
-      >
-          Edit
-      </button>
 
-      {/* Map modal — outside the Link so it doesn't navigate */}
+      {/* <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          onEdit?.(listing)
+        }}
+        className="absolute top-3 left-3 z-30 rounded bg-blue-600 px-3 py-1 text-white"
+      >
+        Edit
+      </button> */}
+
       {showMap && listing.mapUrl && (
         <MapModal url={listing.mapUrl} onClose={() => setShowMap(false)} />
       )}

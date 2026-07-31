@@ -61,7 +61,7 @@ export function buildRealEstateListingJsonLd(listing: Property): Record<string, 
     name: `${listing.type} in ${listing.location}`,
     description: listing.notes,
     url: `https://realtyprov1.com/listings/${listing.displayId}`,
-    image: listing.previewPhoto ?? undefined,
+    image: listing.preview_photo ?? undefined,
     offers: {
       '@type': 'Offer',
       price: listing.listingPrice ?? undefined,

@@ -3,8 +3,8 @@
 export interface Property {
     id: number
     propertyId: number
-    displayId: string
-    userId: string
+    displayId: string | number
+    userId: string | number |null
     title?: string
     type?: string
     location?: string
@@ -17,31 +17,21 @@ export interface Property {
     googleMapsUrl?: string
     bedrooms?: number | null
     bathrooms?: number | null
-    garage?: number
     cgt?: string
     tenantId?: string
     negotiable?: boolean
     transferTitle?: boolean
-    previewPhoto?: string
+    preview_photo?: string
     photos?: string[]
-
     status?: string
-
     listingMode?: string
-    
     listingAgent?: string
-
     fbLink?: string
-
     videoUrl?: string | null
     facebookVideoUrl?: string | null
-
     tiktokVideoUrl?: string | null
-
     notes?: string
-
     description?: string
-
     featured?: boolean
 }
 

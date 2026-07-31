@@ -68,28 +68,34 @@ async function fetchListing(propertyId: number): Promise<Property | null> {
     if (error || !data) return null;
 
     const row = data;
+
+    // Check status
     const statusRaw = String(row.status ?? "").toLowerCase();
     if (statusRaw !== "active") return null;
-const extraPhotos = Array.isArray(row.photos) ? (row.photos as string[]) : [];
-    for (const p of extraPhotos) {
-      if (p && !row.photos.includes(p)) row.photos.push(p);
-    }
 
     const id = Number(row.property_id);
+
+    // 1. Get preview_photo string if present
+    const previewRaw = typeof row.preview_photo === "string" ? row.preview_photo.trim() : "";
+
+    // 2. Fetch gallery array from getPropertyGallery helper
     const gallery = await getPropertyGallery(id);
-  // const extraPhotos = Array.isArray(row.photos) ? (row.photos as string[]) : [];
-  const previewRaw = typeof row.preview_photo === "string" ? row.preview_photo.trim() : "";
 
-  const rawPhotoList = [
-    ...(previewRaw ? [previewRaw] : []),
-    ...gallery,
-    ...extraPhotos,
-  ].filter(Boolean);
+    // 3. Extract extra photos array safely if stored in row.photos JSON column
+    const extraPhotos = Array.isArray(row.photos)
+      ? (row.photos as string[]).map((p) => (typeof p === "string" ? p.trim() : "")).filter(Boolean)
+      : [];
 
-  // Deduplicate after assembling all potential sources
-  const uniquePhotos = Array.from(new Set(rawPhotoList));
+    // 4. Assemble photo sources in priority order: Preview -> Gallery -> Extra Photos
+    const rawPhotoList = [
+      ...(previewRaw ? [previewRaw] : []),
+      ...(Array.isArray(gallery) ? gallery : []),
+      ...extraPhotos,
+    ].filter(Boolean);
 
-    
+    // 5. Deduplicate while preserving order
+    const uniquePhotos = Array.from(new Set(rawPhotoList));
+
     return {
       id: row.id,
       propertyId: id,
@@ -108,7 +114,7 @@ const extraPhotos = Array.isArray(row.photos) ? (row.photos as string[]) : [];
       notes: String(row.notes ?? ""),
       bedrooms: parseNum(row.bedroom),
       bathrooms: parseNum(row.bathroom),
-      previewPhoto: uniquePhotos[0] ?? null,
+      preview_photo: uniquePhotos[0] ?? null,
       photos: uniquePhotos,
       status: String(row.status ?? ""),
       mapUrl:
@@ -130,7 +136,8 @@ const extraPhotos = Array.isArray(row.photos) ? (row.photos as string[]) : [];
           ? row.tiktok_video_url.trim()
           : null,
     };
-  } catch {
+  } catch (err) {
+    console.error(`Error fetching listing #${propertyId}:`, err);
     return null;
   }
 }
@@ -166,7 +173,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      images: listing.previewPhoto ? [{ url: listing.previewPhoto }] : [],
+      images: listing.preview_photo ? [{ url: listing.preview_photo }] : [],
       url: canonicalUrl,
       type: "website",
     },
@@ -174,7 +181,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: "summary_large_image",
       title,
       description,
-      images: listing.previewPhoto ? [listing.previewPhoto] : [],
+      images: listing.preview_photo ? [listing.preview_photo] : [],
     },
     alternates: { canonical: canonicalUrl },
   };

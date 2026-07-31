@@ -45,7 +45,7 @@ function detectDuplicates(rows: any[]): DuplicateGroup[] {
 
   const byPriceLot = new Map<string, any[]>()
   for (const r of rows) {
-    const price = numVal(r['Listing_Price']); const lot = numVal(r['Lot_Area_sqm'])
+    const price = numVal(r['listing_price']); const lot = numVal(r['lot_area_sqm'])
     if (!price || !lot) continue
     const key = `${price}|${lot}`
     if (!byPriceLot.has(key)) byPriceLot.set(key, [])
@@ -59,7 +59,7 @@ function detectDuplicates(rows: any[]): DuplicateGroup[] {
 
   const byAll = new Map<string, any[]>()
   for (const r of rows) {
-    const price = numVal(r['Listing_Price']); const lot = numVal(r['Lot_Area_sqm']); const floor = numVal(r['Floor_Area_sqm'])
+    const price = numVal(r['listing_price']); const lot = numVal(r['lot_area_sqm']); const floor = numVal(r['floor_area_sqm'])
     if (!price || !lot || !floor) continue
     const key = `${price}|${lot}|${floor}`
     if (!byAll.has(key)) byAll.set(key, [])
@@ -137,9 +137,9 @@ function GroupRow({ group, selected, onToggle, onToggleAll, onEdit, onDeleteOne 
           {group.properties.map((p) => {
             const rawId = Number(p['property_id'])
             const displayId = rawId > 2 ? rawId - 1 : rawId
-            const location = [p['Village'], p['Location']].filter(Boolean).join(', ') || '—'
-            const lot = numVal(p['Lot_Area_sqm'])
-            const floor = numVal(p['Floor_Area_sqm'])
+            const location = [p['village'], p['location']].filter(Boolean).join(', ') || '—'
+            const lot = numVal(p['lot_area_sqm'])
+            const floor = numVal(p['floor_area_sqm'])
             const img = p['preview_photo']
             const isSelected = selected.has(p['$id'])
 

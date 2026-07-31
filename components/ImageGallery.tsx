@@ -2,19 +2,21 @@
 
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import Lightbox from './LightBox'
+import { ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react'
+import Lightbox from './LightBox' // Adjust path if needed (e.g. ./FullscreenImage or ./LightBox)
 
 interface ImageGalleryProps {
   photos: string[]
   alt: string
+  onFullscreen?: (index: number) => void
 }
 
 export default function ImageGallery({
   photos = [],
   alt,
+  onFullscreen,
 }: ImageGalleryProps) {
-  // 1. Filter out empty strings or undefined elements to prevent Next.js image preload errors
+  // 1. Filter out empty strings or invalid values
   const validPhotos = (photos || []).filter(
     (photo) => typeof photo === 'string' && photo.trim() !== ''
   )
@@ -30,34 +32,43 @@ export default function ImageGallery({
     setActiveIndex(0)
   }, [photos])
 
+  // Keyboard navigation support
   useEffect(() => {
-  if (validPhotos.length <= 1) return
+    if (validPhotos.length <= 1) return
 
-  const handleKey = (e: KeyboardEvent) => {
-    const target = e.target as HTMLElement
-    // Prevent gallery navigation when typing inside input fields
-    if (
-      target.tagName === 'INPUT' ||
-      target.tagName === 'TEXTAREA' ||
-      target.isContentEditable
-    ) {
-      return
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return
+      }
+
+      if (e.key === 'ArrowLeft') {
+        setActiveIndex((p) => (p - 1 + validPhotos.length) % validPhotos.length)
+      }
+
+      if (e.key === 'ArrowRight') {
+        setActiveIndex((p) => (p + 1) % validPhotos.length)
+      }
     }
 
-    if (e.key === 'ArrowLeft') {
-      setActiveIndex((p) => (p - 1 + validPhotos.length) % validPhotos.length)
-    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [validPhotos.length])
 
-    if (e.key === 'ArrowRight') {
-      setActiveIndex((p) => (p + 1) % validPhotos.length)
+  // Open Lightbox Trigger
+  const handleOpenLightbox = (indexToOpen: number) => {
+    setLightboxIndex(indexToOpen)
+    setLightboxOpen(true)
+    if (onFullscreen) {
+      onFullscreen(indexToOpen)
     }
   }
 
-  window.addEventListener('keydown', handleKey)
-  return () => window.removeEventListener('keydown', handleKey)
-}, [validPhotos.length])
-
-  // Return fallback block if no valid photos exist
+  // Fallback state if no valid photos are available
   if (validPhotos.length === 0) {
     return (
       <div
@@ -74,12 +85,8 @@ export default function ImageGallery({
           priority
           className="object-cover opacity-60"
         />
-
         <div className="absolute inset-0 flex items-end justify-center pb-4">
-          <span
-            className="text-sm"
-            style={{ color: 'var(--est-muted)' }}
-          >
+          <span className="text-sm" style={{ color: 'var(--est-muted)' }}>
             No photos available
           </span>
         </div>
@@ -87,89 +94,85 @@ export default function ImageGallery({
     )
   }
 
-  const previous = () =>
+  const previous = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setActiveIndex((p) => (p - 1 + validPhotos.length) % validPhotos.length)
+  }
 
-  const next = () =>
+  const next = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setActiveIndex((p) => (p + 1) % validPhotos.length)
+  }
 
   return (
     <>
-      <div className="flex flex-col gap-4">
-        {/* Main Image */}
-        <div className="relative w-full aspect-video rounded-2xl overflow-hidden">
-          <Image
-            src={currentPhoto}
-            alt={`${alt} ${activeIndex + 1}`}
-            fill
-            priority={activeIndex === 0}
-            className="object-cover cursor-zoom-in"
-            sizes="(max-width:768px)100vw,900px"
-            onClick={() => {
-              setLightboxIndex(activeIndex)
-              setLightboxOpen(true)
-            }}
-          />
-
-          {/* Counter */}
-          {validPhotos.length > 1 && (
-            <div
-              className="absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-semibold"
-              style={{
-                background: 'rgba(0,0,0,.65)',
-                color: '#fff',
-              }}
-            >
-              {activeIndex + 1} / {validPhotos.length}
+      <div className="flex flex-col gap-4 w-full">
+        {/* Main Image Container (Clicking opens Lightbox) */}
+        <div
+          onClick={() => handleOpenLightbox(activeIndex)}
+          className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-100 cursor-pointer group"
+          suppressHydrationWarning
+        >
+          {currentPhoto ? (
+            <Image
+              src={currentPhoto}
+              alt={alt}
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              priority
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+              No image available
             </div>
           )}
 
-          {/* Previous */}
-          {validPhotos.length > 1 && (
-            <button
-              onClick={previous}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center"
-              style={{
-                background: 'rgba(0,0,0,.55)',
-                color: '#fff',
-              }}
-            >
-              <ChevronLeft size={20} />
-            </button>
-          )}
+          {/* Hover Overlay with Fullscreen Indicator */}
+          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <span className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1.5">
+              <Maximize2 className="w-3.5 h-3.5" /> Click to view full screen
+            </span>
+          </div>
 
-          {/* Next */}
+          {/* Left / Right Carousel Controls on Main Image */}
           {validPhotos.length > 1 && (
-            <button
-              onClick={next}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center"
-              style={{
-                background: 'rgba(0,0,0,.55)',
-                color: '#fff',
-              }}
-            >
-              <ChevronRight size={20} />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={previous}
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 hover:bg-black/70 text-white transition-colors"
+                aria-label="Previous photo"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={next}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 hover:bg-black/70 text-white transition-colors"
+                aria-label="Next photo"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
           )}
         </div>
 
-        {/* Thumbnails */}
+        {/* Thumbnails Row */}
         {validPhotos.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-1">
+          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin">
             {validPhotos.map((photo, index) => (
               <button
                 key={`${photo}-${index}`}
-                onClick={() => {
-                  setActiveIndex(index)
-                  setLightboxIndex(index)
-                  setLightboxOpen(true)
-                }}
-                className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0"
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 transition-all hover:opacity-100"
                 style={{
                   border:
                     index === activeIndex
-                      ? '2px solid var(--est-purple)'
-                      : '2px solid var(--est-border)',
+                      ? '2px solid var(--est-purple, #9333ea)'
+                      : '2px solid var(--est-border, #e5e7eb)',
+                  opacity: index === activeIndex ? 1 : 0.7,
                 }}
               >
                 <Image
@@ -185,7 +188,7 @@ export default function ImageGallery({
         )}
       </div>
 
-      {/* Fullscreen Lightbox placed outside loop */}
+      {/* Lightbox / Fullscreen Modal */}
       {lightboxOpen && (
         <Lightbox
           photos={validPhotos}

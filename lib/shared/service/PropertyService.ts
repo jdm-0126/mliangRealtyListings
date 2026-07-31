@@ -24,7 +24,7 @@ function toDatabase(property: Property) {
 
     listing_price: property.listingPrice,
 
-    preview_photo: property.previewPhoto,
+    preview_photo: property.preview_photo,
     photos: property.photos,
     fb_link: property.fbLink,
 
@@ -33,7 +33,6 @@ function toDatabase(property: Property) {
 
     bedroom: property.bedrooms,
     bathroom: property.bathrooms,
-    garage: property.garage,
 
     lot_area_sqm: property.lotArea,
     floor_area_sqm: property.floorArea,
@@ -74,7 +73,7 @@ export function fromDatabase(row: any): Property {
 
     listingPrice: row.listing_price,
 
-    previewPhoto: row.preview_photo,
+    preview_photo: row.preview_photo,
     photos: row.photos,
     fbLink: row.fb_link,
 
@@ -83,7 +82,6 @@ export function fromDatabase(row: any): Property {
 
     bedrooms: row.bedroom,
     bathrooms: row.bathroom,
-    garage: row.garage,
 
     lotArea: row.lot_area_sqm,
     floorArea: row.floor_area_sqm,
@@ -162,7 +160,7 @@ export function listingToProperty(
         bedrooms: listing.bedrooms,
         bathrooms: listing.bathrooms,
 
-        previewPhoto: listing.previewPhoto,
+        preview_photo: listing.preview_photo,
         photos: listing.photos,
 
         notes: listing.notes,

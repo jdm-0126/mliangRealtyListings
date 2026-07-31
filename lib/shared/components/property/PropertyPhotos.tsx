@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { Upload, X } from 'lucide-react'
-
+import Image from "next/image";
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { uploadPropertyImage } from "@/lib/cloudinary/uploadToCloudinary";
 
 import { Property } from '@/lib/shared/types/public'
 
@@ -18,7 +19,8 @@ export default function PropertyPhotos({
   onChange,
 }: PropertyPhotosProps) {
   const [uploading, setUploading] = useState(false)
-
+  const [preview, setPreview] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   function update<K extends keyof Property>(
     key: K,
     value: Property[K]
@@ -29,24 +31,30 @@ export default function PropertyPhotos({
     })
   }
 
+  
+
   async function onFileSelect(file: File) {
-    setUploading(true)
+  setUploading(true)
 
-    try {
-      // TODO:
-      // Upload to Cloudinary here.
-      // Replace this temporary preview with the uploaded URL.
+  try {
+    // Pass existing ID or fallback placeholder if property isn't created yet
+    const propertyId = property.id ?? 'temp'
+    
+    // Upload directly to Cloudinary
+    const imageUrl = await uploadPropertyImage(file, propertyId)
 
-      const localPreview = URL.createObjectURL(file)
-
-      update('previewPhoto', localPreview as Property['previewPhoto'])
-    } finally {
-      setUploading(false)
-    }
+    // Save permanent Cloudinary URL to state
+    update('preview_photo', imageUrl)
+  } catch (error) {
+    console.error('Failed to upload photo:', error)
+    // Optional: show toast notification to user here
+  } finally {
+    setUploading(false)
   }
+}
 
   function removeImage() {
-    update('previewPhoto', '' as Property['previewPhoto'])
+    update('preview_photo', undefined as Property['preview_photo'])
   }
 
   return (
@@ -61,13 +69,22 @@ export default function PropertyPhotos({
           Image shown in property cards.
         </p>
 
-        {property.previewPhoto ? (
+        {property.preview_photo ? (
           <div className="space-y-3">
-            <img
-              src={property.previewPhoto}
-              alt=""
-              className="w-full max-h-80 rounded-lg border object-cover"
-            />
+            <div className="relative w-full h-80">
+              <Image
+                src={
+                  preview ??
+                  property.preview_photo ??
+                  "/images/no-image.jpg"
+                }
+                alt="Preview"
+                fill
+                loading="eager"
+                priority
+                className="object-cover"
+              />
+            </div>
 
             <div className="flex gap-2">
               <input
@@ -137,9 +154,9 @@ export default function PropertyPhotos({
 
             <Input
               placeholder="https://..."
-              value={property.previewPhoto ?? ''}
+              value={property.preview_photo ?? ''}
               onChange={(e) =>
-                update('previewPhoto', e.target.value as Property['previewPhoto'])
+                update('preview_photo', e.target.value as Property['preview_photo'])
               }
             />
           </div>
@@ -147,18 +164,18 @@ export default function PropertyPhotos({
       </section>
 
       {/* Google Photos */}
-      <section className="space-y-2">
+      {/* <section className="space-y-2">
         <label className="font-medium">
           Google Photos Album
         </label>
 
         <Input
-          value={property.previewPhoto ?? ''}
+          value={property.googlePhotosUrl ?? ''}
           onChange={(e) =>
-            update('previewPhoto', e.target.value as Property['previewPhoto'])
+            update('googlePhotosUrl', e.target.value as Property['googlePhotosUrl'])
           }
         />
-      </section>
+      </section> */}
 
       {/* Facebook Listing */}
       <section className="space-y-2">

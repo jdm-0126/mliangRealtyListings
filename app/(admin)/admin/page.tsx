@@ -267,7 +267,7 @@ export default function AdminDashboard() {
             {activeQuery && queryResults.length > 0 && (
               <div className="mt-4 border-t border-gray-100 pt-4">
                 <p className="text-xs text-gray-500 mb-3 font-medium">
-                  Matching properties — <Link href="/admin/properties" className="text-blue-600 hover:underline">view all in Properties</Link>
+                  Matching properties — <Link href="/properties" className="text-blue-600 hover:underline">view all in Properties</Link>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {queryResults.map((p: any) => {
@@ -278,7 +278,10 @@ export default function AdminDashboard() {
                         className="flex items-start gap-3 border border-gray-100 rounded-lg p-3 hover:border-blue-300 hover:bg-blue-50 transition-colors">
                         {p['preview_photo'] ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p['preview_photo']} alt="" className="w-14 h-14 object-cover rounded flex-shrink-0" loading="lazy" decoding="async" />
+                          <img 
+                          src={p['preview_photo']} 
+                          alt="" className="w-14 h-14 object-cover rounded flex-shrink-0" 
+                          loading="eager" decoding="async" />
                         ) : (
                           <div className="w-14 h-14 bg-gray-100 rounded flex-shrink-0 flex items-center justify-center">
                             <Home className="w-5 h-5 text-gray-300" />
@@ -323,7 +326,7 @@ export default function AdminDashboard() {
                     className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition-colors">
                     {p['preview_photo'] ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p['preview_photo']} alt="" className="w-12 h-12 object-cover rounded-lg flex-shrink-0" loading="lazy" decoding="async" />
+                      <img src={p['preview_photo']} alt="" className="w-12 h-12 object-cover rounded-lg flex-shrink-0" loading="eager" decoding="async" />
                     ) : (
                       <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
                         <Home className="w-5 h-5 text-gray-300" />

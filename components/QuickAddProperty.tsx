@@ -72,20 +72,20 @@ function toDbRow(p: ParsedProperty, tenantId: string) {
   const listingMode = p.listingMode === 'For Rent' ? 'For Rent' : 'For Sale'
   return {
     tenant_id: tenantId,
-    Title: p.title || '',
-    Location: p.location || '',
-    'Listing Price': toNumber(p.price || '0'),
-    'Lot Area sqm': p.lotArea || '',
-    'Floor Area sqm': p.floorArea || '',
-    Bedroom: p.bedrooms || '',
-    Photos: p.photoUrl || '',
-    'FB Link': p.facebookUrl || '',
-    'Listing Mode': listingMode,
-    'Financing options': p.mop || 'Bank Financing',
-    Notes: listingMode === 'For Rent' ? `[FOR RENT]\n${p.description}` : p.description,
-    Type: p.type || 'Residential',
+    title: p.title || '',
+    location: p.location || '',
+    'listing_price': toNumber(p.price || '0'),
+    'lot_area_sqm': p.lotArea || '',
+    'floor_area_sqm': p.floorArea || '',
+    bedroom: p.bedrooms || '',
+    photos: p.photoUrl || '',
+    'fb_link': p.facebookUrl || '',
+    'listing_mode': listingMode,
+    'financing_options': p.mop || 'Bank Financing',
+    notes: listingMode === 'For Rent' ? `[FOR RENT]\n${p.description}` : p.description,
+    type: p.type || 'Residential',
     status: 'Active',
-    ...(listingMode !== 'For Rent' && { CGT: 'Seller', 'Transfer Title': 'Buyer' }),
+    ...(listingMode !== 'For Rent' && { cgt: 'Seller', 'transfer_title': 'Buyer' }),
   }
 }
 

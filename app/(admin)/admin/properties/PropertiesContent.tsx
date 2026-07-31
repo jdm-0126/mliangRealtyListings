@@ -1,5 +1,5 @@
-'use client'
 
+'use client'
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -24,38 +24,29 @@ import {
   X,
 } from 'lucide-react'
 import DuplicateDetector from '@/components/DuplicateDetector'
-
 const PAGE_SIZE = 24
-
 // Custom Debounce Hook: Waits `delay` ms after typing stops before returning updated value
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value)
-
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedValue(value)
     }, delay)
-
     return () => {
       clearTimeout(handler)
     }
   }, [value, delay])
-
   return debouncedValue
 }
-
 // Popular location shortcuts for fast predicted search
 const POPULAR_LOCATIONS = ['Quezon City', 'Makati', 'Taguig', 'Cebu', 'Pampanga', 'Davao']
-
 export default function PropertiesContent() {
   const searchParams = useSearchParams()
-
   // ── Data ──────────────────────────────────────────────────────────────────
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const [columns, setColumns] = useState<string[]>([])
-
   // ── Filters ───────────────────────────────────────────────────────────────
   const [searchText, setSearchText] = useState('')
   // Debounce search text by 500ms to prevent query spam
@@ -64,7 +55,6 @@ export default function PropertiesContent() {
   const [typeFilter, setTypeFilter] = useState('all')
   const [sortBy, setSortBy] = useState('newest')
   const [featuredFilter, setFeaturedFilter] = useState(false)
-
   // ── UI state ──────────────────────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -76,14 +66,12 @@ export default function PropertiesContent() {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const [showDuplicates, setShowDuplicates] = useState(false)
   const optionsMenuRef = useRef<HTMLDivElement>(null)
-
   // ── Init from URL params ──────────────────────────────────────────────────
   useEffect(() => {
     const type = searchParams.get('type')
     const status = searchParams.get('status')
     const featured = searchParams.get('featured')
     const location = searchParams.get('location')
-
     if (type) {
       if (type.toLowerCase().includes('house')) setTypeFilter('residential')
       else if (type.toLowerCase().includes('lot')) setTypeFilter('lot')
@@ -96,7 +84,6 @@ export default function PropertiesContent() {
     }
     if (location) setSearchText(location)
   }, [searchParams])
-
   useEffect(() => {
     try {
       const role = sessionStorage.getItem('viewAsRole') ?? ''
@@ -105,7 +92,6 @@ export default function PropertiesContent() {
       /* ignore */
     }
   }, [])
-
   // Close options menu on outside click
   useEffect(() => {
     if (!showOptionsMenu) return
@@ -117,16 +103,13 @@ export default function PropertiesContent() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showOptionsMenu])
-
   // ── Fetch — server-side pagination + filter ───────────────────────────────
   const fetchData = useCallback(async () => {
     setLoading(true)
-
     try {
       let query = supabase
         .from('listings')
         .select('*', { count: 'exact' })
-
       // Handle Sorting
       if (sortBy === 'price-high') {
         query = query.order('listing_price', { ascending: false, nullsFirst: false })
@@ -137,23 +120,19 @@ export default function PropertiesContent() {
       } else {
         query = query.order('property_id', { ascending: false })
       }
-
       // Handle Status Filter
       if (statusFilter !== 'all') {
         query = query.ilike('status', statusFilter)
       }
-
       // Handle Featured Filter
       if (featuredFilter) {
         query = query.eq('featured', true)
       }
-
       // Safe Debounced Search Filter (PostgREST parser friendly)
       const search = debouncedSearch.trim()
       if (search) {
         const num = Number(search)
         const isNum = !isNaN(num) && search.length > 0
-
         if (isNum) {
           // If searching a number, query exact match on numeric IDs/areas or string match on location
           query = query.or(
@@ -164,19 +143,14 @@ export default function PropertiesContent() {
           query = query.ilike('location', `%${search}%`)
         }
       }
-
       const { data, error, count } = await query.range(
         (currentPage - 1) * PAGE_SIZE,
         currentPage * PAGE_SIZE - 1
       )
-
       if (error) throw error
-
       const rows = data ?? []
-
       setData(rows)
       setTotalCount(count ?? 0)
-
       if (rows.length && !columns.length) {
         setColumns(Object.keys(rows[0]))
       }
@@ -189,7 +163,6 @@ export default function PropertiesContent() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
-
   // Reset to page 1 when filters change
   const prevFilters = useRef({ statusFilter, featuredFilter, debouncedSearch, sortBy })
   useEffect(() => {
@@ -204,7 +177,6 @@ export default function PropertiesContent() {
       prevFilters.current = { statusFilter, featuredFilter, debouncedSearch, sortBy }
     }
   }, [statusFilter, featuredFilter, debouncedSearch, sortBy])
-
   // ── Client-side type filter ───────────────────────────────────────
   const displayData = React.useMemo(() => {
     let rows = [...data]
@@ -215,24 +187,19 @@ export default function PropertiesContent() {
     }
     return rows
   }, [data, typeFilter])
-
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleDelete = async (property: any) => {
     if (!confirm(`Delete Property #${property.property_id}? This cannot be undone.`)) {
       return
     }
-
     try {
       const { error } = await supabase.from('listings').delete().eq('id', property.id)
-
       if (error) throw error
-
       fetchData()
     } catch (e: any) {
       alert('Error deleting property: ' + (e.message ?? String(e)))
     }
   }
-
   async function handleEditToggle() {
     const turningOff = showEditControls
     setShowEditControls((v) => !v)
@@ -248,7 +215,6 @@ export default function PropertiesContent() {
       }
     }
   }
-
   // ── Skeleton cards for loading state ─────────────────────────────────────
   const SkeletonCard = () => (
     <div
@@ -264,10 +230,8 @@ export default function PropertiesContent() {
       </div>
     </div>
   )
-
   const start = (currentPage - 1) * PAGE_SIZE + 1
   const end = Math.min(currentPage * PAGE_SIZE, totalCount)
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -356,7 +320,6 @@ export default function PropertiesContent() {
             </div>
           </div>
         </div>
-
         {/* ── Filter card ───────────────────────────────────────────────── */}
         <Card className="mb-6">
           <CardContent className="p-4">
@@ -379,7 +342,6 @@ export default function PropertiesContent() {
                 )}
               </div>
             </div>
-
             {/* Popular/Suggested Locations Row */}
             <div className="flex items-center gap-2 flex-wrap mb-3 text-xs text-gray-500">
               <span className="flex items-center gap-1 font-medium text-gray-700">
@@ -399,7 +361,6 @@ export default function PropertiesContent() {
                 </button>
               ))}
             </div>
-
             {showFilters && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                 <div>
@@ -463,7 +424,6 @@ export default function PropertiesContent() {
                 </div>
               </div>
             )}
-
             <div className="flex items-center justify-between text-sm text-gray-500">
               <span>{loading ? 'Searching database...' : `${totalCount} total matching`}</span>
               <label className="flex items-center gap-2">
@@ -477,7 +437,6 @@ export default function PropertiesContent() {
             </div>
           </CardContent>
         </Card>
-
         {/* ── Top pagination ────────────────────────────────────────────── */}
         {totalCount > PAGE_SIZE && (
           <Pagination
@@ -487,7 +446,6 @@ export default function PropertiesContent() {
             onPageChange={setCurrentPage}
           />
         )}
-
         {/* ── Property grid / list ──────────────────────────────────────── */}
         <div
           className={`mt-6 mb-6 ${
@@ -516,7 +474,6 @@ export default function PropertiesContent() {
             ))
           )}
         </div>
-
         {/* ── Bottom pagination ─────────────────────────────────────────── */}
         {totalCount > PAGE_SIZE && (
           <Pagination
@@ -529,7 +486,6 @@ export default function PropertiesContent() {
             }}
           />
         )}
-
         {/* ── Dialogs ───────────────────────────────────────────────────── */}
         <PropertyDialog
           property={editingProperty}
@@ -545,7 +501,6 @@ export default function PropertiesContent() {
             fetchData()
           }}
         />
-
         {showQuickAdd && (
           <QuickAddProperty
             onClose={() => setShowQuickAdd(false)}
@@ -555,7 +510,6 @@ export default function PropertiesContent() {
             }}
           />
         )}
-
         {showDuplicates && (
           <DuplicateDetector
             onClose={() => setShowDuplicates(false)}

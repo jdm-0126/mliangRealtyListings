@@ -25,7 +25,7 @@ export interface PropertyFieldConfig {
   fullWidth?: boolean
 }
 export const HIDDEN_FIELDS = [
-  'id',
+  'ID',
   'property_id',
   'tenant_id',
   'user_id',
@@ -35,7 +35,7 @@ export const HIDDEN_FIELDS = [
 export const PROPERTY_FIELDS: Record<string, PropertyFieldConfig> = {
 
     title: {
-    key: 'Title',
+    key: 'title',
     label: 'Title',
     type: 'text',
   },
@@ -130,6 +130,13 @@ export const PROPERTY_FIELDS: Record<string, PropertyFieldConfig> = {
     label: 'Notes',
     type: 'textarea',
     section: 'Description',
+    fullWidth: true,
+    },
+    Photos: {
+    key: 'Photos',
+    label: 'Gallery Photos',
+    type: 'textarea',
+    section: 'Photos',
     fullWidth: true,
   }
 }

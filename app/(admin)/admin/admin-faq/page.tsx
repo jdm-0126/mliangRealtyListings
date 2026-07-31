@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import AdminFAQPanel from '../../../../components/AdminFAQPanel'
+// import AdminFAQPanel from '@/AdminFAQPanel'
 
 const SUPERADMIN_EMAIL = 'jn16h7@gmail.com'
 
@@ -20,7 +20,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
-      <AdminFAQPanel />
+      {/* <AdminFAQPanel /> */}
     </div>
   )
 }

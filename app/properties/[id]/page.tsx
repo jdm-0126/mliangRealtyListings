@@ -217,7 +217,7 @@
 //   const { hasPhotos, hasVideo } = useMemo(() => {
 //     if (!property) return { hasPhotos: false, hasVideo: false }
 //     return {
-//       hasPhotos: !!(property['preview_photo'] || property['Photos']?.length),
+//       hasPhotos: !!(property['previewPhoto'] || property['Photos']?.length),
 //       hasVideo: !!(property['Video_URL'] || property['Facebook_Video_URL'] || property['Tiktok_Video_URL']),
 //     }
 //   }, [property])
@@ -918,11 +918,11 @@
 //             <Card>
 //               <CardContent className="p-0">
 //                 <div className="relative w-full h-64 sm:h-80 bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg overflow-hidden group">
-//                   {property['preview_photo'] ? (
+//                   {property['previewPhoto'] ? (
 //                     // Show uploaded preview photo
 //                     <div className="relative w-full h-full">
 //                       <img 
-//                         src={property['preview_photo']} 
+//                         src={property['previewPhoto']} 
 //                         alt={`Property #${property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}`}
 //                         className="w-full h-full object-cover cursor-pointer"
 //                         onClick={() => setIsFullscreen(true)}
@@ -1124,7 +1124,7 @@
 //       </div>
       
 //       {/* Fullscreen Image Modal */}
-//       {isFullscreen && property['preview_photo'] && (
+//       {isFullscreen && property['previewPhoto'] && (
 //         <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setIsFullscreen(false)}>
 //           <button
 //             onClick={() => setIsFullscreen(false)}
@@ -1133,7 +1133,7 @@
 //             <X className="w-8 h-8" />
 //           </button>
 //           <img
-//             src={property['preview_photo']}
+//             src={property['previewPhoto']}
 //             alt={`Property #${property['property_id'] > 2 ? property['property_id'] - 1 : property['property_id']}`}
 //             className="max-w-full max-h-full object-contain"
 //             onClick={(e) => e.stopPropagation()}
@@ -1146,7 +1146,7 @@
 //         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
 //           <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4">
 //             <h4 className="text-lg font-medium text-center" style={{ color: '#000000' }}>
-//               {property['preview_photo'] ? 'Update Featured Preview Photo' : 'Add Featured Preview Photo'}
+//               {property['previewPhoto'] ? 'Update Featured Preview Photo' : 'Add Featured Preview Photo'}
 //             </h4>
             
 //             {/* Hidden file input */}

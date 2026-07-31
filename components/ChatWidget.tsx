@@ -175,7 +175,7 @@ export default function ChatWidget({ hidePropertySearch = false }: { hidePropert
         .from('listings')
         .select('*')
         .ilike('status', 'active')
-        .order('Property ID', { ascending: false })
+        .order('property_id', { ascending: false })
         .limit(200)
       if (!error) {
         setRealProperties(data || [])

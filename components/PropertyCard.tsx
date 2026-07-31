@@ -59,10 +59,10 @@ export default function PropertyCard({
   const editMode = !!(onEdit && onDelete)
 
   // Field names (Appwrite uses underscores)
-  const previewPhoto: string | null = property['preview_photo'] || null
-  const price = property.listing_price
-  const lotArea = property['lot_area']
-const floorArea = property['floor_area']
+const previewPhoto: string | null = property['preview_photo'] || null
+const price = property.listing_price
+const lotArea = property['lot_area_sqm']
+const floorArea = property['floor_area_sqm']
 const bedrooms = property['bedroom']
 const bathrooms = property['bathroom']
 
@@ -85,9 +85,9 @@ const description: string | null =
   property['description'] ||
   property['notes'] ||
   null
-  const rawId = Number(property['property_id'])
+  const rawId = Number(property['property_id']+1)
   const displayId = rawId > 2 ? rawId - 1 : rawId
-  const href = `/properties/${displayId}`
+  const href = `/admin/properties/${displayId}`
 
   const locationText = [village, location].filter(Boolean).join(', ')
   const displayType = formatListingType(type)
@@ -140,7 +140,7 @@ const description: string | null =
   const handlePhotoUpdate = async () => {
     if (!newPhotoUrl.trim()) return
     try {
-      // await databases.updateDocument(DATABASE_ID, COL_LISTINGS, property['$id'], { preview_photo: newPhotoUrl })
+      // await databases.updateDocument(DATABASE_ID, COL_LISTINGS, property['$id'], { previewPhoto: newPhotoUrl })
       property['preview_photo'] = newPhotoUrl
       setIsEditingPhoto(false)
       setNewPhotoUrl('')
@@ -149,55 +149,46 @@ const description: string | null =
     }
   }
 
-  const handlePropertyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []).filter(file => file.type.startsWith('image/'))
+  // Inside your admin upload handler (e.g. PropertyPhotos.tsx)
+const handlePropertyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).filter(f => f.type.startsWith('image/'))
     if (!files.length) return
 
-    setIsUploadingPropertyImages(true)
-    setUploadProgress(0)
-
     try {
-      const tenantId = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ?? '81b78be3-db0c-41f3-8f6f-e3989114eacf'
-      const folder = buildPropertyUploadFolder(rawId || property['property_id'])
-      const results = await uploadManyToCloudinary(files, folder, (done, total) => setUploadProgress(Math.round((done / total) * 100)))
+      const propertyId = property.property_id
+      const folder = `properties/${propertyId}`
 
-      await Promise.all(
-        results.map(async (result) => {
-          const { error } = await supabase
-            .from("listings") // Replace with your actual table name
-            .insert(
-              buildPropertyGalleryRecord({
-                tenantId,
-                propertyId: rawId || property.property_id,
-                title:
-                  property.Title ||
-                  property.Location ||
-                  `Property ${rawId || property.property_id}`,
-                secureUrl: result.secure_url,
-                publicId: result.public_id,
-                category: "property",
-                isFeatured: false,
-              })
-            );
+      // 1. Upload files to Cloudinary
+      const results = await uploadManyToCloudinary(files, folder)
 
-          if (error) throw error;
-        })
-      );
+      // 2. Prepare records for gallery table
+      const galleryRecords = results.map((result) => ({
+        property_id: propertyId,
+        cloudinary_secure_url: result.secure_url,
+        cloudinary_url: result.url,
+        created_at: new Date().toISOString(),
+      }))
 
-      const firstPreviewUrl = buildSharpenedCloudinaryUrl(results[0]?.secure_url ?? '')
-      if (firstPreviewUrl) {
-        setNewPhotoUrl(firstPreviewUrl)
-        setIsEditingPhoto(true)
+      // 3. Insert into gallery table
+      const { error: galleryError } = await supabase
+        .from('gallery')
+        .insert(galleryRecords)
+
+      if (galleryError) throw galleryError
+
+      // 4. If listing has no preview photo yet, set it to the first uploaded photo
+      const firstUploadedUrl = results[0]?.secure_url
+
+      if (firstUploadedUrl && !property.preview_photo) {
+        await supabase
+          .from('listings')
+          .update({ preview_photo: firstUploadedUrl })
+          .eq('property_id', propertyId)
       }
 
-      alert(`Uploaded ${results.length} image${results.length === 1 ? '' : 's'} for this property.`)
-      setUploadProgress(100)
-    } catch (e: any) {
-      alert('Error uploading images: ' + (e?.message ?? String(e)))
-    } finally {
-      setIsUploadingPropertyImages(false)
-      setUploadProgress(0)
-      e.target.value = ''
+      alert('Photos uploaded successfully!')
+    } catch (err: any) {
+      console.error('Upload error:', err)
     }
   }
 
@@ -229,6 +220,7 @@ const description: string | null =
             src={imageSrc}
             alt={previewPhoto ? `${type} in ${location}` : 'No photo available'}
             fill
+            fetchPriority="high"
             className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
             loading="lazy"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -239,6 +231,7 @@ const description: string | null =
           <img
             src={imageSrc}
             alt={previewPhoto ? `${type} in ${location}` : 'No photo available'}
+            fetchPriority="high"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
             loading="lazy"
             onLoad={() => setImageLoaded(true)}

@@ -302,7 +302,6 @@ export default function PropertyField({
     'floorArea',
     'bedrooms',
     'bathrooms',
-    'garage',
   ].includes(config.key)
 ) {
     const number = Number(value ?? 0)

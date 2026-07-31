@@ -11,7 +11,7 @@ import {
   Upload, Trash2, Star, StarOff, ImageIcon, X, CheckCircle2, Loader2, Link2,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/browserTenantClient'
-
+import { Property } from "@/lib/shared/types/public"
 const TENANT_ID = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ?? '81b78be3-db0c-41f3-8f6f-e3989114eacf'
 
 type GalleryCategory = 'property' | 'event' | 'general'
@@ -29,12 +29,6 @@ interface GalleryItem {
   display_order: number
   listing_id: number | null
   created_at: string
-}
-
-interface Listing {
-  id: number
-  location: string
-  title: string
 }
 
 const CATEGORY_LABELS: Record<GalleryCategory, string> = {
@@ -55,52 +49,52 @@ function ListingPickerModal({
   onSelect,
   onClose,
 }: {
-  onSelect: (listing: Listing) => void
+  onSelect: (listing: Property) => void
   onClose: () => void
 }) {
   const [search, setSearch] = useState('')
-  const [listings, setListings] = useState<Listing[]>([])
+  const [listings, setListings] = useState<Property[]>([])
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const run = async () => {
-      setLoading(true)
-      try {
-        const { data, error } = await supabase
-          .from("listings")
-          .select("*")
-          .order("property_id", { ascending: false })
-          .limit(500)
+  // useEffect(() => {
+  //   const run = async () => {
+  //     setLoading(true)
+  //     try {
+  //       const { data, error } = await supabase
+  //         .from("listings")
+  //         .select("*")
+  //         .order("id", { ascending: false }) // Changed property_id to id
+  //         .limit(500)
 
-        if (error) throw error
+  //       if (error) throw error
 
-        const filtered: Listing[] = (data ?? [])
-          .filter((d) => matchesLocationSearch(d, search))
-          .map((d) => {
-            const rawId = d.property_id
-            const id =
-              typeof rawId === "number"
-                ? rawId
-                : typeof rawId === "string" && rawId.trim() !== ""
-                ? Number(rawId)
-                : 0
+        // const filtered: Property[]= (data ?? [])
+        //   .filter((d) => matchesLocationSearch(d, search))
+        //   .map((d) => {
+        //     const rawId = d.id ?? d.property_id
+        //     const id =
+        //       typeof rawId === "number"
+        //         ? rawId
+        //         : typeof rawId === "string" && rawId.trim() !== ""
+        //         ? Number(rawId)
+        //         : 0
 
-            return {
-              id: Number.isFinite(id) ? id : 0,
-              location: String(d.Location ?? ""),
-              title: String(d.Title ?? ""),
-            }
-          })
+        //     return {
+        //       id: Number.isFinite(id) ? id : 0,
+        //       location: String(d.Location ?? d.location ?? ""),
+        //       title: String(d.Title ?? d.title ?? ""),
+        //     }
+        //   })
 
-        setListings(filtered)
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-    run()
-  }, [search])
+      //   setListings(filtered)
+      // } catch (e) {
+      //   console.error(e)
+      // } finally {
+      //   setLoading(false)
+      // }
+  //   }
+  //   run()
+  // }, [search])
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
@@ -154,7 +148,7 @@ export default function GalleryPage() {
   const [urlInput, setUrlInput] = useState('')
   const [uploadCategory, setUploadCategory] = useState<GalleryCategory>('general')
   const [uploadTitle, setUploadTitle] = useState('')
-  const [uploadListing, setUploadListing] = useState<Listing | null>(null)
+  const [uploadListing, setUploadListing] = useState<Property | null>(null)
   const [showListingPicker, setShowListingPicker] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -225,133 +219,138 @@ export default function GalleryPage() {
   }
 
   // ── Handle Single URL Save ──────────────────────────────────────────────────
-const handleUrlSave = async () => {
-  const url = urlInput.trim()
-  if (!url || !url.startsWith('http')) { alert('Enter a valid Cloudinary URL'); return }
-  setUploading(true)
-  try {
-    const secureUrl = url.replace('http://', 'https://')
-    const publicId = extractPublicId(url)
-    
-    const targetListingId = uploadCategory === 'property' && uploadListing ? uploadListing.id : null
+  const handleUrlSave = async () => {
+    const url = urlInput.trim()
+    if (!url || !url.startsWith('http')) { alert('Enter a valid Cloudinary URL'); return }
+    setUploading(true)
+    try {
+      const secureUrl = url.replace('http://', 'https://')
+      const publicId = extractPublicId(url)
+      
+      const targetListingId = uploadCategory === 'property' && uploadListing ? uploadListing.id : null
 
-    // 1. Insert ONLY gallery-related fields into 'gallery'
-    const { error: galleryError } = await supabase.from("gallery").insert({
-      tenant_id: TENANT_ID,
-      category: uploadCategory,
-      title: uploadTitle || null,
-      cloudinary_public_id: publicId,
-      cloudinary_url: secureUrl,
-      cloudinary_secure_url: secureUrl,
-      listing_id: targetListingId,
-      is_featured: uploadCategory === 'event',
-    })
-    if (galleryError) throw galleryError
-
-    // 2. Update ONLY preview_photo on 'listings' (if property category)
-    if (uploadCategory === 'property' && targetListingId) {
-      const { error: listingError } = await supabase
-        .from("listings")
-        .update({ preview_photo: secureUrl }) // strictly ONLY preview_photo
-        .eq("property_id", targetListingId)
-
-      if (listingError) throw listingError
-    }
-
-    setUploadDone(true)
-    setUrlInput('')
-    setUploadTitle('')
-    setUploadListing(null)
-    fetchItems()
-  } catch (err: any) {
-    alert('Failed: ' + (err?.message ?? String(err)))
-  } finally {
-    setUploading(false)
-  }
-}
-
-// ── Handle Multiple File Upload ─────────────────────────────────────────────
-const handleUpload = async () => {
-  if (uploadFiles.length === 0) return
-  setUploading(true)
-  setUploadProgress(0)
-  try {
-    const folder = `GalleryMliang/${uploadCategory}`
-    const results = await uploadManyToCloudinary(
-      uploadFiles,
-      folder,
-      (done, total) => setUploadProgress(Math.round((done / total) * 100))
-    )
-
-    const targetListingId = uploadCategory === 'property' && uploadListing ? uploadListing.id : null
-
-    // 1. Insert each photo into 'gallery'
-    for (const r of results) {
-      const { error } = await supabase
+      // 1. Insert into GALLERY
+      const { error: galleryError } = await supabase
         .from("gallery")
         .insert({
-          tenant_id: TENANT_ID,
           category: uploadCategory,
-          title: uploadTitle || null,
-          cloudinary_public_id: r.public_id,
-          cloudinary_url: r.url,
-          cloudinary_secure_url: r.secure_url,
-          width: r.width,
-          height: r.height,
-          format: r.format,
-          bytes: r.bytes,
+          cloudinary_public_id: publicId,
+          cloudinary_secure_url: secureUrl,
           listing_id: targetListingId,
-          is_featured: uploadCategory === 'event',
-        })
-      if (error) throw error
+        });
+
+      if (galleryError) throw galleryError;
+
+      // 2. Update LISTINGS (preview_photo)
+      if (uploadCategory === "property" && targetListingId) {
+        const { error: listingError } = await supabase
+          .from("listings")
+          .update({ 
+            preview_photo: secureUrl 
+          })
+          .eq("property_id", targetListingId); // ✅ Changed property_id -> id
+
+        if (listingError) throw listingError;
+      }
+
+      setUploadDone(true)
+      setUrlInput('')
+      setUploadTitle('')
+      setUploadListing(null)
+      fetchItems()
+    } catch (err: any) {
+      alert('Failed: ' + (err?.message ?? String(err)))
+    } finally {
+      setUploading(false)
     }
-
-    // 2. Update ONLY preview_photo on 'listings' using the first photo URL
-    if (uploadCategory === "property" && targetListingId && results.length > 0) {
-      const { error } = await supabase
-        .from("listings")
-        .update({ preview_photo: results[0].secure_url }) // strictly ONLY preview_photo
-        .eq("property_id", targetListingId)
-
-      if (error) throw error
-    }
-
-    setUploadDone(true)
-    setUploadFiles([])
-    setUploadTitle('')
-    setUploadListing(null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
-    fetchItems()
-  } catch (err: any) {
-    alert('Upload failed: ' + (err?.message ?? String(err)))
-  } finally {
-    setUploading(false)
   }
-}
 
-  const handleAssign = async (item: GalleryItem, listing: Listing) => {
-    const { error: galleryError } = await supabase
-      .from("gallery")
-      .update({ listing_id: listing.id })
-      .eq("id", item.id)
-
-    if (galleryError) throw galleryError
-
-    const { error: listingError } = await supabase
-      .from("listings")
-      .update({ preview_photo: item.cloudinary_secure_url })
-      .eq("property_id", listing.id)
-
-    if (listingError) throw listingError
-
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === item.id ? { ...i, listing_id: listing.id } : i
+  // ── Handle Multiple File Upload ─────────────────────────────────────────────
+  const handleUpload = async () => {
+    if (uploadFiles.length === 0) return
+    setUploading(true)
+    setUploadProgress(0)
+    try {
+      const folder = `GalleryMliang/${uploadCategory}`
+      const results = await uploadManyToCloudinary(
+        uploadFiles,
+        folder,
+        (done, total) => setUploadProgress(Math.round((done / total) * 100))
       )
-    )
 
-    setAssigningItem(null)
-    alert(`Photo assigned to Property #${listing.id} — ${listing.location}`)
+      const targetListingId = uploadCategory === 'property' && uploadListing ? uploadListing.id : null
+
+      // 1. Insert each photo into 'gallery'
+      for (const r of results) {
+        const { error } = await supabase
+          .from("gallery")
+          .insert({
+            tenant_id: TENANT_ID,
+            category: uploadCategory,
+            title: uploadTitle || null,
+            cloudinary_public_id: r.public_id,
+            cloudinary_url: r.url,
+            cloudinary_secure_url: r.secure_url,
+            width: r.width,
+            height: r.height,
+            format: r.format,
+            bytes: r.bytes,
+            listing_id: targetListingId,
+            is_featured: uploadCategory === 'event',
+          })
+        if (error) throw error
+      }
+
+      // 2. Update ONLY preview_photo on 'listings' using the first photo URL
+      if (uploadCategory === "property" && targetListingId && results.length > 0) {
+        const { error } = await supabase
+          .from("listings")
+          .update({ preview_photo: results[0].secure_url })
+          .eq("id", targetListingId) // ✅ Changed property_id -> id
+
+        if (error) throw error
+      }
+
+      setUploadDone(true)
+      setUploadFiles([])
+      setUploadTitle('')
+      setUploadListing(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      fetchItems()
+    } catch (err: any) {
+      alert('Upload failed: ' + (err?.message ?? String(err)))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleAssign = async (item: GalleryItem, listing: Property) => {
+    try {
+      const { error: galleryError } = await supabase
+        .from("gallery")
+        .update({ listing_id: listing.id })
+        .eq("id", item.id)
+
+      if (galleryError) throw galleryError
+
+      const { error: listingError } = await supabase
+        .from("listings")
+        .update({ preview_photo: item.cloudinary_secure_url })
+        .eq("property_id", listing.id) // ✅ Changed property_id -> id
+
+      if (listingError) throw listingError
+
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? { ...i, listing_id: listing.id } : i
+        )
+      )
+
+      setAssigningItem(null)
+      alert(`Photo assigned to Property #${listing.id} — ${listing.location}`)
+    } catch (err: any) {
+      alert('Assigning failed: ' + (err?.message ?? String(err)))
+    }
   }
 
   const toggleFeatured = async (item: GalleryItem) => {

@@ -4,6 +4,7 @@ import Image from "next/image";
 interface FullscreenImageProps {
     open: boolean;
     imageUrl?: string;
+    images?: string[];
     alt: string;
     onClose: () => void;
 }
@@ -11,7 +12,8 @@ interface FullscreenImageProps {
 export function FullscreenImage({
   open,
   imageUrl,
-  alt = "Property Image",
+  images = [],
+  alt,
   onClose,
 }: FullscreenImageProps) {
   if (!open || !imageUrl) return null;

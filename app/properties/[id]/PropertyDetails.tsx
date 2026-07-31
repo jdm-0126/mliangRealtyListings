@@ -19,7 +19,7 @@ import { useFinancing } from "./hooks/useFinancing";
 import { useFacebookPost } from "./hooks/useFacebookPost";
 
 interface PropertyDetailsProps {
-  property: any
+  property: any;
 }
 
 export default function PropertyDetails({ property }: PropertyDetailsProps) {
@@ -28,16 +28,29 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
   const [showProcesses, setShowProcesses] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
-  const [propertyLoading, usePropertyLoading] = useState(false);
+  const [propertyLoading, setPropertyLoading] = useState(false);
   const customPrice = undefined;
 
   // 1. Fetch Property & Tenant Data
   const { tenantSettings, loading: tenantLoading } = useTenantSettings();
 
-  // 2. Custom Hooks initialized with property data
+  // 2. Consolidate Preview Photo + Gallery/Cloudinary Photos into an array
+  const rawPhotos: string[] = [
+    property?.preview_photo,
+    ...(Array.isArray(property?.Photos) ? property.Photos : []),
+    ...(Array.isArray(property?.valid_photos) ? property.valid_photos : []),
+    ...(Array.isArray(property?.gallery) ? property.gallery : []),
+  ];
+
+  // Remove duplicates and filter out empty strings/nulls
+  const allPhotos: string[] = Array.from(
+    new Set(rawPhotos.filter((url): url is string => Boolean(url && typeof url === "string" && url.trim())))
+  );
+
+  // 3. Custom Hooks initialized with property data
   const { fbPostPreview, copyToClipboard } = useFacebookPost({
     property,
-    hasPhotos: (property?.Photos?.length ?? 0) > 0,
+    hasPhotos: allPhotos.length > 0,
     hasVideo: !!property?.Video_URL,
   });
 
@@ -66,7 +79,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
     );
   }
 
-  if (!property ) {
+  if (!property) {
     return (
       <div className="p-8 text-center text-muted-foreground">
         Property not found.
@@ -76,8 +89,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
 
   return (
     <>
-      <PropertyHeader property={property} 
-      tenantSettings={tenantSettings}/>
+      <PropertyHeader property={property} tenantSettings={tenantSettings} />
 
       <ActionButtons
         property={property}
@@ -89,8 +101,10 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
+          {/* Pass the consolidated allPhotos array to PropertyImage */}
           <PropertyImage
             property={property}
+            photos={allPhotos}
             onFullscreen={() => setIsFullscreen(true)}
           />
 
@@ -135,9 +149,11 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
         }}
       />
 
+      {/* Supports single image or full gallery photos in fullscreen */}
       <FullscreenImage
         open={isFullscreen}
-        imageUrl={property.preview_photo}
+        images={allPhotos}
+        imageUrl={allPhotos[0] || property.preview_photo}
         alt={`Property #${
           property.property_id > 2
             ? property.property_id - 1

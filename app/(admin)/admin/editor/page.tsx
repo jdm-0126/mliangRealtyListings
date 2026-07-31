@@ -44,26 +44,39 @@ export default function Editor() {
     const watermarkImg = new Image()
 
     watermarkImg.onload = () => {
+      
       img.onload = () => {
         canvas.width = img.width
         canvas.height = img.height
         
         ctx.drawImage(img, 0, 0)
-        
+        URL.revokeObjectURL(imageUrl)
         // Add watermark at current position
         const maxWatermarkWidth = img.width * 0.2
         const scale = maxWatermarkWidth / watermarkImg.width
         const watermarkWidth = watermarkImg.width * scale
         const watermarkHeight = watermarkImg.height * scale
         
-        const x = (img.width - watermarkWidth) * watermarkPosition.x
-        const y = (img.height - watermarkHeight) * watermarkPosition.y
+        const padding = img.width * 0.02
+
+        const x =
+          padding +
+          (img.width - watermarkWidth - padding * 2) *
+            watermarkPosition.x
+
+        const y =
+          padding +
+          (img.height - watermarkHeight - padding * 2) *
+            watermarkPosition.y
         
-        ctx.globalAlpha = 0.7
+        ctx.globalAlpha = 0.85
         ctx.drawImage(watermarkImg, x, y, watermarkWidth, watermarkHeight)
         
         // Add text watermark next to image
-        ctx.font = `${Math.max(16, img.width / 40)}px Arial`
+        const titleSize = Math.round(img.width * 0.025)
+        const phoneSize = Math.round(img.width * 0.018)
+
+        ctx.font = `bold ${titleSize}px Arial`
         ctx.fillStyle = 'white'
         ctx.textAlign = 'left'
         ctx.fillText('RealtyProv1', x + watermarkWidth + 10, y + watermarkHeight / 2)
@@ -80,14 +93,19 @@ export default function Editor() {
         
         setImageLoaded(true)
       }
-      img.src = URL.createObjectURL(selectedFile)
-    }
+    
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+      const imageUrl = URL.createObjectURL(selectedFile)
+
     watermarkImg.src = '/RealtyProv1.png'
+    }
   }
 
   useEffect(() => {
     drawCanvas()
-  }, [selectedFile, watermarkPosition])
+  }, [selectedFile, watermarkPosition, contactNumber])
 
   const handleSave = () => {
     if (!canvasRef.current) return

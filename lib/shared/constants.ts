@@ -20,10 +20,9 @@ export const FIELD_LABELS: Partial<Record<keyof Property, string>> = {
   floorArea: 'Floor Area',
   bedrooms: 'Bedrooms',
   bathrooms: 'Bathrooms',
-  garage: 'Garage',
   description: 'Description',
   notes: 'Notes',
-  previewPhoto: 'Preview Photo',
+  // preview_photo: 'Preview Photo',
   photos: 'Gallery',
   fbLink: 'Facebook Link',
   videoUrl: 'Video URL',
@@ -50,7 +49,6 @@ export const LARGE_FIELDS = [
 export const NUMERIC_FIELDS = [
     "Bedroom",
     "Bathroom",
-    "Garage",
     "Lot Area sqm",
     "Floor Area sqm",
 ]
@@ -135,7 +133,6 @@ const intFields = [
   "property_id",
   "Bedroom",
   "T&B",
-  "Garage",
 ]
 
 export const VIEW_MODES = ['grid', 'list'] as const

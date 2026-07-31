@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { Property } from '@/lib/shared/types/public'
-import { Pencil, X, Check, Loader2, MapPin } from 'lucide-react'
+import { Pencil, X, MapPin, ExternalLink } from 'lucide-react'
 import PropertyDialog from "@/lib/shared/components/property/PropertyDialog"
-import { saveProperty} from "@/lib/shared/service/PropertyService"
+import { saveProperty } from "@/lib/shared/service/PropertyService"
 
 interface Props {
   listing: Property
@@ -16,7 +16,7 @@ const TYPES = ['Residential', 'House and Lot', 'Lot only', 'Commercial', 'Condo'
 
 export function useMaintenanceMode() {
   const [on, setOn] = useState(false)
-    
+  
   useEffect(() => {
     const sync = () => setOn(localStorage.getItem('maintenanceMode') === 'true')
     sync()
@@ -33,11 +33,8 @@ export function useMaintenanceMode() {
 // ── Map preview modal ─────────────────────────────────────────────────────────
 
 function MapModal({ url, onClose }: { url: string; onClose: () => void }) {
-  // Convert any Google Maps share URL to embeddable format
   const embedUrl = (() => {
     if (url.includes('maps/embed')) return url
-    // https://maps.app.goo.gl/... or https://goo.gl/maps/...
-    // Use the /maps?q= embed approach with the raw URL as query
     const q = encodeURIComponent(url)
     return `https://maps.google.com/maps?q=${q}&output=embed`
   })()
@@ -80,11 +77,12 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
   const maintenance = useMaintenanceMode()
   const [open, setOpen] = useState(false)
   const [showMap, setShowMap] = useState(false)
-
+  const [properties, setProperties] = useState(listing)
+  
   // Fields
   const [type, setType] = useState(listing.type ?? '')
   const [notes, setNotes] = useState(listing.notes ?? '')
-  const [photo, setPhoto] = useState(listing.previewPhoto ?? '')
+  const [photo, setPhoto] = useState(listing.preview_photo ?? '')
   const [listingAgent, setlistingAgent] = useState(listing.listingAgent ?? '')
   const [price, setPrice] = useState(listing.listingPrice != null ? String(listing.listingPrice) : '')
   const [lotArea, setLotArea] = useState(listing.lotArea != null ? String(listing.lotArea) : '')
@@ -94,7 +92,7 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
   const [location, setLocation] = useState(listing.location ?? '')
   const [status, setStatus] = useState(listing.status ?? '')
   const [listingMode, setListingMode] = useState(listing.listingMode ?? '')
-  const [form, setForm] = useState({...listing,})
+  const [form, setForm] = useState({ ...listing })
   const [bedrooms, setBedrooms] = useState(
     listing.bedrooms != null ? String(listing.bedrooms) : ''
   )
@@ -104,53 +102,45 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
   const [videoUrl, setVideoUrl] = useState(listing.videoUrl ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [selectedProperty, setSelectedProperty] =
-      useState<Property | null>(null)
-    const [showDialog, setShowDialog] =
-      useState(false)
-      
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
+  const [showDialog, setShowDialog] = useState(false)
+
+  // Safely extract FB link from listing prop (handling snake_case or camelCase)
+  const fbLink = (listing as any)?.fb_link || (listing as any)?.fbLink
+
   useEffect(() => {
     if (!open) return
 
     setForm({
-        ...listing,
+      ...listing,
     })
 
     setSaved(false)
-}, [listing, open])
-
-  if (!maintenance) return null
+  }, [listing, open])
 
   const handleSave = async () => {
     try {
+      setSaving(true)
       const { getTenantScopedClient } = await import('@/lib/supabase/browserTenantClient')
       const { supabase, listingsTable } = await getTenantScopedClient()
 
-
-      const payload = {
+      const payload: Record<string, any> = {
         title: form.title,
         location: form.location,
         type: form.type,
         listing_mode: form.listingMode,
         status: form.status,
-
         listing_price: form.listingPrice,
         lot_area_sqm: form.lotArea,
         floor_area_sqm: form.floorArea,
-
         bedroom: form.bedrooms,
         bathroom: form.bathrooms,
-
-        preview_photo: form.previewPhoto,
-
+        preview_photo: form.preview_photo,
         notes: form.notes,
-
         listing_agent: form.listingAgent,
-
         map_url: form.mapUrl,
-
         video_url: form.videoUrl,
-    }
+      }
 
       if (price.trim())
         payload.listing_price = parseFloat(price.replace(/,/g, ''))
@@ -166,81 +156,86 @@ export default function MaintenanceEditBar({ listing, onUpdated }: Props) {
         notes,
         title,
         listingAgent,
-        previewPhoto: photo,
+        preview_photo: photo,
         listingPrice: price.trim() ? parseFloat(price.replace(/,/g, '')) : listing.listingPrice,
         lotArea: lotArea.trim() ? parseFloat(lotArea) : listing.lotArea,
         floorArea: floorArea.trim() ? parseFloat(floorArea) : listing.floorArea,
         mapUrl: mapUrl,
       })
-      
-      console.log("Table:", listingsTable);
-      console.log("listing =", listing);
-      console.log("listing.property_id =", listing.propertyId);
-      console.log({
-      table: listingsTable,
-      propertyId: listing.propertyId,
-      id: listing.id,
-      payload});
 
       const { error } = await supabase
         .from(listingsTable)
         .update(payload)
         .eq("property_id", listing.propertyId)
 
-    if (error) {
+      if (error) {
         console.error(error)
         return
-    }
+      }
 
-      console.log("Payload:", payload);
       setSaved(true)
-      setTimeout(() => { setOpen(false); setSaved(false) }, 800)
+      setTimeout(() => { setShowDialog(false); setSaved(false) }, 800)
     } finally {
       setSaving(false)
     }
   }
-  const [properties, setProperties] =
-      useState(listing)
 
-const handleSaveProperty = async (property: Property) => {
-    const [selectedProperty, setSelectedProperty] =
-      useState<Property | null>(null)
-    const [showDialog, setShowDialog] =
-      useState(false)
-    const [properties, setProperties] =
-      useState(listing)
+  const handleSaveProperty = async (property: Property) => {
     const updated = await saveProperty(property)
-    
-
     setSelectedProperty(updated)
     setShowDialog(false)
   }
+
   const columns = useMemo(() => {
-  if (!properties) return []
+    if (!properties) return []
     return Object.keys(properties)
   }, [properties])
+
+  // NOTE: If you want the FB link to show ALL THE TIME (even when maintenance mode is off), 
+  // remove the line below. Otherwise, both buttons will show when maintenance mode is active.
+  if (!maintenance) return null
+
   return (
     <>
-      {/* Edit button */}
-      <button
-        onClick={e => { e.preventDefault(); e.stopPropagation(); setOpen(true) }}
-        className="absolute top-2 right-2 z-20 flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-lg transition-all hover:scale-105"
-        style={{ background: 'hsl(var(--primary))', color: '#fff' }}
-        title="Edit listing (maintenance mode)"
-      >
-        <Pencil className="w-3 h-3" /> Edit
-      </button>
+      {/* Top Right Action Controls Group */}
+      <div className="absolute top-2 right-2 z-20 flex items-center gap-2">
+        {fbLink && (
+          <a
+            href={fbLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-md bg-blue-600 text-white transition-all hover:bg-blue-700 hover:scale-105"
+            title="View listing on Facebook"
+          >
+            <ExternalLink className="w-3 h-3" /> Facebook
+          </a>
+        )}
+
+        {/* Edit button */}
+        <button
+          onClick={e => { 
+            e.preventDefault(); 
+            e.stopPropagation(); 
+            setShowDialog(true);
+          }}
+          className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-md transition-all hover:scale-105"
+          style={{ background: 'hsl(var(--primary))', color: '#fff' }}
+          title="Edit listing (maintenance mode)"
+        >
+          <Pencil className="w-3 h-3" /> Edit
+        </button>
+      </div>
 
       {/* Edit modal */}
-      {open && (
+      {showDialog && (
         <PropertyDialog
           property={listing}
           open={showDialog}
           onClose={() => setShowDialog(false)}
           columns={columns}
           onSave={handleSaveProperty}
-  
-      />
+        />
       )}
 
       {/* Map preview modal */}
